@@ -54,6 +54,7 @@ private val Accent=Color(0xff1765c1)
 private val Backdrop=Color(0xfff7f8fb)
 private val Tint=Color(0xffedf4fc)
 private val LocalReduced=staticCompositionLocalOf {false}
+private val LocalSeeking=staticCompositionLocalOf {false}
 @Composable fun PracticeApp(model: PracticeModel) {
     val environment=rememberVisualEnvironment()
     val style=materialStyle(environment,model.reduceTransparency,model.enhanceContrast)
@@ -82,7 +83,7 @@ private val LocalReduced=staticCompositionLocalOf {false}
         }} finally {seeking=false}
     }
     val sceneScale by animateFloatAsState(if(settings&&!reduced).988f else 1f,if(reduced)snap() else spring(1f,500f),label="sheet-space")
-    CompositionLocalProvider(LocalReduced provides reduced,LocalMaterialStyle provides style,LocalBackdropSource provides backdrop) {
+    CompositionLocalProvider(LocalReduced provides reduced,LocalSeeking provides seeking,LocalMaterialStyle provides style,LocalBackdropSource provides backdrop) {
         MaterialTheme(colorScheme=lightColorScheme(primary=Accent,background=Backdrop,surface=Color.White,onSurface=Ink,onBackground=Ink)) {
             Box(Modifier.fillMaxSize().background(Backdrop).safeDrawingPadding()) {
                 SharedTransitionLayout(Modifier.graphicsLayer {scaleX=sceneScale;scaleY=sceneScale}.captureBackdrop(backdrop)) {
@@ -93,7 +94,7 @@ private val LocalReduced=staticCompositionLocalOf {false}
                         else LessonScreen(model,open,shared,this)
                     }
                 }
-                AnimatedVisibility(model.opened!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp),
+                AnimatedVisibility(model.opened!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp).graphicsLayer {alpha=if(seeking)(1f-gesture.value).coerceIn(0f,1f) else 1f},
                     enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(1f,600f)){it/3},
                     exit=if(reduced)ExitTransition.None else fadeOut(tween(100))) {
                     Transport(model,{settings=true},Modifier.padding(horizontal=28.dp))
@@ -105,22 +106,22 @@ private val LocalReduced=staticCompositionLocalOf {false}
     }
 }
 @Composable private fun SharedTransitionScope.containerModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
-    val reduced=LocalReduced.current
+    val reduced=LocalReduced.current;val seeking=LocalSeeking.current
     return Modifier.sharedBounds(rememberSharedContentState("container-${c.id}"),visibility,
-        boundsTransform={_,_->if(reduced)snap() else spring(1f,500f)},
+        boundsTransform={_,_->if(reduced)snap() else if(seeking)tween(360,easing=LinearEasing) else spring(1f,500f)},
         enter=if(reduced)EnterTransition.None else fadeIn(tween(180,delayMillis=80)),
         exit=if(reduced)ExitTransition.None else fadeOut(tween(100)),
         resizeMode=SharedTransitionScope.ResizeMode.RemeasureToBounds)
 }
 @Composable private fun SharedTransitionScope.coverModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
-    val reduced=LocalReduced.current
+    val reduced=LocalReduced.current;val seeking=LocalSeeking.current
     return Modifier.sharedElement(rememberSharedContentState("cover-${c.id}"),visibility,
-        boundsTransform={_,_->if(reduced)snap() else spring(dampingRatio=1f,stiffness=500f)})
+        boundsTransform={_,_->if(reduced)snap() else if(seeking)tween(360,easing=LinearEasing) else spring(dampingRatio=1f,stiffness=500f)})
 }
 @Composable private fun SharedTransitionScope.titleModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
-    val reduced=LocalReduced.current
+    val reduced=LocalReduced.current;val seeking=LocalSeeking.current
     return Modifier.sharedElement(rememberSharedContentState("title-${c.id}"),visibility,
-        boundsTransform={_,_->if(reduced)snap() else spring(dampingRatio=1f,stiffness=500f)})
+        boundsTransform={_,_->if(reduced)snap() else if(seeking)tween(360,easing=LinearEasing) else spring(dampingRatio=1f,stiffness=500f)})
 }
 @Composable private fun Cover(c: Course,repo: CourseRepository,modifier: Modifier) {
     val bitmap by produceState<android.graphics.Bitmap?>(repo.cachedCover(c),c.id,c.version){
@@ -183,7 +184,8 @@ private val LocalReduced=staticCompositionLocalOf {false}
             if(reduced)list.scrollToItem(selected+1) else list.animateScrollToItem(selected+1)
         }
     }
-    val corner by visibility.transition.animateDp(transitionSpec={if(reduced)snap() else spring(1f,500f)},label="course-corner") {if(it==EnterExitState.Visible)0.dp else 18.dp}
+    val seeking=LocalSeeking.current
+    val corner by visibility.transition.animateDp(transitionSpec={if(reduced)snap() else if(seeking)tween(360,easing=LinearEasing) else spring(1f,500f)},label="course-corner") {if(it==EnterExitState.Visible)0.dp else 18.dp}
     Box(with(shared){containerModifier(open.course,visibility)}.clip(RoundedCornerShape(corner)).background(Backdrop)
         .then(with(shared){Modifier.skipToLookaheadSize()}).fillMaxSize().testTag("lesson")) {
         LazyColumn(state=list,contentPadding=PaddingValues(16.dp,12.dp,16.dp,128.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {

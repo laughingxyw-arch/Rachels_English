@@ -157,15 +157,17 @@ class NativePracticeTest {
    screenshot("course-gesture-mid")
    val gestureBounds=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot
    assertTrue("The gesture must move the course surface before release",gestureBounds.height<expanded.height)
+   val expected=expanded.height+(course.height-expanded.height)*.55f
+   assertEquals("Gesture progress must directly control the container geometry",expected,gestureBounds.height,20f)
    rule.runOnUiThread {rule.activity.onBackPressedDispatcher.dispatchOnBackCancelled()}
    frames(1000)
    assertNotNull(model.opened)
    val restored=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot
    assertEquals("Cancelled gestures must restore the full reading surface",expanded.height,restored.height,2f)
    rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
-   rule.waitForIdle();rule.mainClock.advanceTimeByFrame();rule.waitForIdle()
+   rule.waitForIdle();rule.mainClock.advanceTimeByFrame();rule.waitForIdle();frames(160)
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
-   frames(160);screenshot("course-return-mid")
+   screenshot("course-return-mid")
    frames(1000)
    rule.onNodeWithTag("library").assertExists()
   } finally {rule.mainClock.autoAdvance=true;animationScale("0")}
