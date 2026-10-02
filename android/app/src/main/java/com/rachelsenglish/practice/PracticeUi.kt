@@ -154,7 +154,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
                         val context=LocalContext.current
                         GlyphButton("打开原视频","external",{runCatching {context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://www.youtube.com/watch?v=${open.course.id}")))}})
                     }
-                    ModeSelector(model.drill,model::setDrill)
+                    ModeSelector(model.drill,model::updateDrill)
                 }
             }
             items(open.lesson.groups,key={it.id}) {sentence ->
@@ -216,14 +216,14 @@ private val LocalReduced=staticCompositionLocalOf { false }
     ModalBottomSheet(onDismissRequest=dismiss,containerColor=Color(0xfffaf9ff),sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)) {
         Column(Modifier.fillMaxWidth().padding(horizontal=28.dp).padding(bottom=24.dp)) {
             Row(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalAlignment=Alignment.CenterVertically){Text("练习设置",fontSize=17.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f));GlyphButton("关闭设置","close",dismiss)}
-            Setting("循环当前组",model.loop,model::setLoop)
-            Setting("留白跟读",model.shadow,model::setShadow)
+            Setting("循环当前组",model.loop,model::updateLoop)
+            Setting("留白跟读",model.shadow,model::updateShadow)
             if(model.shadow){Row(Modifier.fillMaxWidth().padding(vertical=8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 listOf(1f,1.5f,2f).forEach {factor->Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(if(model.gap==factor)Tint else Color.Transparent)
-                    .selectable(model.gap==factor,role=Role.RadioButton,onClick={model.setGap(factor)}).padding(12.dp),contentAlignment=Alignment.Center){Text("${factor}×",fontSize=13.sp,color=if(model.gap==factor)Accent else Muted)}
+                    .selectable(model.gap==factor,role=Role.RadioButton,onClick={model.updateGap(factor)}).padding(12.dp),contentAlignment=Alignment.Center){Text("${factor}×",fontSize=13.sp,color=if(model.gap==factor)Accent else Muted)}
             }}}
-            Setting("中文翻译",model.translation,model::setTranslation)
-            Setting("发音提示",model.cues,model::setCues)
+            Setting("中文翻译",model.translation,model::updateTranslation)
+            Setting("发音提示",model.cues,model::updateCues)
         }
     }
 }

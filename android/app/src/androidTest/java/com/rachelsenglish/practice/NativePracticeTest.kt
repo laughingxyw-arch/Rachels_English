@@ -29,7 +29,7 @@ class NativePracticeTest {
   rule.onNodeWithContentDescription("练习设置").performClick()
   screenshot("settings")
   rule.onNodeWithText("中文翻译").performClick()
-  rule.runOnIdle {assertTrue(model.translation);model.setTranslation(false)}
+  rule.runOnIdle {assertTrue(model.translation);model.updateTranslation(false)}
   rule.onNodeWithContentDescription("关闭设置").performClick()
   rule.waitForIdle()
   rule.onNodeWithContentDescription("返回课程").performClick()

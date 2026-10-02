@@ -70,12 +70,12 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         }catch(e: kotlinx.coroutines.CancellationException){throw e}catch(e: Exception){message="课程下载失败，请稍后重试。"}finally{if(token==openToken)loadingId=null}
     }}
     fun back(){openToken++;openJob?.cancel();loadingId=null;stop();opened=null}
-    fun setDrill(value: Boolean){stop();drill=value;playback=playback.copy(progress=0f)}
-    fun setTranslation(v: Boolean){translation=v;prefs.edit().putBoolean("translation",v).apply()}
-    fun setCues(v: Boolean){cues=v;prefs.edit().putBoolean("cues",v).apply()}
-    fun setLoop(v: Boolean){loop=v;prefs.edit().putBoolean("loop",v).apply()}
-    fun setShadow(v: Boolean){shadow=v;prefs.edit().putBoolean("shadow",v).apply()}
-    fun setGap(v: Float){gap=v;prefs.edit().putFloat("gap",v).apply()}
+    fun updateDrill(value: Boolean){stop();drill=value;playback=playback.copy(progress=0f)}
+    fun updateTranslation(v: Boolean){translation=v;prefs.edit().putBoolean("translation",v).apply()}
+    fun updateCues(v: Boolean){cues=v;prefs.edit().putBoolean("cues",v).apply()}
+    fun updateLoop(v: Boolean){loop=v;prefs.edit().putBoolean("loop",v).apply()}
+    fun updateShadow(v: Boolean){shadow=v;prefs.edit().putBoolean("shadow",v).apply()}
+    fun updateGap(v: Float){gap=v;prefs.edit().putFloat("gap",v).apply()}
     fun start(selected: Int=playback.selected,all: Boolean=false){val data=opened?:return;stop();queue=practiceQueue(data.lesson,selected,drill,all);index=0;if(queue.isNotEmpty())begin()}
     fun previous(){start((playback.selected-1).coerceAtLeast(0))}
     fun next(){val last=opened?.lesson?.groups?.lastIndex?:return;start((playback.selected+1).coerceAtMost(last))}
