@@ -160,6 +160,8 @@ class NativePracticeTest {
    rule.runOnUiThread {rule.activity.onBackPressedDispatcher.dispatchOnBackCancelled()}
    frames(1000)
    assertNotNull(model.opened)
+   val restored=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot
+   assertEquals("Cancelled gestures must restore the full reading surface",expanded.height,restored.height,2f)
    rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
    rule.waitForIdle();rule.mainClock.advanceTimeByFrame();rule.waitForIdle()
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
@@ -190,6 +192,8 @@ class NativePracticeTest {
   val pixels=surface.captureToImage().toPixelMap()
   val left=pixels[pixels.width/4,pixels.height*3/4];val right=pixels[pixels.width*3/4,pixels.height*3/4]
   assertTrue("Real background must influence the floating material",left.red-right.red>.025f&&right.blue-left.blue>.025f)
+  val nearLeft=pixels[pixels.width/2-6,pixels.height*3/4];val nearRight=pixels[pixels.width/2+6,pixels.height*3/4]
+  assertTrue("The background seam must be blurred rather than only tinted",left.red-nearLeft.red>.005f&&nearRight.red-right.red>.005f)
   screenshot("material-sample")
   rule.runOnIdle {enhanced.value=true}
   rule.waitForIdle();Thread.sleep(200)

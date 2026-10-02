@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
@@ -122,7 +123,11 @@ private val LocalReduced=staticCompositionLocalOf {false}
         boundsTransform={_,_->if(reduced)snap() else spring(dampingRatio=1f,stiffness=500f)})
 }
 @Composable private fun Cover(c: Course,repo: CourseRepository,modifier: Modifier) {
-    val bitmap by produceState<android.graphics.Bitmap?>(repo.cachedCover(c),c.id,c.version){value=repo.cover(c)}
+    val bitmap by produceState<android.graphics.Bitmap?>(repo.cachedCover(c),c.id,c.version){
+        // Return decoding results through the UI dispatcher before notifying Compose snapshots.
+        // Decoding itself remains on IO inside the repository.
+        value=withContext(Dispatchers.Main.immediate){repo.cover(c)}
+    }
     Box(modifier.clip(RoundedCornerShape(14.dp)).background(Tint)) {
         bitmap?.let {Image(it.asImageBitmap(),null,Modifier.fillMaxSize().testTag("cover-ready-${c.id}"),contentScale=ContentScale.Crop)}
     }

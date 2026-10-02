@@ -71,3 +71,5 @@ html[data-high-contrast] .sentence-button,html[data-high-contrast] .translation,
 html[data-high-contrast] .phrase.speaking{color:#1765c1}
 html[data-high-contrast] .cues{opacity:1;color:#1765c1}
 @media(forced-colors:active){.player,.settings-panel{border:1px solid CanvasText}.player:before,.settings-panel{background:Canvas;backdrop-filter:none}.reading-trace path{stroke:Highlight}.mode-plate{background:Highlight}}
+html[data-high-contrast] .setting-row,html[data-high-contrast] .settings-heading,html[data-high-contrast] #appearance-toggle,html[data-high-contrast] #repeat-toggle,html[data-high-contrast] .controls button,html[data-high-contrast] .settings summary{color:#101721}
+html[data-high-contrast] .toggle:not(:checked){border:1px solid #454d5a;background:#e3e9f1}
