@@ -135,6 +135,7 @@ class NativePracticeTest {
   fun titleLines()=rule.onAllNodesWithTag("course-title-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().map {it.config[CourseTitleLineCountKey]}
   fun badgeValues()=rule.onAllNodesWithTag("cover-duration-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().map {it.config[CoverBadgeOpacityKey]}
   try {
+   rule.activity.getSharedPreferences("practice-native",0).edit().putInt("position.epfQlb_Tgco",0).commit()
    scale("1");rule.activityRule.scenario.recreate()
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]

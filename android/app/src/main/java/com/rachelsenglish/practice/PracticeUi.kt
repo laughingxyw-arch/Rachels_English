@@ -184,7 +184,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         bitmap?.let {Image(it.asImageBitmap(),null,Modifier.fillMaxSize().testTag("cover-ready-${c.id}"),contentScale=ContentScale.Crop)}
         Text("${c.seconds}s",fontSize=10.sp,color=Color.White,
             modifier=Modifier.align(Alignment.BottomEnd).padding(5.dp).graphicsLayer {alpha=badge.value}
-                .testTag("cover-duration-${c.id}").semantics {this[CoverBadgeOpacityKey]=badge.value}
+                .testTag("cover-duration-${c.id}").clearAndSetSemantics {this[CoverBadgeOpacityKey]=badge.value}
                 .clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha=.55f)).padding(5.dp,2.dp))
     }
 }
@@ -209,7 +209,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
             Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale;scaleY=scale}.clip(RoundedCornerShape(18.dp)).background(Color.White)
                 .then(with(shared){Modifier.skipToLookaheadSize()})
                 .clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={model.open(course)})
-                .testTag("course-${course.id}").fillMaxWidth().heightIn(min=88.dp).padding(vertical=8.dp),
+                .testTag("course-${course.id}").semantics {stateDescription="${course.seconds} 秒 · ${course.count} 句"}.fillMaxWidth().heightIn(min=88.dp).padding(vertical=8.dp),
                 verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
                 Box {
                     Cover(course,model.repository,with(shared){coverModifier(course,visibility)}.size(112.dp,70.dp),coverBadge(visibility,true))
