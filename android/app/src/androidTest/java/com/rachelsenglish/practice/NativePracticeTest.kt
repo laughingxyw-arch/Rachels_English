@@ -181,6 +181,46 @@ class NativePracticeTest {
    rule.onNodeWithTag("library").assertExists()
   } finally {rule.mainClock.autoAdvance=true;animationScale("0")}
  }
+ @Test fun releasedBackGestureLandsWithoutATerminalHeightJump(){
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  fun animationScale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+  fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(10)}
+  try {
+   animationScale("1");rule.activityRule.scenario.recreate()
+   rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
+   val target=rule.onNodeWithTag("course-surface-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
+   rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
+   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
+   rule.waitForIdle();rule.mainClock.autoAdvance=false
+   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   rule.runOnUiThread {
+    val back=rule.activity.onBackPressedDispatcher
+    back.dispatchOnBackStarted(androidx.activity.BackEventCompat(0f,200f,0f,androidx.activity.BackEventCompat.EDGE_LEFT))
+    back.dispatchOnBackProgressed(androidx.activity.BackEventCompat(160f,200f,.94f,androidx.activity.BackEventCompat.EDGE_LEFT))
+   }
+   repeat(12){frame()}
+   var lastHeight=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot.height
+   rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
+   var landingHeight: Float?=null
+   val samples=mutableListOf(lastHeight)
+   for(i in 0..120){
+    frame()
+    if(model.opened==null){
+     landingHeight=rule.onNodeWithTag("course-surface-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.height
+     break
+    }
+    lastHeight=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot.height
+    samples.add(lastHeight)
+   }
+   assertNotNull("A released back gesture must finish",landingHeight)
+   val landed=landingHeight!!
+   assertEquals("The final animation frame must land on the same height as the static card; tail=$samples",lastHeight,landed,1f)
+   assertEquals("The resting card must retain its original height",target.height,landed,1f)
+   repeat(12){frame()}
+   assertEquals("No layout correction may resize the card after handoff",landed,rule.onNodeWithTag("course-surface-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.height,1f)
+   screenshot("course-gesture-landed")
+  } finally {rule.mainClock.autoAdvance=true;animationScale("0")}
+ }
  @Test fun settingsBackgroundTracksOpeningClosingAndDragReversal(){
   val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
   fun animationScale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
