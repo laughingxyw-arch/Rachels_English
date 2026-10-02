@@ -27,6 +27,8 @@ for f in used:
 catalog=json.dumps(dict(schemaVersion=1,courses=courses),ensure_ascii=False,indent=2)
 for base in bases:(base/'catalog.json').write_text(catalog)
 (OUT/'_headers').write_text('/catalog.json\n  Cache-Control: no-cache\n/packages/*\n  Cache-Control: public, max-age=31536000, immutable\n')
+apk=ROOT/'downloads/rachels-english.apk'
+if apk.exists():shutil.copy2(apk,OUT/'rachels-english.apk')
 assets=list(OUT.rglob('*'));files=[f for f in assets if f.is_file()]
 assert len(files)<=19000,'Free static asset file budget exceeded'
 assert all(f.stat().st_size<=25*1024*1024 for f in files),'Free static asset size exceeded'

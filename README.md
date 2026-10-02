@@ -6,7 +6,7 @@
 
 ## 安卓安装
 
-GitHub 的 **Releases** 页面提供 `rachels-english.apk` 预览包。允许手机浏览器安装此来源的应用后安装。支持 Android 8+，目标平台 Android 16。
+可直接下载 https://rachels-english.pages.dev/rachels-english.apk ，GitHub 的 **Releases** 页面也提供 `rachels-english.apk` 预览包。允许手机浏览器安装此来源的应用后安装。支持 Android 8+，目标平台 Android 16。
 
 界面与首批课程内置 APK。启动先显示本地课程，后台同步云端课程列表；首页右上角可手动检查更新。点击新增或修订课程后下载并校验课程包，成功后安装到私有目录。断网仍可学习已下载课程。离开 App 暂停播放，第一版不包含后台音频服务。
 

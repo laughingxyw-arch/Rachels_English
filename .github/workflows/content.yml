@@ -19,6 +19,14 @@ jobs:
           python-version: '3.12'
       - run: python3 scripts/build_content.py
       - run: python3 scripts/check_content.py
+      - name: Preserve latest installation download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh release list --repo "${{ github.repository }}" --limit 1 --json tagName --jq '.[0].tagName // empty')
+          if [ -n "$tag" ]; then
+            gh release download "$tag" --repo "${{ github.repository }}" --pattern rachels-english.apk --dir cloud/dist
+          fi
       - name: Publish static courses when deployment token is configured
         if: env.CLOUDFLARE_API_TOKEN != ''
         run: npx --yes wrangler@4.146.0 pages deploy cloud/dist --project-name rachels-english --branch main
