@@ -61,9 +61,7 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: |
-            cd android && gradle connectedDebugAndroidTest --no-daemon
-            adb pull /sdcard/Android/data/com.rachelsenglish.practice/files/screenshots app/build/native-screenshots
+          script: bash scripts/check_android_device.sh
       - name: Verify APK signature
         run: '"$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk'
       - name: Save lint reports

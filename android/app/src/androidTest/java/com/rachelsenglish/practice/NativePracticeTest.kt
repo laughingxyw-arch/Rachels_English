@@ -16,11 +16,11 @@ class NativePracticeTest {
  @get:Rule val rule=createAndroidComposeRule<MainActivity>()
  @Test fun bundledLessonPlaysAndSettingsRemainNative(){
   screenshot("home")
-  rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+  rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
   rule.onNodeWithTag("sentence-0").performClick()
   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
-  rule.waitUntil(10000){model.playback.progress>.05f}
+  rule.waitUntil(10000){model.playback.running&&model.playback.progress>.05f&&model.playback.progress<.8f}
   rule.onNodeWithContentDescription("暂停").performClick()
   rule.runOnIdle {assertTrue(model.playback.paused);assertFalse(model.translation)}
   screenshot("lesson")

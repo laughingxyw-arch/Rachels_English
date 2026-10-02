@@ -42,7 +42,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.filterNotNull
 
 private val Ink=Color(0xff25283b)
-private val Muted=Color(0xff777b90)
+private val Muted=Color(0xff6d7288)
 private val Accent=Color(0xff6559b5)
 private val Backdrop=Color(0xfff7f8fb)
 private val Tint=Color(0xfff0effc)
