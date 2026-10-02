@@ -106,7 +106,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
         boundsTransform={_,_->if(reduced)snap() else spring(dampingRatio=.92f,stiffness=420f)})
 }
 @Composable private fun Cover(c: Course,repo: CourseRepository,modifier: Modifier) {
-    val bitmap by produceState<android.graphics.Bitmap?>(null,c.id,c.version){value=repo.cover(c)}
+    val bitmap by produceState<android.graphics.Bitmap?>(repo.cachedCover(c),c.id,c.version){value=repo.cover(c)}
     Box(modifier.clip(RoundedCornerShape(14.dp)).background(Tint)) {
         bitmap?.let {Image(it.asImageBitmap(),null,Modifier.fillMaxSize().testTag("cover-ready-${c.id}"),contentScale=ContentScale.Crop)}
     }

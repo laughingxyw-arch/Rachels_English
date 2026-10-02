@@ -23,6 +23,10 @@ class CourseRepository(private val context: Context) {
     private val prefs=context.getSharedPreferences("MainActivity",Context.MODE_PRIVATE)
     private val mutex=Mutex()
     private val syncMutex=Mutex()
+    private val coverCache=object: android.util.LruCache<String,Bitmap>(8*1024*1024) {
+        override fun sizeOf(key: String,value: Bitmap)=value.byteCount
+    }
+    fun cachedCover(c: Course): Bitmap?=coverCache.get("${c.id}/${c.version}")
     private val bundled=parseCatalog(context.assets.open("site/catalog.json").bufferedReader().use { it.readText() })
     var courses: List<Course> = runCatching { parseCatalog(File(context.filesDir,"catalog.json").readText()) }.getOrDefault(bundled)
         private set
@@ -84,10 +88,11 @@ class CourseRepository(private val context: Context) {
     private fun bundledLesson(c: Course)=OpenLesson(c,Lesson.parse(context.assets.open("site/lessons/${c.id}.json").bufferedReader().use { it.readText() }),null)
     fun audio(open: OpenLesson,path: String): Uri {require(safePath(path));return open.directory?.let { Uri.fromFile(File(it,path)) }?:Uri.parse("asset:///site/$path")}
     suspend fun cover(c: Course): Bitmap? = withContext(Dispatchers.IO) {
+        cachedCover(c)?.let {return@withContext it}
         runCatching { val f=File(context.filesDir,"covers/${c.version}/${c.cover}")
             val options=BitmapFactory.Options().apply { inSampleSize=2 }
             if(f.isFile)BitmapFactory.decodeFile(f.path,options) else context.assets.open("site/${c.cover}").use { BitmapFactory.decodeStream(it,null,options) }
-        }.getOrNull()
+        }.getOrNull()?.also {coverCache.put("${c.id}/${c.version}",it)}
     }
     private fun fetch(path: String,limit: Int): ByteArray {
         require(safePath(path)&&BuildConfig.CONTENT_BASE_URL.startsWith("https://"))

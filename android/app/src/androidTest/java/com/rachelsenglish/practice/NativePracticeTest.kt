@@ -116,6 +116,7 @@ class NativePracticeTest {
  @Test fun courseContainerExpandsAndInterruptedBackRestoresIt(){
   val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
   fun animationScale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+  fun frames(ms: Long){repeat((ms/16).toInt()){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(20)}}
   try {
    animationScale("1");rule.activityRule.scenario.recreate()
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
@@ -125,11 +126,11 @@ class NativePracticeTest {
    val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
    rule.waitUntil(10000){model.opened!=null}
    rule.waitForIdle();rule.mainClock.advanceTimeByFrame();rule.waitForIdle()
-   rule.mainClock.advanceTimeBy(160)
+   frames(160)
    screenshot("course-expand-mid")
    val middle=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot
    assertTrue("The course surface must expand beyond the source row",middle.height>course.height)
-   rule.mainClock.advanceTimeBy(1000)
+   frames(1000)
    val expanded=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot
    assertTrue("The container must keep growing through the transition",expanded.height>=middle.height)
    rule.runOnUiThread {
@@ -138,13 +139,13 @@ class NativePracticeTest {
     back.dispatchOnBackProgressed(androidx.activity.BackEventCompat(100f,200f,.55f,androidx.activity.BackEventCompat.EDGE_LEFT))
     back.dispatchOnBackCancelled()
    }
-   rule.mainClock.advanceTimeBy(1000)
+   frames(1000)
    assertNotNull(model.opened)
    rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
    rule.waitForIdle();rule.mainClock.advanceTimeByFrame();rule.waitForIdle()
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
-   rule.mainClock.advanceTimeBy(160);screenshot("course-return-mid")
-   rule.mainClock.advanceTimeBy(1000)
+   frames(160);screenshot("course-return-mid")
+   frames(1000)
    rule.onNodeWithTag("library").assertExists()
   } finally {rule.mainClock.autoAdvance=true;animationScale("0")}
  }
