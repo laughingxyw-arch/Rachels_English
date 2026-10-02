@@ -181,6 +181,47 @@ class NativePracticeTest {
    rule.onNodeWithTag("library").assertExists()
   } finally {rule.mainClock.autoAdvance=true;animationScale("0")}
  }
+ @Test fun settingsBackgroundTracksOpeningClosingAndDragReversal(){
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  fun animationScale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+  fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(15)}
+  fun width()=rule.onNodeWithTag("reading-space",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.width
+  try {
+   animationScale("1");rule.activityRule.scenario.recreate()
+   rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
+   rule.onNodeWithTag("lesson").assertExists()
+   rule.waitForIdle()
+   val full=width()
+   rule.mainClock.autoAdvance=false
+   rule.onNodeWithContentDescription("练习设置").performClick()
+   val opening=mutableListOf<Float>()
+   repeat(50){frame();opening.add(width());if(it==5)screenshot("settings-opening")}
+   val contracted=width()
+   assertTrue("The scene must retain the subtle retreat",contracted<full*.995f)
+   assertTrue("Opening must contain intermediate scales, not one jump",opening.any {it>contracted+.1f&&it<full-.1f})
+   assertTrue("Opening should smoothly retreat",opening.zipWithNext().all {(before,after)->after<=before+.25f})
+   val heading=rule.onNodeWithText("练习设置")
+   heading.performTouchInput {down(center);moveBy(androidx.compose.ui.geometry.Offset(0f,100f),delayMillis=32)}
+   repeat(3){frame()}
+   val dragged=width()
+   assertTrue("Dragging the sheet down must restore part of the scene",dragged>contracted+.1f)
+   heading.performTouchInput {moveBy(androidx.compose.ui.geometry.Offset(0f,-70f),delayMillis=32)}
+   repeat(3){frame()}
+   assertTrue("Reversing the drag must reverse scene depth",width()<dragged-.1f)
+   heading.performTouchInput {up()}
+   repeat(50){frame()}
+   rule.onNodeWithContentDescription("关闭设置").performClick()
+   val closing=mutableListOf<Float>();var restoredWhileVisible=false
+   repeat(50){frame();val current=width();closing.add(current)
+    if(current>contracted+.1f&&current<full-.1f&&rule.onAllNodesWithTag("settings-sheet",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty())restoredWhileVisible=true
+    if(it==5)screenshot("settings-closing")
+   }
+   assertTrue("The scene must restore while the panel is still closing",restoredWhileVisible)
+   assertTrue("Closing must contain intermediate scales",closing.any {it>contracted+.1f&&it<full-.1f})
+   assertEquals("A closed panel must restore the full scene",full,width(),.1f)
+   rule.onAllNodesWithTag("settings-sheet",useUnmergedTree=true).assertCountEquals(0)
+  } finally {rule.mainClock.autoAdvance=true;animationScale("0")}
+ }
  @Test fun backdropSamplesContentAndContrastRemovesTransparency(){
   val enhanced=androidx.compose.runtime.mutableStateOf(false)
   rule.runOnUiThread {rule.activity.setContent {

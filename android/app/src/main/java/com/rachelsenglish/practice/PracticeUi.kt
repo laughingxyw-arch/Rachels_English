@@ -27,6 +27,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalAccessibilityManager
@@ -63,6 +64,9 @@ private val LocalSeeking=staticCompositionLocalOf {false}
     val libraryState=rememberLazyGridState()
     var query by rememberSaveable {mutableStateOf("")}
     var settings by rememberSaveable(model.opened?.course?.id) {mutableStateOf(false)}
+    val settingsSheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
+    var sceneHeight by remember {mutableFloatStateOf(0f)}
+    var sheetHeight by remember {mutableFloatStateOf(0f)}
     val navigation=remember {SeekableTransitionState<OpenLesson?>(model.opened)}
     val transition=rememberTransition(navigation,label="course-space")
     val gesture=remember {Animatable(0f)}
@@ -94,11 +98,16 @@ private val LocalSeeking=staticCompositionLocalOf {false}
             }
         }} finally {if(token==gestureToken)seeking=false}
     }
-    val sceneScale by animateFloatAsState(if(settings&&!reduced).988f else 1f,if(reduced)snap() else spring(1f,500f),label="sheet-space")
     CompositionLocalProvider(LocalReduced provides reduced,LocalSeeking provides seeking,LocalMaterialStyle provides style,LocalBackdropSource provides backdrop) {
         MaterialTheme(colorScheme=lightColorScheme(primary=Accent,background=Backdrop,surface=Color.White,onSurface=Ink,onBackground=Ink)) {
-            Box(Modifier.fillMaxSize().background(Backdrop).safeDrawingPadding()) {
-                SharedTransitionLayout(Modifier.fillMaxSize().graphicsLayer {scaleX=sceneScale;scaleY=sceneScale}.captureBackdrop(backdrop)) {
+            Box(Modifier.fillMaxSize().onSizeChanged {sceneHeight=it.height.toFloat()}.background(Backdrop).safeDrawingPadding()) {
+                SharedTransitionLayout(Modifier.fillMaxSize().graphicsLayer {
+                    // Read the sheet's live offset in the layer phase, not in composition.
+                    // This also follows drag reversal and restores the background while hiding.
+                    val offset=if(settings&&sheetHeight>0f&&settingsSheet.hasExpandedState)settingsSheet.requireOffset() else Float.NaN
+                    val scale=sheetBackgroundScale(offset,sceneHeight,sheetHeight,reduced)
+                    scaleX=scale;scaleY=scale
+                }.testTag("reading-space").captureBackdrop(backdrop)) {
                     val shared=this
                     transition.AnimatedContent(contentKey={it?.course?.id?:"home"},
                         transitionSpec={(if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))).using(null)}) {open ->
@@ -113,7 +122,7 @@ private val LocalSeeking=staticCompositionLocalOf {false}
                 }
                 NoticePill(model,Modifier.align(Alignment.BottomCenter).padding(horizontal=24.dp).padding(bottom=if(model.opened!=null)88.dp else 24.dp))
             }
-            if(settings&&model.opened!=null)SettingsSheet(model,environment.highContrast){settings=false}
+            if(settings&&model.opened!=null)SettingsSheet(model,environment.highContrast,settingsSheet,{sheetHeight=it}){settings=false}
         }
     }
 }
@@ -267,11 +276,10 @@ private val LocalSeeking=staticCompositionLocalOf {false}
         if(p.running&&p.waiting&&model.shadow)Text("跟读 · %.1f 秒".format(p.waitSeconds),fontSize=11.sp,color=Muted,modifier=Modifier.padding(top=5.dp))
     }
 }
-@Composable private fun SettingsSheet(model: PracticeModel,systemContrast: Boolean,dismiss: ()->Unit) {
-    val sheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
+@Composable private fun SettingsSheet(model: PracticeModel,systemContrast: Boolean,sheet: SheetState,measure: (Float)->Unit,dismiss: ()->Unit) {
     val scope=rememberCoroutineScope()
     val close: ()->Unit={scope.launch {sheet.hide();dismiss()};Unit}
-    ModalBottomSheet(onDismissRequest=dismiss,containerColor=Color.Transparent,scrimColor=Color(0xff172539).copy(alpha=.16f),dragHandle=null,sheetState=sheet) {
+    ModalBottomSheet(onDismissRequest=dismiss,modifier=Modifier.onSizeChanged {measure(it.height.toFloat())}.testTag("settings-sheet"),containerColor=Color.Transparent,scrimColor=Color(0xff172539).copy(alpha=.16f),dragHandle=null,sheetState=sheet) {
         FrostedSurface(Modifier.fillMaxWidth(),radius=28.dp,weight=SurfaceWeight.Panel) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=28.dp).padding(top=12.dp,bottom=24.dp)) {
             Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom=14.dp).size(28.dp,3.dp).clip(RoundedCornerShape(2.dp)).background(Muted.copy(alpha=.3f)))
