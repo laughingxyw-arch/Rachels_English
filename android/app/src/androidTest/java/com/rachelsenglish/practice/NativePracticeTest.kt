@@ -287,6 +287,72 @@ class NativePracticeTest {
    assertEquals("No layout correction may resize the card after handoff",landed,rule.onNodeWithTag("course-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.height,1f)
   } finally {rule.mainClock.autoAdvance=true;animationScale("0")}
  }
+ @Test fun homeAcceptsRealTouchAtTheFirstReturnHandoffFrame(){
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  fun scale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+  fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(10)}
+  try {
+   rule.activity.getSharedPreferences("practice-native",0).edit().putInt("position.epfQlb_Tgco",0).commit()
+   scale("1");rule.activityRule.scenario.recreate()
+   rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
+   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   for(gesture in listOf(false,true))for(target in listOf("epfQlb_Tgco","4dXbgvm4_7g")){
+    rule.mainClock.autoAdvance=true
+    rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+    rule.waitUntil(10000){model.opened?.course?.id=="epfQlb_Tgco"}
+    rule.waitForIdle()
+    val origin=model.opened!!
+    rule.mainClock.autoAdvance=false
+    rule.runOnUiThread {
+     val back=rule.activity.onBackPressedDispatcher
+     if(gesture){
+      back.dispatchOnBackStarted(androidx.activity.BackEventCompat(0f,200f,0f,androidx.activity.BackEventCompat.EDGE_LEFT))
+      back.dispatchOnBackProgressed(androidx.activity.BackEventCompat(160f,200f,.94f,androidx.activity.BackEventCompat.EDGE_LEFT))
+     }else model.back()
+    }
+    if(gesture){repeat(3){frame()};rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}}
+    var touched=false
+    for(i in 0..120){
+     frame()
+     val course=rule.onAllNodesWithTag("course-$target",useUnmergedTree=true).fetchSemanticsNodes().firstOrNull()?:continue
+     val reading=rule.onNodeWithTag("reading-space",useUnmergedTree=true).fetchSemanticsNode().config[ReadingSceneActiveKey]
+     val departing=rule.onAllNodesWithTag("lesson",useUnmergedTree=true).fetchSemanticsNodes().firstOrNull()
+     if(!reading||departing!=null&&departing.boundsInRoot.height<=course.boundsInRoot.height+1f){
+      // Inject an actual coordinate tap. Semantics performClick would bypass occlusion.
+      val point=course.boundsInRoot.center
+      val root=rule.onNodeWithTag("reading-space",useUnmergedTree=true)
+      val rootBounds=root.fetchSemanticsNode().boundsInRoot
+      root.performTouchInput {click(point-rootBounds.topLeft)}
+      touched=true;break
+     }
+    }
+    assertTrue("The return must reach its visual handoff",touched)
+    rule.waitUntil(3000){model.loadingId==target||model.opened?.course?.id==target&&model.opened!==origin}
+    repeat(90){frame()}
+    assertEquals("A tap at handoff must reopen the requested course",target,model.opened?.course?.id)
+    assertNotSame("The old return must not retain or close the new session",origin,model.opened)
+    rule.runOnUiThread {model.back()};repeat(90){frame()}
+   }
+  } finally {rule.mainClock.autoAdvance=true;scale("0")}
+ }
+ @Test fun finishingOldReturnPreservesPendingAndSameCourseReopen(){
+  val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+  rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+  rule.waitUntil(10000){model.opened?.course?.id=="epfQlb_Tgco"}
+  val origin=model.opened!!
+  rule.runOnUiThread {
+   model.open(origin.course)
+   model.finishBack(origin)
+   assertEquals("Old return must preserve the pending request",origin.course.id,model.loadingId)
+  }
+  rule.waitUntil(10000){model.opened!=null&&model.opened!==origin}
+  val reopened=model.opened!!
+  rule.runOnIdle {
+   model.finishBack(origin)
+   assertSame("Equal course data must not make the new session count as the old one",reopened,model.opened)
+   model.back()
+  }
+ }
  @Test fun settingsBackgroundTracksOpeningClosingAndDragReversal(){
   val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
   fun animationScale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}

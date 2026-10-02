@@ -76,6 +76,12 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val gestureScope=rememberCoroutineScope()
     val navigation=remember {SeekableTransitionState<OpenLesson?>(model.opened)}
     val transition=rememberTransition(navigation,label="course-space")
+    // Retained exit content must never sit above the destination's touch targets.
+    // Keep separate transforms: AnimatedContent remembers each scene's enter spec.
+    val homeTransform=remember(reduced){(if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))).using(null)}
+    val lessonTransform=remember(reduced){(if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))).using(null)}
+    homeTransform.targetContentZIndex=if(transition.targetState==null)1f else 0f
+    lessonTransform.targetContentZIndex=if(transition.targetState!=null)1f else 0f
     val gesture=remember {Animatable(0f)}
     var seeking by remember {mutableStateOf(false)}
     var gestureToken by remember {mutableIntStateOf(0)}
@@ -104,16 +110,16 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 navigation.animateTo(null,animationSpec=progressSpring)
                 fading.cancelAndJoin();gesture.snapTo(1f)
             }
-            if(token==gestureToken&&model.opened==origin){if(reduced)navigation.snapTo(null);model.back()}
+            if(token==gestureToken&&model.opened===origin){if(reduced)navigation.snapTo(null);model.finishBack(origin)}
         } catch(_: CancellationException){withContext(NonCancellable){
             tracking?.cancelAndJoin()
-            if(token==gestureToken&&model.opened==origin){
+            if(token==gestureToken&&model.opened===origin){
                 if(!reduced)coroutineScope {
                     val fading=launch {gesture.animateTo(0f,progressSpring,initialVelocity=velocity.velocity)}
                     navigation.animateTo(origin,animationSpec=progressSpring)
                     fading.cancelAndJoin();gesture.snapTo(0f)
                 }
-                if(reduced&&token==gestureToken&&model.opened==origin)navigation.snapTo(origin)
+                if(reduced&&token==gestureToken&&model.opened===origin)navigation.snapTo(origin)
             }
         }} finally {tracking?.cancel();if(token==gestureToken)seeking=false}
     }
@@ -129,7 +135,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 }.testTag("reading-space").semantics {this[ReadingSceneActiveKey]=transition.currentState!=null||transition.targetState!=null}.captureBackdrop(backdrop)) {
                     val shared=this
                     transition.AnimatedContent(contentKey={it?.course?.id?:"home"},
-                        transitionSpec={(if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))).using(null)}) {open ->
+                        transitionSpec={if(targetState==null)homeTransform else lessonTransform}) {open ->
                         if(open==null)Library(model,shared,this,libraryState,query,{query=it})
                         else LessonScreen(model,open,shared,this)
                     }

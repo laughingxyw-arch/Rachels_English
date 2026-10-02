@@ -86,6 +86,9 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         }catch(e: kotlinx.coroutines.CancellationException){throw e}catch(e: Exception){notify("课程下载失败，请稍后重试。",true)}finally{if(token==openToken)loadingId=null}
     }}
     fun back(){openToken++;openJob?.cancel();loadingId=null;stop();opened=null}
+    // A visual return may finish after the user has already requested another course.
+    // Close only its original session, without cancelling the new loading job.
+    fun finishBack(origin: OpenLesson?){if(opened===origin){stop();opened=null}}
     fun updateDrill(value: Boolean){if(drill==value)return;val resume=playback.running;val paused=playback.paused;stop();drill=value;playback=playback.copy(progress=0f);if(resume){start();if(paused)pause()}}
     fun updateRepeatCount(value: Int){
         val count=value.coerceIn(2,5);if(count==repeatCount)return
