@@ -1,0 +1,24 @@
+plugins { id 'com.android.application' }
+android {
+ namespace 'com.rachelsenglish.practice'
+ compileSdk 36
+ defaultConfig {
+  applicationId 'com.rachelsenglish.practice'
+  minSdk 26
+  targetSdk 36
+  versionCode providers.gradleProperty('appVersionCode').getOrElse('1').toInteger()
+  versionName '1.0.0'
+  buildConfigField 'String', 'CONTENT_BASE_URL', '"' + providers.gradleProperty('contentBaseUrl').getOrElse('https://rachels-english.pages.dev/') + '"'
+ }
+ signingConfigs {
+  release {
+   storeFile file('release.jks')
+   storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+   keyAlias 'practice'
+   keyPassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+  }
+ }
+ buildTypes { release { signingConfig signingConfigs.release; minifyEnabled false } }
+ buildFeatures { buildConfig true }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}

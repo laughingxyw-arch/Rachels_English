@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "courses": [
+    {
+      "id": "epfQlb_Tgco",
+      "title": "Tower Bridge",
+      "label": "电影对白",
+      "videoTitle": "Speaking English | Free Practice at the Movies!",
+      "excerpt": "It’s exactly what he said.",
+      "added": "2026-10-02",
+      "sourceSeconds": 17.97,
+      "groupCount": 11,
+      "drillSeconds": 91.835,
+      "cover": "covers/epfQlb_Tgco-scene.webp",
+      "version": "803c37ce24d8a370",
+      "sha256": "803c37ce24d8a37031bcfbeb4c810707b5379a2f55486e2fad512eff786d3c33",
+      "bundle": "packages/epfQlb_Tgco-803c37ce24d8a370.zip",
+      "bundleBytes": 1947892
+    },
+    {
+      "id": "4dXbgvm4_7g",
+      "title": "Jaafar Jackson",
+      "label": "访谈对白",
+      "videoTitle": "Speaking English Like an American is EASY",
+      "excerpt": "I saw an article where it said that…",
+      "added": "2026-10-02",
+      "sourceSeconds": 22.9,
+      "groupCount": 9,
+      "drillSeconds": 170.905,
+      "cover": "covers/4dXbgvm4_7g-scene.webp",
+      "version": "24af9295a4173814",
+      "sha256": "24af9295a4173814e69ebd4d48f2bf78bfedd09c0b724cd759c5e4538e0c3406",
+      "bundle": "packages/4dXbgvm4_7g-24af9295a4173814.zip",
+      "bundleBytes": 5343966
+    }
+  ]
+}

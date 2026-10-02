@@ -1,0 +1,19 @@
+downloads/
+listening-practice.zip
+cloud/dist/
+node_modules/
+.wrangler/
+.gradle/
+android/.gradle/
+android/local.properties
+android/**/build/
+*.keystore
+*.jks
+.env*
+.local-signing/
+
+# Superseded cuts and teaching thumbnails remain local only.
+site/dist/clips/
+site/dist/data.js
+site/dist/covers/4dXbgvm4_7g.webp
+site/dist/covers/epfQlb_Tgco.webp
