@@ -1,0 +1,48 @@
+name: Publish verified Android build
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Android release run to publish
+        required: true
+      source_sha:
+        description: Exact source commit verified by that run
+        required: true
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: publish-verified-android
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify build provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN: ${{ inputs.run_id }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          [[ "$BUILD_RUN" =~ ^[0-9]+$ ]]
+          [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN" > build.json
+          jq -e --arg sha "$SOURCE_SHA" '.conclusion == "success" and .head_sha == $sha and .path == ".github/workflows/android.yml"' build.json
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+      - name: Prepare private release for final verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN: ${{ inputs.run_id }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          version=$(sed -n 's/^versionName=//p' release/version.properties)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          gh run download "$BUILD_RUN" --repo "$GITHUB_REPOSITORY" -n rachels-english-apk -D package
+          name="rachels-english-v${version}.apk"
+          cp package/app-release.apk "$name"
+          sha256sum "$name" > "$name.sha256"
+          cp "release/v${version}.md" verified-notes.md
+          printf '\n构建来源：`%s`。验证记录：https://github.com/%s/actions/runs/%s\n' "$SOURCE_SHA" "$GITHUB_REPOSITORY" "$BUILD_RUN" >> verified-notes.md
+          gh release create "v${version}" "$name" "$name.sha256" --repo "$GITHUB_REPOSITORY" --target "$SOURCE_SHA" --draft --title "原声练习 ${version} · 复读与交互打磨" --notes-file verified-notes.md
