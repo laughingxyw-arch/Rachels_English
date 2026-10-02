@@ -68,7 +68,7 @@ private val LocalSeeking=staticCompositionLocalOf {false}
     val gesture=remember {Animatable(0f)}
     var seeking by remember {mutableStateOf(false)}
     var gestureToken by remember {mutableIntStateOf(0)}
-    LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened)}}
+    LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(model.opened!=null)gesture.snapTo(0f);if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened)}}
     LaunchedEffect(seeking){if(seeking&&!reduced)snapshotFlow {gesture.value to transition.totalDurationNanos}.collect {(fraction,_)->navigation.seekTo(fraction.coerceIn(0f,1f),null)}}
     PredictiveBackHandler(enabled=model.opened!=null&&!settings) {events ->
         val origin=model.opened
@@ -99,7 +99,7 @@ private val LocalSeeking=staticCompositionLocalOf {false}
                         else LessonScreen(model,open,shared,this)
                     }
                 }
-                AnimatedVisibility(model.opened!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp).graphicsLayer {alpha=if(seeking)(1f-gesture.value).coerceIn(0f,1f) else 1f},
+                AnimatedVisibility(model.opened!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp).graphicsLayer {alpha=if(seeking||model.opened==null)(1f-gesture.value).coerceIn(0f,1f) else 1f},
                     enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(1f,600f)){it/3},
                     exit=if(reduced)ExitTransition.None else fadeOut(tween(100))) {
                     Transport(model,{settings=true},Modifier.padding(horizontal=28.dp))
