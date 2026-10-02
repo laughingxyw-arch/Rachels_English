@@ -303,12 +303,13 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val pressure=animateFloatAsState(if(pressed).96f else 1f,if(reduced)snap() else spring(1f,900f),label="mode-pressure")
     val measurer=rememberTextMeasurer()
     val textStyle=TextStyle(fontSize=13.sp,fontWeight=FontWeight.Medium,color=Accent)
-    val original=measurer.measure(AnnotatedString("原句"),style=textStyle)
-    val practice=measurer.measure(AnnotatedString("Drill"),style=textStyle)
-    Box(Modifier.width(52.dp).height(48.dp)
+    val original=remember(measurer,textStyle){measurer.measure(AnnotatedString("原句"),style=textStyle)}
+    val practice=remember(measurer,textStyle){measurer.measure(AnnotatedString("Drill"),style=textStyle)}
+    val windowHeight=with(LocalDensity.current){maxOf(original.size.height,practice.size.height).toDp().coerceAtLeast(20.dp)}
+    Box(Modifier.width(52.dp).heightIn(min=48.dp)
         .clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={step++;onChange(!drill)})
         .testTag("mode-toggle").semantics {contentDescription="切换播放模式";stateDescription=if(drill)"Drill" else "原句";this[ModeRollPositionKey]=roll.value},contentAlignment=Alignment.Center) {
-        Canvas(Modifier.fillMaxWidth().height(20.dp).clipToBounds().graphicsLayer {scaleX=pressure.value;scaleY=pressure.value}) {
+        Canvas(Modifier.fillMaxWidth().height(windowHeight).clipToBounds().graphicsLayer {scaleX=pressure.value;scaleY=pressure.value}) {
             val position=roll.value
             val base=kotlin.math.floor(position).toInt()
             val fraction=position-base
