@@ -69,7 +69,7 @@ private val LocalSeeking=staticCompositionLocalOf {false}
     var seeking by remember {mutableStateOf(false)}
     var gestureToken by remember {mutableIntStateOf(0)}
     LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened)}}
-    LaunchedEffect(seeking){if(seeking&&!reduced)snapshotFlow {gesture.value}.collect {navigation.seekTo(it.coerceIn(0f,1f),null)}}
+    LaunchedEffect(seeking){if(seeking&&!reduced)snapshotFlow {gesture.value to transition.totalDurationNanos}.collect {(fraction,_)->navigation.seekTo(fraction.coerceIn(0f,1f),null)}}
     PredictiveBackHandler(enabled=model.opened!=null&&!settings) {events ->
         val origin=model.opened
         val token=++gestureToken
@@ -191,8 +191,8 @@ private val LocalSeeking=staticCompositionLocalOf {false}
     }
     val seeking=LocalSeeking.current
     val corner by visibility.transition.animateDp(transitionSpec={if(reduced)snap() else if(seeking)tween(360,easing=LinearEasing) else spring(1f,500f)},label="course-corner") {if(it==EnterExitState.Visible)0.dp else 18.dp}
-    Box(with(shared){containerModifier(open.course,visibility)}.clip(RoundedCornerShape(corner)).background(Backdrop)
-        .then(with(shared){Modifier.skipToLookaheadSize()}).fillMaxSize().testTag("lesson")) {
+    Box(with(shared){containerModifier(open.course,visibility)}.testTag("lesson").clip(RoundedCornerShape(corner)).background(Backdrop)
+        .then(with(shared){Modifier.skipToLookaheadSize()}).fillMaxSize()) {
         LazyColumn(state=list,contentPadding=PaddingValues(16.dp,12.dp,16.dp,128.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
             item(key="header") {
                 Column(Modifier.padding(bottom=18.dp)) {
