@@ -298,6 +298,7 @@ class NativePracticeTest {
    val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
    for(gesture in listOf(false,true))for(target in listOf("epfQlb_Tgco","4dXbgvm4_7g")){
     rule.mainClock.autoAdvance=true
+    val restingTarget=rule.onNodeWithTag("course-$target",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
     rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
     rule.waitUntil(10000){model.opened?.course?.id=="epfQlb_Tgco"}
     rule.waitForIdle()
@@ -317,9 +318,9 @@ class NativePracticeTest {
      val course=rule.onAllNodesWithTag("course-$target",useUnmergedTree=true).fetchSemanticsNodes().firstOrNull()?:continue
      val reading=rule.onNodeWithTag("reading-space",useUnmergedTree=true).fetchSemanticsNode().config[ReadingSceneActiveKey]
      val departing=rule.onAllNodesWithTag("lesson",useUnmergedTree=true).fetchSemanticsNodes().firstOrNull()
-     if(!reading||departing!=null&&departing.boundsInRoot.height<=course.boundsInRoot.height+1f){
+     if(!reading||departing!=null&&departing.boundsInRoot.height<=restingTarget.height+1f){
       // Inject an actual coordinate tap. Semantics performClick would bypass occlusion.
-      val point=course.boundsInRoot.center
+      val point=restingTarget.center
       val root=rule.onNodeWithTag("reading-space",useUnmergedTree=true)
       val rootBounds=root.fetchSemanticsNode().boundsInRoot
       root.performTouchInput {click(point-rootBounds.topLeft)}
