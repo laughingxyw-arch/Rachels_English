@@ -205,7 +205,9 @@ class NativePracticeTest {
    val samples=mutableListOf(lastHeight)
    for(i in 0..120){
     frame()
-    if(model.opened==null){
+    // AnimatedContent may retain an invisible outgoing layout after geometry finishes.
+    // Choose the actual scene, not the audio model or that old hidden layout's size.
+    if(!rule.onNodeWithTag("reading-space",useUnmergedTree=true).fetchSemanticsNode().config[ReadingSceneActiveKey]){
      landingHeight=rule.onNodeWithTag("course-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.height
      break
     }
@@ -214,11 +216,12 @@ class NativePracticeTest {
    }
    assertNotNull("A released back gesture must finish",landingHeight)
    val landed=landingHeight!!
+   screenshot("course-gesture-landed")
    assertEquals("The final animation frame must land on the same height as the static card; tail=$samples",lastHeight,landed,1f)
    assertEquals("The resting card must retain its original height",target.height,landed,1f)
    repeat(12){frame()}
+   assertNull("The completed visual return must close the old lesson",model.opened)
    assertEquals("No layout correction may resize the card after handoff",landed,rule.onNodeWithTag("course-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.height,1f)
-   screenshot("course-gesture-landed")
   } finally {rule.mainClock.autoAdvance=true;animationScale("0")}
  }
  @Test fun settingsBackgroundTracksOpeningClosingAndDragReversal(){

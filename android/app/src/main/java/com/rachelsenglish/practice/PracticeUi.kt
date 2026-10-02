@@ -58,6 +58,7 @@ private val Backdrop=Color(0xfff7f8fb)
 private val Tint=Color(0xffedf4fc)
 private val LocalReduced=staticCompositionLocalOf {false}
 private val LocalSeeking=staticCompositionLocalOf {false}
+val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 @Composable fun PracticeApp(model: PracticeModel) {
     val environment=rememberVisualEnvironment()
     val style=materialStyle(environment,model.reduceTransparency,model.enhanceContrast)
@@ -97,18 +98,20 @@ private val LocalSeeking=staticCompositionLocalOf {false}
             // owns the remaining geometry and must finish before the static card takes over.
             tracking?.cancelAndJoin()
             if(!reduced)coroutineScope {
-                launch {gesture.animateTo(1f,progressSpring,initialVelocity=velocity.velocity)}
+                val fading=launch {gesture.animateTo(1f,progressSpring,initialVelocity=velocity.velocity)}
                 navigation.animateTo(null,animationSpec=progressSpring)
+                fading.cancelAndJoin();gesture.snapTo(1f)
             }
-            if(token==gestureToken&&model.opened==origin){navigation.snapTo(null);model.back()}
+            if(token==gestureToken&&model.opened==origin){if(reduced)navigation.snapTo(null);model.back()}
         } catch(_: CancellationException){withContext(NonCancellable){
             tracking?.cancelAndJoin()
             if(token==gestureToken&&model.opened==origin){
                 if(!reduced)coroutineScope {
-                    launch {gesture.animateTo(0f,progressSpring,initialVelocity=velocity.velocity)}
+                    val fading=launch {gesture.animateTo(0f,progressSpring,initialVelocity=velocity.velocity)}
                     navigation.animateTo(origin,animationSpec=progressSpring)
+                    fading.cancelAndJoin();gesture.snapTo(0f)
                 }
-                if(token==gestureToken&&model.opened==origin)navigation.snapTo(origin)
+                if(reduced&&token==gestureToken&&model.opened==origin)navigation.snapTo(origin)
             }
         }} finally {tracking?.cancel();if(token==gestureToken)seeking=false}
     }
@@ -121,7 +124,7 @@ private val LocalSeeking=staticCompositionLocalOf {false}
                     val offset=if(settings&&sheetHeight>0f&&settingsSheet.hasExpandedState)settingsSheet.requireOffset() else Float.NaN
                     val scale=sheetBackgroundScale(offset,sceneSize.height.toFloat(),sheetHeight,reduced)
                     scaleX=scale;scaleY=scale
-                }.testTag("reading-space").captureBackdrop(backdrop)) {
+                }.testTag("reading-space").semantics {this[ReadingSceneActiveKey]=transition.currentState!=null||transition.targetState!=null}.captureBackdrop(backdrop)) {
                     val shared=this
                     transition.AnimatedContent(contentKey={it?.course?.id?:"home"},
                         transitionSpec={(if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))).using(null)}) {open ->
