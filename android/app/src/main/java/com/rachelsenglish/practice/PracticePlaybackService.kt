@@ -19,13 +19,18 @@ class PracticePlaybackService: MediaSessionService() {
     override fun onCreate(){
         super.onCreate()
         val model=(application as PracticeApplication).model
-        val player=PracticeSessionPlayer(model)
+        val player=PracticeSessionPlayer(model){
+            // Android 15+ grants audio focus only to a visible app or a foreground service.
+            // Publish the resumed logical task before the clip requests focus.
+            if(model.playback.running&&!model.playback.paused)session?.let {onUpdateNotification(it,true)}
+        }
         sessionPlayer=player
         session=MediaSession.Builder(this,player)
             .setSessionActivity(PendingIntent.getActivity(this,0,Intent(this,MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
             .build()
+        if(model.playback.running&&!model.playback.paused)onUpdateNotification(session!!,true)
     }
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo)=session
     override fun onDestroy(){
@@ -39,11 +44,11 @@ class PracticePlaybackService: MediaSessionService() {
 // Report the whole listening task as playing, including deliberate silent gaps.
 // Exposing the clip ExoPlayer directly would report ENDED between every repeat.
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-private class PracticeSessionPlayer(private val model: PracticeModel): SimpleBasePlayer(Looper.getMainLooper()) {
+private class PracticeSessionPlayer(private val model: PracticeModel,private val onTaskStateChanged: () -> Unit): SimpleBasePlayer(Looper.getMainLooper()) {
     private var lesson: OpenLesson?=null
     private var mode: Boolean?=null
     private var playlist=emptyList<MediaItemData>()
-    init {model.mediaChanged={invalidateState()}}
+    init {model.mediaChanged={invalidateState();onTaskStateChanged()}}
     override fun getState(): State {
         val data=model.opened
         if(lesson!==data||mode!=model.drill){
