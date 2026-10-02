@@ -116,7 +116,7 @@ private val LocalSeeking=staticCompositionLocalOf {false}
         boundsTransform={_,_->if(reduced)snap() else if(seeking)tween(360,easing=LinearEasing) else spring(1f,500f)},
         enter=if(reduced)EnterTransition.None else if(seeking)fadeIn(tween(100,delayMillis=200)) else fadeIn(tween(180,delayMillis=80)),
         exit=if(reduced||seeking)ExitTransition.None else fadeOut(tween(100)),
-        resizeMode=SharedTransitionScope.ResizeMode.RemeasureToBounds,placeholderSize=SharedTransitionScope.PlaceholderSize.AnimatedSize)
+        resizeMode=SharedTransitionScope.ResizeMode.RemeasureToBounds,placeHolderSize=SharedTransitionScope.PlaceHolderSize.animatedSize)
 }
 @Composable private fun SharedTransitionScope.coverModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
     val reduced=LocalReduced.current;val seeking=LocalSeeking.current
