@@ -81,8 +81,10 @@ private val LocalSeeking=staticCompositionLocalOf {false}
             if(!reduced)gesture.animateTo(1f,spring(1f,500f),initialVelocity=velocity.velocity)
             if(token==gestureToken){navigation.snapTo(null);model.back()}
         } catch(_: CancellationException){withContext(NonCancellable){
-            if(!reduced)gesture.animateTo(0f,spring(1f,500f),initialVelocity=velocity.velocity)
-            if(token==gestureToken)navigation.snapTo(origin)
+            if(token==gestureToken){
+                if(!reduced)gesture.animateTo(0f,spring(1f,500f),initialVelocity=velocity.velocity)
+                if(token==gestureToken)navigation.snapTo(origin)
+            }
         }} finally {if(token==gestureToken)seeking=false}
     }
     val sceneScale by animateFloatAsState(if(settings&&!reduced).988f else 1f,if(reduced)snap() else spring(1f,500f),label="sheet-space")
