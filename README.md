@@ -6,17 +6,17 @@
 
 ## 安卓安装
 
-可直接下载 https://rachels-english.pages.dev/rachels-english.apk ，GitHub 的 **Releases** 页面也提供 `rachels-english.apk` 预览包。允许手机浏览器安装此来源的应用后安装。支持 Android 8+，目标平台 Android 16。
+可直接下载 https://rachels-english.pages.dev/rachels-english.apk ，GitHub 的 **Releases** 页面也提供带版本号的正式 APK 及 SHA-256 校验文件。允许手机浏览器安装此来源的应用后安装。支持 Android 8+，目标平台 Android 16。
 
-界面与首批课程内置 APK。启动先显示本地课程，后台同步云端课程列表；首页右上角可手动检查更新。点击新增或修订课程后下载并校验课程包，成功后安装到私有目录。断网仍可学习已下载课程。离开 App 暂停播放，第一版不包含后台音频服务。
+界面与首批课程内置 APK。启动先显示本地课程，后台同步云端课程列表；首页右上角可手动检查更新。点击新增或修订课程后下载并校验课程包，成功后安装到私有目录。断网仍可学习已下载课程。离开 App 暂停播放，当前不包含后台音频服务。
 
-首版是本地界面加安卓容器，课程来自静态 JSON，不加载远程程序代码。借此保留已完成的播放器交互，后续可逐步替换成原生界面。
+Android 2.0 起使用 Kotlin + Jetpack Compose 原生界面和 Media3 播放器。课程来自静态 JSON，不加载远程程序代码。网页版独立保留。
 
 ## 编译与签名
 
-`.github/workflows/android.yml` 使用标准 Ubuntu 运行器编译，不需要电脑安装 Android SDK。仅安卓文件变更触发编译，也可在 Actions 手动运行。
+`.github/workflows/android.yml` 使用标准 Ubuntu 运行器编译，不需要电脑安装 Android SDK。正式版本标签触发编译与发布，也可在 Actions 手动运行验证构建。
 
-APK 使用固定的私有签名密钥，密钥和密码通过 GitHub Secrets 注入，不提交仓库。后续版本可直接覆盖安装。构建编号作为递增的 Android versionCode。签名密钥本地备份位于工作区 `.local-signing/`（已忽略），请保留安全备份。
+APK 使用固定的私有签名密钥，密钥和密码通过 GitHub Secrets 注入，不提交仓库。后续版本可直接覆盖安装。Android versionCode 在版本文件中明确维护并严格递增。签名密钥本地备份位于工作区 `.local-signing/`（已忽略），请保留安全备份。
 
 ## 新增课程与部署
 

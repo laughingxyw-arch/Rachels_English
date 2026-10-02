@@ -61,7 +61,9 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: cd android && gradle connectedDebugAndroidTest --no-daemon
+          script: |
+            cd android && gradle connectedDebugAndroidTest --no-daemon
+            adb pull /sdcard/Android/data/com.rachelsenglish.practice/files/screenshots app/build/native-screenshots
       - name: Verify APK signature
         run: '"$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk'
       - name: Save lint reports
@@ -73,6 +75,7 @@ jobs:
             android/app/build/reports/lint-results-release.*
             android/app/build/reports/tests/
             android/app/build/reports/androidTests/
+            android/app/build/native-screenshots/
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:

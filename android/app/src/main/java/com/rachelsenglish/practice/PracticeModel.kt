@@ -35,13 +35,13 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     private val player=ExoPlayer.Builder(application).build().apply {
         setAudioAttributes(AudioAttributes.DEFAULT,true);setHandleAudioBecomingNoisy(true)
     }
-    private var queue=emptyList<Clip>();private var index=0;private var openJob: Job?=null
+    private var queue=emptyList<Clip>();private var index=0;private var openJob: Job?=null;private var openToken=0
     init {
         player.addListener(object: Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {if(state==Player.STATE_ENDED&&playback.running&&!playback.waiting)enterWait()}
             override fun onPlayerError(error: PlaybackException) {stop();message="音频播放失败，请重新打开课程。"}
             override fun onPlayWhenReadyChanged(ready: Boolean,reason: Int) {
-                if(!ready&&reason==Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS&&playback.running)pause()
+                if(!ready&&(reason==Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS||reason==Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY)&&playback.running)pause()
             }
         })
         viewModelScope.launch {
@@ -63,13 +63,13 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun sync(explicit: Boolean=true){if(syncing)return;syncing=true;viewModelScope.launch {
         try {courses=repository.sync();if(explicit)message="课程已更新"}catch(e: Exception){if(explicit)message="同步失败，已缓存课程仍可使用。"}finally{syncing=false}
     }}
-    fun open(course: Course){openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
+    fun open(course: Course){val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
         try {val result=repository.open(course);stop();opened=result;drill=false
             playback=Playback(selected=prefs.getInt("position.${course.id}",0).coerceIn(result.lesson.groups.indices))
             if(result.offlineFallback)message="暂时无法更新，已打开本地课程。"
-        }catch(e: kotlinx.coroutines.CancellationException){throw e}catch(e: Exception){message="课程下载失败，请稍后重试。"}finally{loadingId=null}
+        }catch(e: kotlinx.coroutines.CancellationException){throw e}catch(e: Exception){message="课程下载失败，请稍后重试。"}finally{if(token==openToken)loadingId=null}
     }}
-    fun back(){openJob?.cancel();loadingId=null;stop();opened=null}
+    fun back(){openToken++;openJob?.cancel();loadingId=null;stop();opened=null}
     fun setDrill(value: Boolean){stop();drill=value;playback=playback.copy(progress=0f)}
     fun setTranslation(v: Boolean){translation=v;prefs.edit().putBoolean("translation",v).apply()}
     fun setCues(v: Boolean){cues=v;prefs.edit().putBoolean("cues",v).apply()}

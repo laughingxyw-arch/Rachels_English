@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.activity.ExperimentalActivityApi::class)
+@file:OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.rachelsenglish.practice
 
 import android.content.Intent
@@ -37,6 +37,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.filterNotNull
 
 private val Ink=Color(0xff25283b)
 private val Muted=Color(0xff777b90)
@@ -49,12 +52,11 @@ private val LocalReduced=staticCompositionLocalOf { false }
     var reduced by remember { mutableStateOf(Settings.Global.getFloat(context.contentResolver,Settings.Global.ANIMATOR_DURATION_SCALE,1f)==0f) }
     DisposableEffect(lifecycle){val observer=LifecycleEventObserver { _,event -> if(event==Lifecycle.Event.ON_RESUME)reduced=Settings.Global.getFloat(context.contentResolver,Settings.Global.ANIMATOR_DURATION_SCALE,1f)==0f };lifecycle.lifecycle.addObserver(observer);onDispose {lifecycle.lifecycle.removeObserver(observer)}}
     val snackbar=remember { SnackbarHostState() }
-    LaunchedEffect(model.message){model.message?.let {text->model.consumeMessage();snackbar.showSnackbar(text)}}
-    var backProgress by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(Unit){snapshotFlow {model.message}.filterNotNull().collect {text->snackbar.showSnackbar(text);if(model.message==text)model.consumeMessage()}}
+    val backProgress=remember {Animatable(0f)}
     PredictiveBackHandler(enabled=model.opened!=null) { events ->
-        try {events.collect { backProgress=it.progress };model.back()}
-        catch(_: CancellationException) { /* Cancellation preserves the current lesson. */ }
-        finally {backProgress=0f}
+        try {events.collect { backProgress.snapTo(it.progress) };model.back();backProgress.snapTo(0f)}
+        catch(_: CancellationException) {withContext(NonCancellable){if(reduced)backProgress.snapTo(0f) else backProgress.animateTo(0f,spring(.9f,600f))}}
     }
     CompositionLocalProvider(LocalReduced provides reduced) {
         MaterialTheme(colorScheme=lightColorScheme(primary=Accent,background=Backdrop,surface=Color.White,onSurface=Ink,onBackground=Ink)) {
@@ -66,7 +68,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
                         val visibility=this
                         if(open==null) Library(model,shared,visibility)
                         else Box(Modifier.fillMaxSize().graphicsLayer {
-                            val progress=if(reduced)0f else backProgress
+                            val progress=if(reduced)0f else backProgress.value
                             translationX=size.width*.12f*progress;scaleX=1f-.04f*progress;scaleY=scaleX
                             shape=RoundedCornerShape((progress*24).dp);clip=progress>0
                         }) { LessonScreen(model,open,shared,visibility) }
@@ -207,19 +209,19 @@ private val LocalReduced=staticCompositionLocalOf { false }
                 GlyphButton("练习设置","more",settings)
             }
         }
-        if(p.running&&p.waiting)Text(if(model.shadow)"跟读 · %.1f 秒".format(p.waitSeconds) else "",fontSize=11.sp,color=Muted,modifier=Modifier.padding(top=5.dp).semantics {liveRegion=LiveRegionMode.Polite})
+        if(p.running&&p.waiting)Text(if(model.shadow)"跟读 · %.1f 秒".format(p.waitSeconds) else "",fontSize=11.sp,color=Muted,modifier=Modifier.padding(top=5.dp))
     }
 }
 @Composable private fun SettingsSheet(model: PracticeModel,dismiss: ()->Unit) {
     ModalBottomSheet(onDismissRequest=dismiss,containerColor=Color(0xfffaf9ff),sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)) {
         Column(Modifier.fillMaxWidth().padding(horizontal=28.dp).padding(bottom=24.dp)) {
-            Text("练习设置",fontSize=17.sp,fontWeight=FontWeight.Medium,modifier=Modifier.padding(bottom=16.dp))
+            Row(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalAlignment=Alignment.CenterVertically){Text("练习设置",fontSize=17.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f));GlyphButton("关闭设置","close",dismiss)}
             Setting("循环当前组",model.loop,model::setLoop)
             Setting("留白跟读",model.shadow,model::setShadow)
             if(model.shadow){Row(Modifier.fillMaxWidth().padding(vertical=8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 listOf(1f,1.5f,2f).forEach {factor->Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(if(model.gap==factor)Tint else Color.Transparent)
                     .selectable(model.gap==factor,role=Role.RadioButton,onClick={model.setGap(factor)}).padding(12.dp),contentAlignment=Alignment.Center){Text("${factor}×",fontSize=13.sp,color=if(model.gap==factor)Accent else Muted)}
-            }}
+            }}}
             Setting("中文翻译",model.translation,model::setTranslation)
             Setting("发音提示",model.cues,model::setCues)
         }
@@ -244,6 +246,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
                 "previous"->{line(6f,5f,6f,19f);path(19f,5f,9f,12f,19f,19f,19f,5f)}
                 "next"->{line(18f,5f,18f,19f);path(5f,5f,15f,12f,5f,19f,5f,5f)}
                 "back"->path(14f,6f,8f,12f,14f,18f)
+                "close"->{line(7f,7f,17f,17f);line(17f,7f,7f,17f)}
                 "all"->{line(4f,6f,20f,6f);line(4f,11f,14f,11f);line(4f,16f,11f,16f);path(16f,14f,21f,17f,16f,20f,fill=true)}
                 "refresh"->{drawArc(color,35f,280f,false,Offset(4*s,4*s),androidx.compose.ui.geometry.Size(16*s,16*s),style=Stroke(stroke,cap=StrokeCap.Round));path(16f,3f,20f,7f,15f,8f)}
                 "external"->{path(9f,5f,5f,5f,5f,19f,19f,19f,19f,15f);path(14f,5f,19f,5f,19f,10f);line(19f,5f,11f,13f)}
