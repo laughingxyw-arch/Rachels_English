@@ -575,4 +575,47 @@ class NativePracticeTest {
   }
  }
 
+ @Test fun systemThemeChangesInPlaceAndKeepsTheListeningSessionAndSheet(){
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  fun night(value: String){automation.executeShellCommand("cmd uimode night $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+  fun dark()=rule.onNodeWithTag("app-root",useUnmergedTree=true).fetchSemanticsNode().config[DarkThemeKey]
+  val model=(rule.activity.application as PracticeApplication).model
+  try {
+   night("yes");rule.waitUntil(10000){dark()}
+   val home=rule.onNodeWithTag("app-root",useUnmergedTree=true).captureToImage().toPixelMap()
+   assertTrue(home[3,3].red<.15f)
+   val card=rule.onNodeWithTag("course-4dXbgvm4_7g").captureToImage().toPixelMap()
+   assertTrue(card[card.width-8,card.height/2].red<.2f)
+   screenshot("dark-home")
+   rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
+   rule.waitUntil(10000){model.opened!=null}
+   rule.mainClock.autoAdvance=false
+   rule.runOnUiThread {model.updateLoop(true);model.updateShadow(false);model.updateDrill(false);model.start(0)}
+   rule.waitUntil(10000){model.playback.progress>.05f}
+   val activity=rule.activity;val lesson=model.opened
+   night("no");rule.waitUntil(10000){!dark()}
+   assertSame(activity,rule.activity);assertSame(lesson,model.opened)
+   assertTrue(model.playback.running);assertFalse(model.playback.paused)
+   night("yes");rule.waitUntil(10000){dark()}
+   rule.runOnUiThread {model.pause()};rule.mainClock.advanceTimeBy(1000);rule.mainClock.autoAdvance=true
+   screenshot("dark-lesson")
+   rule.onNodeWithContentDescription("练习设置").performClick()
+   rule.onNodeWithTag("settings-sheet").assertExists()
+   night("no");rule.waitUntil(10000){!dark()};rule.onNodeWithTag("settings-sheet").assertExists()
+   night("yes");rule.waitUntil(10000){dark()};rule.onNodeWithTag("settings-sheet").assertExists()
+   assertSame(activity,rule.activity);assertSame(lesson,model.opened);assertTrue(model.playback.paused)
+   screenshot("dark-settings")
+   rule.runOnIdle {model.updateEnhanceContrast(true)}
+   rule.onNodeWithTag("player-surface",useUnmergedTree=true).assert(SemanticsMatcher.expectValue(FrostedMaterialKey,false))
+   screenshot("dark-high-contrast")
+   rule.onNodeWithContentDescription("关闭设置").performClick()
+   rule.runOnIdle {model.updateEnhanceContrast(false);model.updateReduceTransparency(true)}
+   rule.onNodeWithTag("player-surface",useUnmergedTree=true).assert(SemanticsMatcher.expectValue(FrostedMaterialKey,false))
+   rule.runOnIdle {model.updateReduceTransparency(false)}
+  } finally {
+   rule.mainClock.autoAdvance=true;night("no")
+   rule.runOnUiThread {model.back();model.updateEnhanceContrast(false);model.updateReduceTransparency(false);model.updateLoop(false)}
+  }
+ }
+
 }

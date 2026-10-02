@@ -16,6 +16,7 @@ import kotlin.math.floor
 private data class ReadingStroke(val start: Int,val end: Int,val progress: State<Float>,val opacity: State<Float>)
 
 @Composable fun ReadingText(sentence: Sentence,active: Boolean,source: Double,reduced: Boolean) {
+    val palette=LocalPracticePalette.current
     val contrast=LocalMaterialStyle.current.highContrast
     var layout by remember(sentence.id) {mutableStateOf<TextLayoutResult?>(null)}
     val strokes=mutableListOf<ReadingStroke>()
@@ -24,7 +25,7 @@ private data class ReadingStroke(val start: Int,val end: Int,val progress: State
             if(i>0)append(" ")
             val start=length
             val speaking=active&&source>=p.start&&source<p.end
-            val color by animateColorAsState(if(speaking)Color(0xff1765c1) else if(contrast)Color(0xff101721) else if(active)Color(0xff25283b) else Color(0xff6d7288),if(reduced)snap() else tween(140),label="voice-color-$i")
+            val color=key(palette){animateColorAsState(if(speaking)palette.accent else if(contrast||active)palette.ink else palette.muted,if(reduced)snap() else tween(140),label="voice-color-$i").value}
             val retained=remember(sentence.id,i){floatArrayOf(0f)}
             if(active&&source>=0)retained[0]=phraseReadProgress(p.start,p.end,source)
             val progress=animateFloatAsState(retained[0],if(reduced)snap() else tween(45,easing=LinearEasing),label="voice-trace-$i")
@@ -52,7 +53,7 @@ private data class ReadingStroke(val start: Int,val end: Int,val progress: State
                     box.left+box.width*(read-finalCharacter).coerceIn(0f,1f)
                 }
                 val y=measured.getLineBaseline(line)+4.dp.toPx()
-                if(right>left)drawLine(Color(0xff3483d4).copy(alpha=.72f*trace.opacity.value),Offset(left,y),Offset(right,y),(if(contrast)1.8.dp else 1.35.dp).toPx(),StrokeCap.Round)
+                if(right>left)drawLine(palette.accent.copy(alpha=(if(contrast)1f else .72f)*trace.opacity.value),Offset(left,y),Offset(right,y),(if(contrast)1.8.dp else 1.35.dp).toPx(),StrokeCap.Round)
             }
         }
     })

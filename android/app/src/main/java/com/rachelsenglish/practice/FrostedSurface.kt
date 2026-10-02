@@ -33,21 +33,22 @@ val FrostedMaterialKey=SemanticsPropertyKey<Boolean>("FrostedMaterial")
 }
 enum class SurfaceWeight {Chip,Player,Panel}
 @Composable fun FrostedSurface(modifier: Modifier=Modifier,radius: Dp=28.dp,weight: SurfaceWeight=SurfaceWeight.Player,content: @Composable BoxScope.()->Unit) {
+    val palette=LocalPracticePalette.current;val dark=palette.dark
     val style=LocalMaterialStyle.current;val source=LocalBackdropSource.current
     val frosted=style.frosted&&source!=null
     val shape=RoundedCornerShape(radius)
-    val tint=if(style.highContrast)Color.White else when(weight){SurfaceWeight.Chip->Color(0xfffafcff);SurfaceWeight.Player->Color(0xfff5f9ff);SurfaceWeight.Panel->Color(0xfff8faff)}
+    val tint=if(style.highContrast)palette.surface else if(dark)when(weight){SurfaceWeight.Chip->Color(0xff222a36);SurfaceWeight.Player->Color(0xff1d2939);SurfaceWeight.Panel->Color(0xff202833)} else when(weight){SurfaceWeight.Chip->Color(0xfffafcff);SurfaceWeight.Player->Color(0xfff5f9ff);SurfaceWeight.Panel->Color(0xfff8faff)}
     val opacity=if(frosted)when(weight){SurfaceWeight.Chip->.82f;SurfaceWeight.Player->.76f;SurfaceWeight.Panel->.9f} else 1f
     // Only this small surface has a filtered buffer. Never blur the buttons or text.
     val material=if(frosted)Modifier.sampleBackdrop(source!!,if(weight==SurfaceWeight.Panel)22.dp else 16.dp) else Modifier
     Box(modifier.shadow(if(weight==SurfaceWeight.Chip)8.dp else if(weight==SurfaceWeight.Panel)24.dp else 16.dp,shape,
-        ambientColor=Color(0xff253852).copy(alpha=.07f),spotColor=Color(0xff253852).copy(alpha=.13f))
+        ambientColor=if(dark)Color.Black.copy(alpha=.22f) else Color(0xff253852).copy(alpha=.07f),spotColor=if(dark)Color.Black.copy(alpha=.32f) else Color(0xff253852).copy(alpha=.13f))
         .clip(shape).then(material).background(tint.copy(alpha=opacity))
         .drawBehind {
             if(!style.highContrast){
-                drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha=.38f),Color.Transparent,Color(0xff42698f).copy(alpha=.025f))))
+                drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha=if(dark).035f else .38f),Color.Transparent,Color(0xff42698f).copy(alpha=.025f))))
             }
-        }.border(if(style.highContrast)1.25.dp else .75.dp,if(style.highContrast)Color(0xff454d5a) else Color.White.copy(alpha=.86f),shape)
+        }.border(if(style.highContrast)1.25.dp else .75.dp,if(style.highContrast)palette.muted else Color.White.copy(alpha=if(dark).12f else .86f),shape)
         .semantics {this[FrostedMaterialKey]=frosted},content=content)
 }
 @Composable private fun Modifier.sampleBackdrop(source: BackdropSource,blur: Dp): Modifier {

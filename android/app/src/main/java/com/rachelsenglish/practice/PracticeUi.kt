@@ -52,11 +52,13 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 
-private val Ink: Color @Composable get()=if(LocalMaterialStyle.current.highContrast)Color(0xff101721) else Color(0xff25283b)
-private val Muted: Color @Composable get()=if(LocalMaterialStyle.current.highContrast)Color(0xff414957) else Color(0xff6d7288)
-private val Accent=Color(0xff1765c1)
-private val Backdrop=Color(0xfff7f8fb)
-private val Tint=Color(0xffedf4fc)
+private val Ink: Color @Composable get()=LocalPracticePalette.current.ink
+private val Muted: Color @Composable get()=LocalPracticePalette.current.muted
+private val Accent: Color @Composable get()=LocalPracticePalette.current.accent
+private val Backdrop: Color @Composable get()=LocalPracticePalette.current.background
+private val Tint: Color @Composable get()=LocalPracticePalette.current.selected
+private val Surface: Color @Composable get()=LocalPracticePalette.current.surface
+val DarkThemeKey=SemanticsPropertyKey<Boolean>("DarkTheme")
 private val LocalReduced=staticCompositionLocalOf {false}
 private val LocalSeeking=staticCompositionLocalOf {false}
 val CoverBadgeOpacityKey=SemanticsPropertyKey<Float>("CoverBadgeOpacity")
@@ -68,6 +70,9 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 @Composable fun PracticeApp(model: PracticeModel) {
     val environment=rememberVisualEnvironment()
     val style=materialStyle(environment,model.reduceTransparency,model.enhanceContrast)
+    val dark=androidx.compose.foundation.isSystemInDarkTheme()
+    val palette=remember(dark,style.highContrast){practicePalette(dark,style.highContrast)}
+    val scheme=remember(palette){practiceColorScheme(palette)}
     val reduced=style.reducedMotion
     val backdrop=rememberBackdropSource()
     val libraryState=rememberLazyGridState()
@@ -127,9 +132,9 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
             }
         }} finally {tracking?.cancel();if(token==gestureToken)seeking=false}
     }
-    CompositionLocalProvider(LocalReduced provides reduced,LocalSeeking provides seeking,LocalMaterialStyle provides style,LocalBackdropSource provides backdrop) {
-        MaterialTheme(colorScheme=lightColorScheme(primary=Accent,background=Backdrop,surface=Color.White,onSurface=Ink,onBackground=Ink)) {
-            Box(Modifier.fillMaxSize().onSizeChanged {sceneSize=it}.background(Backdrop).safeDrawingPadding()) {
+    CompositionLocalProvider(LocalContentColor provides palette.ink,LocalPracticePalette provides palette,LocalReduced provides reduced,LocalSeeking provides seeking,LocalMaterialStyle provides style,LocalBackdropSource provides backdrop) {
+        MaterialTheme(colorScheme=scheme) {
+            Box(Modifier.fillMaxSize().testTag("app-root").semantics {this[DarkThemeKey]=dark}.onSizeChanged {sceneSize=it}.background(Backdrop).safeDrawingPadding()) {
                 SharedTransitionLayout(Modifier.fillMaxSize().graphicsLayer {
                     // Read the sheet's live offset in the layer phase, not in composition.
                     // This also follows drag reversal and restores the background while hiding.
@@ -216,7 +221,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         items(courses,key={it.id}) {course ->
             val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
             val scale by animateFloatAsState(if(pressed).978f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="card-pressure")
-            Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale;scaleY=scale}.clip(RoundedCornerShape(18.dp)).background(Color.White)
+            Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale;scaleY=scale}.clip(RoundedCornerShape(18.dp)).background(Surface)
                 .then(with(shared){Modifier.skipToLookaheadSize()})
                 .clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={model.open(course)})
                 .testTag("course-${course.id}").semantics {stateDescription="${course.seconds} 秒 · ${course.count} 句"}.fillMaxWidth().heightIn(min=88.dp).padding(vertical=8.dp),
@@ -275,7 +280,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
             }
             items(open.lesson.groups,key={it.id}) {sentence ->
                 val active=sentence.id==selected
-                val background by animateColorAsState(if(active)Tint else Color.White,if(reduced)snap() else tween(160),label="sentence-focus")
+                val background=key(LocalPracticePalette.current){animateColorAsState(if(active)Tint else Surface,if(reduced)snap() else tween(160),label="sentence-focus").value}
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(background)
                     .clickable(role=Role.Button,onClick={model.start(sentence.id)}).semantics {contentDescription="第 ${sentence.id+1} 句";stateDescription=if(active&&model.playback.running&&!model.playback.paused)"正在播放" else if(active)"当前句" else ""}
                     .testTag("sentence-${sentence.id}").padding(16.dp,18.dp)) {
@@ -284,7 +289,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                         Column(Modifier.weight(1f)) {
                             ReadingText(sentence,active,if(active)model.playback.source else -1.0,reduced)
                             if(model.translation&&sentence.translation.isNotEmpty())Text(sentence.translation,fontSize=13.sp,lineHeight=21.sp,color=Muted,modifier=Modifier.padding(top=10.dp))
-                            if(active&&model.cues&&sentence.cues.isNotEmpty())Text(sentence.cues.joinToString(" · "),fontSize=11.sp,lineHeight=18.sp,color=Accent.copy(alpha=if(LocalMaterialStyle.current.highContrast)1f else .75f),modifier=Modifier.padding(top=10.dp))
+                            if(active&&model.cues&&sentence.cues.isNotEmpty())Text(sentence.cues.joinToString(" · "),fontSize=11.sp,lineHeight=18.sp,color=Accent,modifier=Modifier.padding(top=10.dp))
                         }
                     }
                 }
@@ -325,11 +330,12 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 @Composable private fun Transport(model: PracticeModel,settings: ()->Unit,modifier: Modifier) {
     val p=model.playback
     val style=LocalMaterialStyle.current
+    val accent=Accent
     val progress=animateFloatAsState(p.taskProgress?:0f,if(LocalReduced.current||p.taskProgress==0f)snap() else tween(45,easing=LinearEasing),label="transport-light")
     Column(modifier.animateContentSize(if(LocalReduced.current)snap() else spring(1f,600f)),horizontalAlignment=Alignment.CenterHorizontally) {
         FrostedSurface(Modifier.testTag("player-surface").semantics {p.taskProgress?.let {progressBarRangeInfo=ProgressBarRangeInfo(it,0f..1f)}},radius=32.dp) {
             if(p.taskProgress!=null)Canvas(Modifier.matchParentSize()){
-                val colors=if(style.highContrast)listOf(Accent.copy(alpha=.12f),Accent.copy(alpha=.12f)) else listOf(Accent.copy(alpha=.025f),Color(0xff69b5ff).copy(alpha=.18f))
+                val colors=if(style.highContrast)listOf(accent.copy(alpha=.12f),accent.copy(alpha=.12f)) else listOf(accent.copy(alpha=.025f),Color(0xff69b5ff).copy(alpha=.18f))
                 drawRect(Brush.horizontalGradient(colors),size=androidx.compose.ui.geometry.Size(size.width*progress.value,size.height))
             }
             Row(Modifier.padding(6.dp,4.dp),verticalAlignment=Alignment.CenterVertically) {
@@ -346,7 +352,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 @Composable private fun SettingsSheet(model: PracticeModel,systemContrast: Boolean,sheet: SheetState,measure: (Float)->Unit,dismiss: ()->Unit) {
     val scope=rememberCoroutineScope()
     val close: ()->Unit={scope.launch {sheet.hide();dismiss()};Unit}
-    ModalBottomSheet(onDismissRequest=dismiss,modifier=Modifier.onSizeChanged {measure(it.height.toFloat())}.testTag("settings-sheet"),containerColor=Color.Transparent,scrimColor=Color(0xff172539).copy(alpha=.16f),dragHandle=null,sheetState=sheet) {
+    ModalBottomSheet(onDismissRequest=dismiss,modifier=Modifier.onSizeChanged {measure(it.height.toFloat())}.testTag("settings-sheet"),containerColor=Color.Transparent,scrimColor=if(LocalPracticePalette.current.dark)Color.Black.copy(alpha=.4f) else Color(0xff172539).copy(alpha=.16f),dragHandle=null,sheetState=sheet) {
         FrostedSurface(Modifier.fillMaxWidth(),radius=28.dp,weight=SurfaceWeight.Panel) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=28.dp).padding(top=12.dp,bottom=24.dp)) {
             Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom=14.dp).size(28.dp,3.dp).clip(RoundedCornerShape(2.dp)).background(Muted.copy(alpha=.3f)))
@@ -368,7 +374,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 @Composable private fun Setting(label: String,checked: Boolean,change: (Boolean)->Unit,enabled: Boolean=true) {
     val interaction=remember {MutableInteractionSource()}
     Row(Modifier.fillMaxWidth().heightIn(min=56.dp).testTag("setting-$label").toggleable(value=checked,interactionSource=interaction,indication=null,enabled=enabled,role=Role.Switch,onValueChange=change),verticalAlignment=Alignment.CenterVertically) {
-        Text(label,fontSize=15.sp,modifier=Modifier.weight(1f));Switch(checked,onCheckedChange=null,enabled=enabled,colors=SwitchDefaults.colors(uncheckedTrackColor=Color(0xffe3e9f1),uncheckedBorderColor=Color.Transparent,uncheckedThumbColor=Color.White))
+        Text(label,fontSize=15.sp,modifier=Modifier.weight(1f));Switch(checked,onCheckedChange=null,enabled=enabled,colors=SwitchDefaults.colors(uncheckedTrackColor=LocalPracticePalette.current.track,uncheckedBorderColor=Color.Transparent,uncheckedThumbColor=if(LocalPracticePalette.current.dark)LocalPracticePalette.current.muted else Color.White))
     }
 }
 @Composable private fun RepeatSetting(model: PracticeModel) {
@@ -418,11 +424,12 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         delay(duration);if(model.message==text)model.consumeMessage()
     }}
     val reduced=LocalReduced.current
+    val noticeColor=if(model.messageIsError)LocalPracticePalette.current.error else Accent
     AnimatedVisibility(text!=null,modifier=modifier,enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(1f,650f)){it/4},exit=if(reduced)ExitTransition.None else fadeOut(tween(160))+slideOutVertically(tween(160)){it/6}) {
         FrostedSurface(Modifier.widthIn(max=300.dp).semantics {liveRegion=if(model.messageIsError)LiveRegionMode.Assertive else LiveRegionMode.Polite}.testTag("notice"),radius=24.dp,weight=SurfaceWeight.Chip) {
         Row(Modifier.padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(9.dp)) {
             Canvas(Modifier.size(15.dp)) {
-                val color=if(model.messageIsError)Color(0xffa94b44) else Accent
+                val color=noticeColor
                 if(model.messageIsError){drawCircle(color.copy(alpha=.15f));drawLine(color,Offset(size.width/2,size.height*.25f),Offset(size.width/2,size.height*.58f),1.4.dp.toPx(),StrokeCap.Round);drawCircle(color,.8.dp.toPx(),Offset(size.width/2,size.height*.76f))}
                 else {listOf(.38f,.72f,.52f).forEachIndexed {i,h ->val x=size.width*(.22f+.28f*i);drawLine(color,Offset(x,size.height*(1-h)/2),Offset(x,size.height*(1+h)/2),1.6.dp.toPx(),StrokeCap.Round)}}
             }
@@ -433,10 +440,11 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 }
 @Composable private fun GlyphButton(label: String,glyph: String,click: ()->Unit,enabled: Boolean=true) {
     val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
-    val ink=Ink;val muted=Muted
+    val ink=Ink;val muted=Muted;val accent=Accent
+    val highlight=if(LocalPracticePalette.current.dark)Color.White.copy(alpha=.07f) else Color.White.copy(alpha=.75f)
     val scale by animateFloatAsState(if(pressed).97f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="control-pressure")
     IconButton(onClick=click,enabled=enabled,interactionSource=interaction,modifier=Modifier.size(48.dp).drawBehind {
-        if(glyph=="play"||glyph=="pause")drawCircle(Brush.verticalGradient(listOf(Color.White.copy(alpha=.75f),Accent.copy(alpha=if(pressed).10f else .025f))),radius=20.dp.toPx()*scale)
+        if(glyph=="play"||glyph=="pause")drawCircle(Brush.verticalGradient(listOf(highlight,accent.copy(alpha=if(pressed).10f else .025f))),radius=20.dp.toPx()*scale)
     }.semantics {contentDescription=label}) {
         Crossfade(glyph,animationSpec=if(LocalReduced.current)snap() else tween(100),label="control-symbol") {symbol ->
         Canvas(Modifier.size(21.dp).graphicsLayer {scaleX=scale;scaleY=scale}) {
