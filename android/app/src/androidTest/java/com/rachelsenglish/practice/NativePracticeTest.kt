@@ -582,6 +582,10 @@ class NativePracticeTest {
   fun waitTheme(expected: Boolean){rule.waitUntil(10000){
    if(!rule.mainClock.autoAdvance)rule.mainClock.advanceTimeByFrame()
    dark()==expected
+  };rule.runOnUiThread {
+   val bars=androidx.core.view.WindowInsetsControllerCompat(rule.activity.window,rule.activity.window.decorView)
+   assertEquals("Status icons must follow system theme",!expected,bars.isAppearanceLightStatusBars)
+   assertEquals("Navigation handle must remain visible after live theme changes",!expected,bars.isAppearanceLightNavigationBars)
   }}
   val model=(rule.activity.application as PracticeApplication).model
   try {
