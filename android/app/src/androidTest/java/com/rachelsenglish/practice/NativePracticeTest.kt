@@ -1,5 +1,10 @@
 package com.rachelsenglish.practice
 import androidx.compose.ui.test.*
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.ViewModelProvider
 import org.junit.Assert.*
@@ -70,6 +75,15 @@ class NativePracticeTest {
   rule.onNodeWithTag("repeat-setting").performClick()
   rule.onNodeWithTag("repeat-5").performClick()
   rule.runOnIdle {assertEquals(5,model.repeatCount);assertEquals(5,model.playback.total);assertTrue(model.playback.paused);assertEquals(retainedProgress,model.playback.progress,.0001f);model.updateRepeatCount(3)}
+  rule.onNodeWithTag("appearance-setting").performClick()
+  rule.onNodeWithText("减少透明效果").performClick()
+  rule.runOnIdle {assertTrue(model.reduceTransparency)}
+  rule.onNodeWithText("增强对比度").performClick()
+  rule.runOnIdle {assertTrue(model.enhanceContrast)}
+  rule.onNodeWithText("增强对比度").performClick()
+  rule.onNodeWithText("减少透明效果").performClick()
+  rule.runOnIdle {assertFalse(model.reduceTransparency);assertFalse(model.enhanceContrast)}
+  rule.onNodeWithTag("appearance-setting").performClick()
   screenshot("settings")
   rule.onNodeWithText("中文翻译").performClick()
   rule.runOnIdle {assertTrue(model.translation);model.updateTranslation(false)}
@@ -137,8 +151,12 @@ class NativePracticeTest {
     val back=rule.activity.onBackPressedDispatcher
     back.dispatchOnBackStarted(androidx.activity.BackEventCompat(0f,200f,0f,androidx.activity.BackEventCompat.EDGE_LEFT))
     back.dispatchOnBackProgressed(androidx.activity.BackEventCompat(100f,200f,.55f,androidx.activity.BackEventCompat.EDGE_LEFT))
-    back.dispatchOnBackCancelled()
    }
+   frames(160)
+   screenshot("course-gesture-mid")
+   val gestureBounds=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot
+   assertTrue("The gesture must move the course surface before release",gestureBounds.height<expanded.height)
+   rule.runOnUiThread {rule.activity.onBackPressedDispatcher.dispatchOnBackCancelled()}
    frames(1000)
    assertNotNull(model.opened)
    rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
@@ -149,4 +167,36 @@ class NativePracticeTest {
    rule.onNodeWithTag("library").assertExists()
   } finally {rule.mainClock.autoAdvance=true;animationScale("0")}
  }
+ @Test fun backdropSamplesContentAndContrastRemovesTransparency(){
+  val enhanced=androidx.compose.runtime.mutableStateOf(false)
+  rule.runOnUiThread {rule.activity.setContent {
+   val source=rememberBackdropSource()
+   androidx.compose.runtime.CompositionLocalProvider(LocalBackdropSource provides source,LocalMaterialStyle provides MaterialStyle(frosted=!enhanced.value,highContrast=enhanced.value)) {
+    Box(Modifier.fillMaxSize()) {
+     androidx.compose.foundation.Canvas(Modifier.fillMaxSize().captureBackdrop(source)) {
+      drawRect(androidx.compose.ui.graphics.Color(0xffdd624c),size=androidx.compose.ui.geometry.Size(size.width/2,size.height))
+      drawRect(androidx.compose.ui.graphics.Color(0xff3869dc),topLeft=androidx.compose.ui.geometry.Offset(size.width/2,0f),size=androidx.compose.ui.geometry.Size(size.width/2,size.height))
+     }
+     FrostedSurface(Modifier.align(androidx.compose.ui.Alignment.Center).width(280.dp).height(96.dp).testTag("sample-surface")) {
+      androidx.compose.material3.Text("Clear controls",modifier=Modifier.align(androidx.compose.ui.Alignment.Center),color=androidx.compose.ui.graphics.Color.Black)
+     }
+    }
+   }
+  }}
+  rule.waitForIdle();Thread.sleep(200)
+  val surface=rule.onNodeWithTag("sample-surface",useUnmergedTree=true)
+  assertTrue(surface.fetchSemanticsNode().config[FrostedMaterialKey])
+  val pixels=surface.captureToImage().toPixelMap()
+  val left=pixels[pixels.width/4,pixels.height*3/4];val right=pixels[pixels.width*3/4,pixels.height*3/4]
+  assertTrue("Real background must influence the floating material",left.red-right.red>.025f&&right.blue-left.blue>.025f)
+  screenshot("material-sample")
+  rule.runOnIdle {enhanced.value=true}
+  rule.waitForIdle();Thread.sleep(200)
+  assertFalse(surface.fetchSemanticsNode().config[FrostedMaterialKey])
+  val solid=surface.captureToImage().toPixelMap()
+  val first=solid[solid.width/4,solid.height*3/4];val second=solid[solid.width*3/4,solid.height*3/4]
+  assertTrue("High contrast must remove background transparency",kotlin.math.abs(first.red-second.red)<.01f&&kotlin.math.abs(first.blue-second.blue)<.01f)
+  screenshot("material-contrast")
+ }
+
 }

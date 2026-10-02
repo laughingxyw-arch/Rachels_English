@@ -28,6 +28,8 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     var messageIsError by mutableStateOf(false);private set
     var drill by mutableStateOf(false);private set
     var repeatCount by mutableIntStateOf(prefs.getInt("repeats",3).coerceIn(2,5));private set
+    var reduceTransparency by mutableStateOf(prefs.getBoolean("reduce-transparency",false));private set
+    var enhanceContrast by mutableStateOf(prefs.getBoolean("enhance-contrast",false));private set
     var translation by mutableStateOf(prefs.getBoolean("translation",false));private set
     var cues by mutableStateOf(prefs.getBoolean("cues",true));private set
     var loop by mutableStateOf(prefs.getBoolean("loop",false));private set
@@ -91,6 +93,8 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         val nextIndex=updated.indexOfFirst {it.file==current.file&&it.whole==current.whole&&it.repeat==current.repeat.coerceAtMost(count)}
         if(nextIndex>=0){queue=updated;index=nextIndex;playback=playback.copy(repeat=current.repeat.coerceAtMost(count),total=count)}
     }
+    fun updateReduceTransparency(v: Boolean){reduceTransparency=v;prefs.edit().putBoolean("reduce-transparency",v).apply()}
+    fun updateEnhanceContrast(v: Boolean){enhanceContrast=v;prefs.edit().putBoolean("enhance-contrast",v).apply()}
     fun updateTranslation(v: Boolean){translation=v;prefs.edit().putBoolean("translation",v).apply()}
     fun updateCues(v: Boolean){cues=v;prefs.edit().putBoolean("cues",v).apply()}
     fun updateLoop(v: Boolean){loop=v;prefs.edit().putBoolean("loop",v).apply()}

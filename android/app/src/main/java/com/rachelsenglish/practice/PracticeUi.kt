@@ -47,50 +47,66 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 
-private val Ink=Color(0xff25283b)
-private val Muted=Color(0xff6d7288)
+private val Ink: Color @Composable get()=if(LocalMaterialStyle.current.highContrast)Color(0xff101721) else Color(0xff25283b)
+private val Muted: Color @Composable get()=if(LocalMaterialStyle.current.highContrast)Color(0xff414957) else Color(0xff6d7288)
 private val Accent=Color(0xff1765c1)
 private val Backdrop=Color(0xfff7f8fb)
 private val Tint=Color(0xffedf4fc)
-private val LocalReduced=staticCompositionLocalOf { false }
+private val LocalReduced=staticCompositionLocalOf {false}
 @Composable fun PracticeApp(model: PracticeModel) {
-    val context=LocalContext.current;val lifecycle=LocalLifecycleOwner.current
-    var reduced by remember { mutableStateOf(Settings.Global.getFloat(context.contentResolver,Settings.Global.ANIMATOR_DURATION_SCALE,1f)==0f) }
-    DisposableEffect(lifecycle){val observer=LifecycleEventObserver { _,event -> if(event==Lifecycle.Event.ON_RESUME)reduced=Settings.Global.getFloat(context.contentResolver,Settings.Global.ANIMATOR_DURATION_SCALE,1f)==0f };lifecycle.lifecycle.addObserver(observer);onDispose {lifecycle.lifecycle.removeObserver(observer)}}
+    val environment=rememberVisualEnvironment()
+    val style=materialStyle(environment,model.reduceTransparency,model.enhanceContrast)
+    val reduced=style.reducedMotion
+    val backdrop=rememberBackdropSource()
     val libraryState=rememberLazyGridState()
     var query by rememberSaveable {mutableStateOf("")}
-    val backProgress=remember {Animatable(0f)}
-    var backDirection by remember {mutableFloatStateOf(1f)}
-    PredictiveBackHandler(enabled=model.opened!=null) { events ->
-        try {events.collect {backDirection=if(it.swipeEdge==androidx.activity.BackEventCompat.EDGE_LEFT)1f else -1f;backProgress.snapTo(it.progress)};model.back()}
-        catch(_: CancellationException) {withContext(NonCancellable){if(reduced)backProgress.snapTo(0f) else backProgress.animateTo(0f,spring(.9f,600f))}}
+    var settings by rememberSaveable(model.opened?.course?.id) {mutableStateOf(false)}
+    val navigation=remember {SeekableTransitionState<OpenLesson?>(model.opened)}
+    val transition=rememberTransition(navigation,label="course-space")
+    val gesture=remember {Animatable(0f)}
+    var seeking by remember {mutableStateOf(false)}
+    LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened)}}
+    LaunchedEffect(seeking){if(seeking&&!reduced)snapshotFlow {gesture.value}.collect {navigation.seekTo(it.coerceIn(0f,1f),null)}}
+    PredictiveBackHandler(enabled=model.opened!=null&&!settings) {events ->
+        val origin=model.opened
+        val velocity=GestureVelocity()
+        gesture.snapTo(0f);seeking=true
+        try {
+            events.collect {velocity.add(it.progress,android.os.SystemClock.uptimeMillis());if(!reduced)gesture.snapTo(it.progress)}
+            if(!reduced)gesture.animateTo(1f,spring(1f,500f),initialVelocity=velocity.velocity)
+            navigation.snapTo(null);model.back()
+        } catch(_: CancellationException){withContext(NonCancellable){
+            if(!reduced)gesture.animateTo(0f,spring(1f,500f),initialVelocity=velocity.velocity)
+            navigation.snapTo(origin)
+        }} finally {seeking=false}
     }
-    LaunchedEffect(model.opened?.course?.id){if(model.opened==null&&!reduced)delay(500);backProgress.snapTo(0f)}
-    CompositionLocalProvider(LocalReduced provides reduced) {
+    val sceneScale by animateFloatAsState(if(settings&&!reduced).988f else 1f,if(reduced)snap() else spring(1f,500f),label="sheet-space")
+    CompositionLocalProvider(LocalReduced provides reduced,LocalMaterialStyle provides style,LocalBackdropSource provides backdrop) {
         MaterialTheme(colorScheme=lightColorScheme(primary=Accent,background=Backdrop,surface=Color.White,onSurface=Ink,onBackground=Ink)) {
             Box(Modifier.fillMaxSize().background(Backdrop).safeDrawingPadding()) {
-                SharedTransitionLayout {
+                SharedTransitionLayout(Modifier.graphicsLayer {scaleX=sceneScale;scaleY=sceneScale}.captureBackdrop(backdrop)) {
                     val shared=this
-                    AnimatedContent(targetState=model.opened,contentKey={it?.course?.id?:"home"},
-                        transitionSpec={if(reduced) EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))},label="course-space") { open ->
-                        val visibility=this
-                        if(open==null) Library(model,shared,visibility,libraryState,query,{query=it})
-                        else Box(Modifier.fillMaxSize().graphicsLayer {
-                            val progress=if(reduced)0f else backProgress.value
-                            translationX=size.width*.12f*progress*backDirection;scaleX=1f-.04f*progress;scaleY=scaleX
-                            shape=RoundedCornerShape((progress*24).dp);clip=progress>0
-                        }) { LessonScreen(model,open,shared,visibility) }
+                    transition.AnimatedContent(contentKey={it?.course?.id?:"home"},
+                        transitionSpec={if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))}) {open ->
+                        if(open==null)Library(model,shared,this,libraryState,query,{query=it})
+                        else LessonScreen(model,open,shared,this)
                     }
+                }
+                AnimatedVisibility(model.opened!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp),
+                    enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(1f,600f)){it/3},
+                    exit=if(reduced)ExitTransition.None else fadeOut(tween(100))) {
+                    Transport(model,{settings=true},Modifier.padding(horizontal=28.dp))
                 }
                 NoticePill(model,Modifier.align(Alignment.BottomCenter).padding(horizontal=24.dp).padding(bottom=if(model.opened!=null)88.dp else 24.dp))
             }
+            if(settings&&model.opened!=null)SettingsSheet(model,environment.highContrast){settings=false}
         }
     }
 }
 @Composable private fun SharedTransitionScope.containerModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
     val reduced=LocalReduced.current
     return Modifier.sharedBounds(rememberSharedContentState("container-${c.id}"),visibility,
-        boundsTransform={_,_->if(reduced)snap() else spring(.95f,420f)},
+        boundsTransform={_,_->if(reduced)snap() else spring(1f,500f)},
         enter=if(reduced)EnterTransition.None else fadeIn(tween(180,delayMillis=80)),
         exit=if(reduced)ExitTransition.None else fadeOut(tween(100)),
         resizeMode=SharedTransitionScope.ResizeMode.RemeasureToBounds)
@@ -98,12 +114,12 @@ private val LocalReduced=staticCompositionLocalOf { false }
 @Composable private fun SharedTransitionScope.coverModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
     val reduced=LocalReduced.current
     return Modifier.sharedElement(rememberSharedContentState("cover-${c.id}"),visibility,
-        boundsTransform={_,_->if(reduced)snap() else spring(dampingRatio=.92f,stiffness=420f)})
+        boundsTransform={_,_->if(reduced)snap() else spring(dampingRatio=1f,stiffness=500f)})
 }
 @Composable private fun SharedTransitionScope.titleModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
     val reduced=LocalReduced.current
     return Modifier.sharedElement(rememberSharedContentState("title-${c.id}"),visibility,
-        boundsTransform={_,_->if(reduced)snap() else spring(dampingRatio=.92f,stiffness=420f)})
+        boundsTransform={_,_->if(reduced)snap() else spring(dampingRatio=1f,stiffness=500f)})
 }
 @Composable private fun Cover(c: Course,repo: CourseRepository,modifier: Modifier) {
     val bitmap by produceState<android.graphics.Bitmap?>(repo.cachedCover(c),c.id,c.version){value=repo.cover(c)}
@@ -149,7 +165,6 @@ private val LocalReduced=staticCompositionLocalOf { false }
     }
 }
 @Composable private fun LessonScreen(model: PracticeModel,open: OpenLesson,shared: SharedTransitionScope,visibility: AnimatedVisibilityScope) {
-    var settings by rememberSaveable(open.course.id) {mutableStateOf(false)}
     val list=androidx.compose.foundation.lazy.rememberLazyListState()
     val coverEnd=with(LocalDensity.current){110.dp.roundToPx()}
     val headerVisible by remember(list,coverEnd){derivedStateOf {list.firstVisibleItemIndex==0&&list.firstVisibleItemScrollOffset<coverEnd}}
@@ -163,7 +178,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
             if(reduced)list.scrollToItem(selected+1) else list.animateScrollToItem(selected+1)
         }
     }
-    val corner by visibility.transition.animateDp(transitionSpec={if(reduced)snap() else spring(.95f,420f)},label="course-corner") {if(it==EnterExitState.Visible)0.dp else 18.dp}
+    val corner by visibility.transition.animateDp(transitionSpec={if(reduced)snap() else spring(1f,500f)},label="course-corner") {if(it==EnterExitState.Visible)0.dp else 18.dp}
     Box(with(shared){containerModifier(open.course,visibility)}.clip(RoundedCornerShape(corner)).background(Backdrop)
         .then(with(shared){Modifier.skipToLookaheadSize()}).fillMaxSize().testTag("lesson")) {
         LazyColumn(state=list,contentPadding=PaddingValues(16.dp,12.dp,16.dp,128.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
@@ -199,20 +214,12 @@ private val LocalReduced=staticCompositionLocalOf { false }
                 }
             }
         }
-        var controlsVisible by remember(open.course.id) {mutableStateOf(false)}
-        LaunchedEffect(open.course.id){controlsVisible=true}
-        AnimatedVisibility(controlsVisible,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp),
-            enter=if(reduced)EnterTransition.None else fadeIn(tween(120))+slideInVertically(spring(.9f,520f)){it/2},
-            exit=if(reduced)ExitTransition.None else fadeOut(tween(100))) {
-            Transport(model,{settings=true},Modifier.padding(horizontal=12.dp))
-        }
     }
-    if(settings) SettingsSheet(model){settings=false}
 }
 @Composable private fun ModeSelector(drill: Boolean,repeats: Int,onChange: (Boolean)->Unit) {
     BoxWithConstraints(Modifier.width(204.dp).height(56.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xffe8eef6)).padding(4.dp)) {
         val half=maxWidth/2
-        val offset by animateDpAsState(if(drill)half else 0.dp,if(LocalReduced.current)snap() else spring(.86f,650f),label="mode-selection")
+        val offset by animateDpAsState(if(drill)half else 0.dp,if(LocalReduced.current)snap() else spring(1f,700f),label="mode-selection")
         Box(Modifier.offset(x=offset).width(half).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(Color.White))
         Row {listOf(false,true).forEach {value -> Box(Modifier.width(half).fillMaxHeight().clip(RoundedCornerShape(10.dp))
             .selectable(selected=drill==value,role=Role.Tab,onClick={onChange(value)}).testTag(if(value)"mode-drill" else "mode-original"),contentAlignment=Alignment.Center) {
@@ -222,34 +229,33 @@ private val LocalReduced=staticCompositionLocalOf { false }
 }
 @Composable private fun Transport(model: PracticeModel,settings: ()->Unit,modifier: Modifier) {
     val p=model.playback
+    val style=LocalMaterialStyle.current
     val progress by animateFloatAsState(p.progress,if(LocalReduced.current||p.progress==0f)snap() else tween(45,easing=LinearEasing),label="transport-light")
-    Column(modifier.animateContentSize(if(LocalReduced.current)snap() else spring(.95f,600f)), horizontalAlignment=Alignment.CenterHorizontally) {
-        Box(Modifier.shadow(18.dp,RoundedCornerShape(50),ambientColor=Ink.copy(alpha=.10f),spotColor=Ink.copy(alpha=.16f))
-            .clip(RoundedCornerShape(50)).background(Brush.verticalGradient(listOf(Color(0xfffefeff),Color(0xfff4f8fe),Color(0xffeaf1fa))))
-            .border(1.dp,Color.White.copy(alpha=.95f),RoundedCornerShape(50)).semantics {progressBarRangeInfo=ProgressBarRangeInfo(p.progress,0f..1f)}) {
+    Column(modifier.animateContentSize(if(LocalReduced.current)snap() else spring(1f,600f)),horizontalAlignment=Alignment.CenterHorizontally) {
+        FrostedSurface(Modifier.testTag("player-surface").semantics {progressBarRangeInfo=ProgressBarRangeInfo(p.progress,0f..1f)},radius=32.dp) {
             Canvas(Modifier.matchParentSize()){
-                drawRect(Brush.horizontalGradient(listOf(Accent.copy(alpha=.035f),Color(0xff69b5ff).copy(alpha=.19f))),size=androidx.compose.ui.geometry.Size(size.width*progress,size.height))
-                drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha=.28f),Color.Transparent,Ink.copy(alpha=.035f))))
+                val colors=if(style.highContrast)listOf(Accent.copy(alpha=.12f),Accent.copy(alpha=.12f)) else listOf(Accent.copy(alpha=.025f),Color(0xff69b5ff).copy(alpha=.18f))
+                drawRect(Brush.horizontalGradient(colors),size=androidx.compose.ui.geometry.Size(size.width*progress,size.height))
             }
             Row(Modifier.padding(6.dp,4.dp),verticalAlignment=Alignment.CenterVertically) {
                 GlyphButton("上一句","previous",model::previous,enabled=p.selected>0)
                 GlyphButton(if(p.running&&!p.paused)"暂停" else "播放",if(p.running&&!p.paused)"pause" else "play",model::toggle)
                 GlyphButton("下一句","next",model::next,enabled=p.selected<(model.opened?.lesson?.groups?.lastIndex?:0))
-                Box(Modifier.width(44.dp),contentAlignment=Alignment.Center) {
-                    Text(if(p.repeat>0)"${p.repeat}/${p.total}" else "${p.selected+1}/${model.opened?.lesson?.groups?.size?:0}",fontSize=11.sp,color=Accent,maxLines=1)
-                }
+                Box(Modifier.width(44.dp),contentAlignment=Alignment.Center){Text(if(p.repeat>0)"${p.repeat}/${p.total}" else "${p.selected+1}/${model.opened?.lesson?.groups?.size?:0}",fontSize=11.sp,color=Accent,maxLines=1)}
                 GlyphButton("练习设置","more",settings)
             }
         }
         if(p.running&&p.waiting&&model.shadow)Text("跟读 · %.1f 秒".format(p.waitSeconds),fontSize=11.sp,color=Muted,modifier=Modifier.padding(top=5.dp))
     }
 }
-@Composable private fun SettingsSheet(model: PracticeModel,dismiss: ()->Unit) {
+@Composable private fun SettingsSheet(model: PracticeModel,systemContrast: Boolean,dismiss: ()->Unit) {
     val sheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
     val scope=rememberCoroutineScope()
     val close: ()->Unit={scope.launch {sheet.hide();dismiss()};Unit}
-    ModalBottomSheet(onDismissRequest=dismiss,containerColor=Backdrop,sheetState=sheet) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=28.dp).padding(bottom=24.dp)) {
+    ModalBottomSheet(onDismissRequest=dismiss,containerColor=Color.Transparent,scrimColor=Color(0xff172539).copy(alpha=.16f),dragHandle=null,sheetState=sheet) {
+        FrostedSurface(Modifier.fillMaxWidth(),radius=28.dp,weight=SurfaceWeight.Panel) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=28.dp).padding(top=12.dp,bottom=24.dp)) {
+            Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom=14.dp).size(28.dp,3.dp).clip(RoundedCornerShape(2.dp)).background(Muted.copy(alpha=.3f)))
             Row(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalAlignment=Alignment.CenterVertically){Text("练习设置",fontSize=17.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f));GlyphButton("关闭设置","close",close)}
             if(model.drill) RepeatSetting(model)
             Setting("循环当前组",model.loop,model::updateLoop)
@@ -260,12 +266,14 @@ private val LocalReduced=staticCompositionLocalOf { false }
             }}}
             Setting("中文翻译",model.translation,model::updateTranslation)
             Setting("发音提示",model.cues,model::updateCues)
+            AppearanceSetting(model,systemContrast)
+        }
         }
     }
 }
-@Composable private fun Setting(label: String,checked: Boolean,change: (Boolean)->Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min=56.dp).toggleable(checked,role=Role.Switch,onValueChange=change),verticalAlignment=Alignment.CenterVertically) {
-        Text(label,fontSize=15.sp,modifier=Modifier.weight(1f));Switch(checked,onCheckedChange=null,colors=SwitchDefaults.colors(uncheckedTrackColor=Color(0xffe3e9f1),uncheckedBorderColor=Color.Transparent,uncheckedThumbColor=Color.White))
+@Composable private fun Setting(label: String,checked: Boolean,change: (Boolean)->Unit,enabled: Boolean=true) {
+    Row(Modifier.fillMaxWidth().heightIn(min=56.dp).toggleable(checked,enabled=enabled,role=Role.Switch,onValueChange=change),verticalAlignment=Alignment.CenterVertically) {
+        Text(label,fontSize=15.sp,modifier=Modifier.weight(1f));Switch(checked,onCheckedChange=null,enabled=enabled,colors=SwitchDefaults.colors(uncheckedTrackColor=Color(0xffe3e9f1),uncheckedBorderColor=Color.Transparent,uncheckedThumbColor=Color.White))
     }
 }
 @Composable private fun RepeatSetting(model: PracticeModel) {
@@ -290,6 +298,21 @@ private val LocalReduced=staticCompositionLocalOf { false }
         }
     }
 }
+@Composable private fun AppearanceSetting(model: PracticeModel,systemContrast: Boolean) {
+    var expanded by rememberSaveable {mutableStateOf(false)}
+    Column {
+        Row(Modifier.fillMaxWidth().heightIn(min=56.dp).clickable(role=Role.Button,onClick={expanded=!expanded}).testTag("appearance-setting"),verticalAlignment=Alignment.CenterVertically) {
+            Text("显示辅助",fontSize=15.sp,modifier=Modifier.weight(1f))
+            Text(if(model.enhanceContrast||systemContrast)"高对比度" else if(model.reduceTransparency)"实色" else "自动",fontSize=12.sp,color=Muted)
+        }
+        AnimatedVisibility(expanded,enter=if(LocalReduced.current)EnterTransition.None else expandVertically(spring(1f,600f))+fadeIn(tween(120)),exit=if(LocalReduced.current)ExitTransition.None else shrinkVertically(tween(140))+fadeOut(tween(100))) {
+            Column {
+                Setting("减少透明效果",model.reduceTransparency,model::updateReduceTransparency)
+                Setting(if(systemContrast)"增强对比度 · 系统已启用" else "增强对比度",model.enhanceContrast||systemContrast,model::updateEnhanceContrast,enabled=!systemContrast)
+            }
+        }
+    }
+}
 @Composable private fun NoticePill(model: PracticeModel,modifier: Modifier) {
     val text=model.message
     var last by remember {mutableStateOf("")}
@@ -301,10 +324,8 @@ private val LocalReduced=staticCompositionLocalOf { false }
     }}
     val reduced=LocalReduced.current
     AnimatedVisibility(text!=null,modifier=modifier,enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(.95f,650f)){it/4},exit=if(reduced)ExitTransition.None else fadeOut(tween(160))+slideOutVertically(tween(160)){it/6}) {
-        Row(Modifier.widthIn(max=300.dp).shadow(10.dp,RoundedCornerShape(24.dp),ambientColor=Ink.copy(alpha=.07f),spotColor=Ink.copy(alpha=.09f))
-            .clip(RoundedCornerShape(24.dp)).background(Color(0xfff9fbff)).border(1.dp,Color.White,RoundedCornerShape(24.dp))
-            .semantics(mergeDescendants=true){liveRegion=if(model.messageIsError)LiveRegionMode.Assertive else LiveRegionMode.Polite}
-            .testTag("notice").padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(9.dp)) {
+        FrostedSurface(Modifier.widthIn(max=300.dp).semantics {liveRegion=if(model.messageIsError)LiveRegionMode.Assertive else LiveRegionMode.Polite}.testTag("notice"),radius=24.dp,weight=SurfaceWeight.Chip) {
+        Row(Modifier.padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(9.dp)) {
             Canvas(Modifier.size(15.dp)) {
                 val color=if(model.messageIsError)Color(0xffa94b44) else Accent
                 if(model.messageIsError){drawCircle(color.copy(alpha=.15f));drawLine(color,Offset(size.width/2,size.height*.25f),Offset(size.width/2,size.height*.58f),1.4.dp.toPx(),StrokeCap.Round);drawCircle(color,.8.dp.toPx(),Offset(size.width/2,size.height*.76f))}
@@ -312,17 +333,19 @@ private val LocalReduced=staticCompositionLocalOf { false }
             }
             Text(text?:last,fontSize=12.sp,lineHeight=18.sp,color=Ink,maxLines=3,modifier=Modifier.weight(1f,fill=false))
         }
+        }
     }
 }
 @Composable private fun GlyphButton(label: String,glyph: String,click: ()->Unit,enabled: Boolean=true) {
     val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(if(pressed).9f else 1f,if(LocalReduced.current)snap() else spring(.8f,700f),label="control-pressure")
+    val ink=Ink;val muted=Muted
+    val scale by animateFloatAsState(if(pressed).97f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="control-pressure")
     IconButton(onClick=click,enabled=enabled,interactionSource=interaction,modifier=Modifier.size(48.dp).drawBehind {
         if(glyph=="play"||glyph=="pause")drawCircle(Brush.verticalGradient(listOf(Color.White.copy(alpha=.75f),Accent.copy(alpha=if(pressed).10f else .025f))),radius=20.dp.toPx()*scale)
     }.semantics {contentDescription=label}) {
         Crossfade(glyph,animationSpec=if(LocalReduced.current)snap() else tween(100),label="control-symbol") {symbol ->
         Canvas(Modifier.size(21.dp).graphicsLayer {scaleX=scale;scaleY=scale}) {
-            val color=if(enabled)Ink else Muted.copy(alpha=.5f);val stroke=1.7.dp.toPx();val s=size.width/24f
+            val color=if(enabled)ink else muted.copy(alpha=.5f);val stroke=1.7.dp.toPx();val s=size.width/24f
             fun line(x1: Float,y1: Float,x2: Float,y2: Float)=drawLine(color,Offset(x1*s,y1*s),Offset(x2*s,y2*s),stroke,StrokeCap.Round)
             fun path(vararg pts: Float,fill: Boolean=false){val p=Path();p.moveTo(pts[0]*s,pts[1]*s);var i=2;while(i<pts.size){p.lineTo(pts[i]*s,pts[i+1]*s);i+=2};if(fill)p.close();drawPath(p,color,style=if(fill)androidx.compose.ui.graphics.drawscope.Fill else Stroke(stroke,cap=StrokeCap.Round,join=StrokeJoin.Round))}
             when(symbol){
