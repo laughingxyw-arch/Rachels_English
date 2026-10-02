@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
-import androidx.lifecycle.ViewModelProvider
 
 class MainActivity: ComponentActivity() {
     private lateinit var model: PracticeModel
@@ -13,9 +12,9 @@ class MainActivity: ComponentActivity() {
         super.onCreate(savedInstanceState)
         volumeControlStream=android.media.AudioManager.STREAM_MUSIC
         enableEdgeToEdge(statusBarStyle=SystemBarStyle.light(android.graphics.Color.TRANSPARENT,android.graphics.Color.TRANSPARENT),navigationBarStyle=SystemBarStyle.light(android.graphics.Color.TRANSPARENT,android.graphics.Color.TRANSPARENT))
-        model=ViewModelProvider(this)[PracticeModel::class.java]
+        model=(application as PracticeApplication).model
         setContent { PracticeApp(model) }
     }
     override fun onResume(){super.onResume();model.foreground(true)}
-    override fun onStop(){model.foreground(false);model.pause();super.onStop()}
+    override fun onStop(){model.foreground(false);super.onStop()}
 }

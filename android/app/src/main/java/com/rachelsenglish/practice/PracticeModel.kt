@@ -35,9 +35,30 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     var loop by mutableStateOf(prefs.getBoolean("loop",false));private set
     var shadow by mutableStateOf(prefs.getBoolean("shadow",false));private set
     var gap by mutableFloatStateOf(prefs.getFloat("gap",1.5f));private set
-    var playback by mutableStateOf(Playback());private set
+    private var playbackState by mutableStateOf(Playback())
+    var mediaChanged: (() -> Unit)?=null
+    var playback: Playback
+        get()=playbackState
+        private set(value){
+            val old=playbackState;playbackState=value
+            // Position is supplied live; do not rebuild the media session on every UI tick.
+            if(old.running!=value.running||old.paused!=value.paused||old.selected!=value.selected||old.waiting!=value.waiting)mediaChanged?.invoke()
+        }
+    val mediaPositionMs: Long get()=if(playback.waiting)0L else player.currentPosition
+    private val waitClock=PlaybackWaitClock()
+    private val waitLock=(application.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager)
+        .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK,"rachels:practice-gap").apply {setReferenceCounted(false)}
+    private fun releaseWaitLock(){if(waitLock.isHeld)waitLock.release()}
+    private fun scheduleWait(){
+        waitClock.start(android.os.SystemClock.elapsedRealtime(),playback.waitSeconds)
+        releaseWaitLock()
+        if(playback.waitSeconds>0)waitLock.acquire((playback.waitSeconds*1000).toLong()+5000)
+    }
+    private fun ensurePlaybackService(){
+        getApplication<Application>().startForegroundService(android.content.Intent(getApplication(),PracticePlaybackService::class.java))
+    }
     private val player=ExoPlayer.Builder(application).build().apply {
-        setAudioAttributes(AudioAttributes.DEFAULT,true);setHandleAudioBecomingNoisy(true)
+        setAudioAttributes(AudioAttributes.DEFAULT,true);setHandleAudioBecomingNoisy(true);setWakeMode(androidx.media3.common.C.WAKE_MODE_LOCAL)
     }
     private var queue=emptyList<Clip>();private var index=0;private var playAll=true;private var openJob: Job?=null;private var openToken=0
     private var taskStart=0
@@ -57,11 +78,10 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             }
         })
         viewModelScope.launch {
-            var last=android.os.SystemClock.elapsedRealtime()
-            while(true){delay(32);val now=android.os.SystemClock.elapsedRealtime();val delta=(now-last).coerceAtMost(100)/1000f;last=now
+            while(true){delay(if(foreground)32 else 100);val now=android.os.SystemClock.elapsedRealtime()
                 val state=playback
                 if(state.running&&!state.paused){
-                    if(state.waiting){val left=state.waitSeconds-delta;if(left<=0)advance() else playback=state.copy(waitSeconds=left,taskProgress=taskProgress(1f,left))}
+                    if(state.waiting){val left=waitClock.remaining(now);if(left<=0)advance() else playback=state.copy(waitSeconds=left,taskProgress=taskProgress(1f,left))}
                     else if(player.isPlaying){queue.getOrNull(index)?.let { clip ->
                         val elapsed=player.currentPosition/1000.0
                         playback=state.copy(progress=(elapsed/clip.duration).toFloat().coerceIn(0f,1f),source=clip.sourceStart+elapsed-clip.lead,taskProgress=taskProgress((elapsed/clip.duration).toFloat()))
@@ -89,7 +109,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     // A visual return may finish after the user has already requested another course.
     // Close only its original session, without cancelling the new loading job.
     fun finishBack(origin: OpenLesson?){if(opened===origin){stop();opened=null}}
-    fun updateDrill(value: Boolean){if(drill==value)return;val resume=playback.running;val paused=playback.paused;stop();drill=value;playback=playback.copy(progress=0f);if(resume){start();if(paused)pause()}}
+    fun updateDrill(value: Boolean){if(drill==value)return;val resume=playback.running;val paused=playback.paused;stop();drill=value;mediaChanged?.invoke();playback=playback.copy(progress=0f);if(resume){start();if(paused)pause()}}
     fun updateRepeatCount(value: Int){
         val count=value.coerceIn(2,5);if(count==repeatCount)return
         repeatCount=count;prefs.edit().putInt("repeats",count).apply()
@@ -106,13 +126,16 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun updateLoop(v: Boolean){loop=v;prefs.edit().putBoolean("loop",v).apply();refreshTimeline()}
     fun updateShadow(v: Boolean){shadow=v;prefs.edit().putBoolean("shadow",v).apply();refreshTimeline()}
     fun updateGap(v: Float){gap=v;prefs.edit().putFloat("gap",v).apply();refreshTimeline()}
-    fun start(selected: Int=playback.selected,all: Boolean=true){val data=opened?:return;stop();playAll=all;taskStart=selected;queue=practiceQueue(data.lesson,selected,drill,all,repeatCount);index=0;refreshTimeline();if(queue.isNotEmpty()){checkListening();begin()}}
+    fun start(selected: Int=playback.selected,all: Boolean=true){val data=opened?:return;stop();playAll=all;taskStart=selected;queue=practiceQueue(data.lesson,selected,drill,all,repeatCount);index=0;refreshTimeline();if(queue.isNotEmpty()){ensurePlaybackService();checkListening();begin()}}
     fun previous(){start((playback.selected-1).coerceAtLeast(0))}
     fun next(){val last=opened?.lesson?.groups?.lastIndex?:return;start((playback.selected+1).coerceAtMost(last))}
-    fun toggle(){when{!playback.running->start();playback.paused->{checkListening();playback=playback.copy(paused=false);if(!playback.waiting)player.play()};else->pause()}}
-    fun pause(){if(playback.running){playback=playback.copy(paused=true);player.pause()}}
-    fun stop(){playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0,taskProgress=null);player.stop()}
-    private fun begin(){val data=opened?:return;val clip=queue.getOrNull(index)?:return
+    fun toggle(){when{!playback.running->start();playback.paused->{checkListening();ensurePlaybackService();playback=playback.copy(paused=false);if(playback.waiting)scheduleWait() else player.play()};else->pause()}}
+    fun pause(){if(playback.running&&!playback.paused){
+        val remaining=if(playback.waiting)waitClock.remaining(android.os.SystemClock.elapsedRealtime()) else playback.waitSeconds
+        playback=playback.copy(paused=true,waitSeconds=remaining);releaseWaitLock();player.pause()
+    }}
+    fun stop(){releaseWaitLock();playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0,taskProgress=null);player.stop()}
+    private fun begin(){releaseWaitLock();val data=opened?:return;val clip=queue.getOrNull(index)?:return
         playback=Playback(clip.group,true,false,0f,-1.0,if(drill)clip.repeat else 0,clip.total,whole=clip.whole,taskProgress=taskProgress(0f))
         prefs.edit().putInt("position.${data.course.id}",clip.group).apply()
         player.setMediaItem(MediaItem.fromUri(repository.audio(data,clip.file)));player.prepare();player.play()
@@ -122,6 +145,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         val seconds=clipWaitSeconds(queue,index,drill,shadow,gap,loop).toFloat()
         waitTotal=seconds
         playback=playback.copy(progress=1f,waiting=true,source=-1.0,waitSeconds=seconds,taskProgress=taskProgress(1f,seconds))
+        scheduleWait()
     }
     private fun advance(){
         index=nextClipIndex(queue,index,loop);if(index<queue.size){begin();return}
@@ -140,8 +164,9 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             val elapsedRatio=if(waitTotal>0)1f-playback.waitSeconds/waitTotal else 0f
             waitTotal=clipWaitSeconds(queue,index,drill,shadow,gap,loop).toFloat()
             playback=playback.copy(waitSeconds=waitTotal*(1f-elapsedRatio.coerceIn(0f,1f)))
+            if(!playback.paused)scheduleWait()
         }
         playback=playback.copy(taskProgress=taskProgress(playback.progress,if(playback.waiting)playback.waitSeconds else null))
     }
-    override fun onCleared(){listening.close();player.release();super.onCleared()}
+    override fun onCleared(){releaseWaitLock();listening.close();player.release();super.onCleared()}
 }

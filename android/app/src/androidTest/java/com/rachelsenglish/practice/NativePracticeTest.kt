@@ -7,7 +7,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.lifecycle.ViewModelProvider
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -34,6 +33,8 @@ class NativePracticeTest {
   bitmap.recycle()
  }
 
+ @org.junit.Before fun resetSession(){rule.runOnUiThread {(rule.activity.application as PracticeApplication).model.apply {back();consumeMessage()}}}
+ @org.junit.After fun closeSession(){rule.runOnUiThread {(rule.activity.application as PracticeApplication).model.back()}}
  @get:Rule val rule=createAndroidComposeRule<MainActivity>()
  @Test fun bundledLessonPlaysAndSettingsRemainNative(){
   val icon=rule.activity.packageManager.getApplicationIcon(rule.activity.applicationInfo)
@@ -48,7 +49,7 @@ class NativePracticeTest {
   rule.mainClock.autoAdvance=false
   rule.onNodeWithTag("sentence-0").performClick()
   rule.mainClock.advanceTimeBy(32)
-  val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+  val model=(rule.activity.application as PracticeApplication).model
   rule.waitUntil(10000){model.playback.running&&model.playback.progress>.05f&&model.playback.progress<.8f}
   rule.mainClock.advanceTimeBy(32)
   rule.onNodeWithContentDescription("暂停").performClick()
@@ -106,7 +107,7 @@ class NativePracticeTest {
   rule.waitUntil(5000){rule.onAllNodesWithTag("library").fetchSemanticsNodes().isNotEmpty()}
  }
  @Test fun originalLoopsCurrentSentenceThenContinuesToTheEnd(){
-  val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+  val model=(rule.activity.application as PracticeApplication).model
   rule.runOnIdle {model.updateShadow(false);model.updateLoop(true)}
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
@@ -138,7 +139,7 @@ class NativePracticeTest {
    rule.activity.getSharedPreferences("practice-native",0).edit().putInt("position.epfQlb_Tgco",0).commit()
    scale("1");rule.activityRule.scenario.recreate()
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
-   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   val model=(rule.activity.application as PracticeApplication).model
    assertTrue(titleLines().all {it==1})
    assertTrue(badgeValues().all {it==1f})
    rule.mainClock.autoAdvance=false
@@ -165,7 +166,7 @@ class NativePracticeTest {
   } finally {rule.mainClock.autoAdvance=true;scale("0")}
  }
  @Test fun transportShowsTaskProgressAndHidesSingleSentenceAndLoopProgress(){
-  val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+  val model=(rule.activity.application as PracticeApplication).model
   rule.runOnUiThread {model.updateLoop(false);model.updateShadow(false)}
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(10000){model.opened!=null}
@@ -201,7 +202,7 @@ class NativePracticeTest {
    val course=rule.onNodeWithTag("course-4dXbgvm4_7g").fetchSemanticsNode().boundsInRoot
    rule.mainClock.autoAdvance=false
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
-   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   val model=(rule.activity.application as PracticeApplication).model
    rule.waitUntil(10000){model.opened!=null}
    rule.waitForIdle();rule.mainClock.advanceTimeByFrame();rule.waitForIdle()
    frames(160)
@@ -255,7 +256,7 @@ class NativePracticeTest {
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
    rule.waitForIdle();rule.mainClock.autoAdvance=false
-   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   val model=(rule.activity.application as PracticeApplication).model
    rule.runOnUiThread {
     val back=rule.activity.onBackPressedDispatcher
     back.dispatchOnBackStarted(androidx.activity.BackEventCompat(0f,200f,0f,androidx.activity.BackEventCompat.EDGE_LEFT))
@@ -295,7 +296,7 @@ class NativePracticeTest {
    rule.activity.getSharedPreferences("practice-native",0).edit().putInt("position.epfQlb_Tgco",0).commit()
    scale("1");rule.activityRule.scenario.recreate()
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
-   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   val model=(rule.activity.application as PracticeApplication).model
    for(gesture in listOf(false,true))for(target in listOf("epfQlb_Tgco","4dXbgvm4_7g")){
     rule.mainClock.autoAdvance=true
     val restingTarget=rule.onNodeWithTag("course-$target",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
@@ -337,7 +338,7 @@ class NativePracticeTest {
   } finally {rule.mainClock.autoAdvance=true;scale("0")}
  }
  @Test fun finishingOldReturnPreservesPendingAndSameCourseReopen(){
-  val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+  val model=(rule.activity.application as PracticeApplication).model
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(10000){model.opened?.course?.id=="epfQlb_Tgco"}
   val origin=model.opened!!
@@ -372,7 +373,7 @@ class NativePracticeTest {
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    rule.mainClock.autoAdvance=false
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
-   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   val model=(rule.activity.application as PracticeApplication).model
    rule.waitUntil(10000){model.opened?.course?.id=="4dXbgvm4_7g"}
    var samples=0
    repeat(100){
@@ -403,7 +404,7 @@ class NativePracticeTest {
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
    rule.waitForIdle();rule.mainClock.autoAdvance=false
-   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   val model=(rule.activity.application as PracticeApplication).model
    val mode=rule.onNodeWithTag("mode-toggle",useUnmergedTree=true)
    val bounds=mode.fetchSemanticsNode().boundsInRoot
    assertTrue(bounds.height/rule.activity.resources.displayMetrics.density>=47.9f)
@@ -509,6 +510,69 @@ class NativePracticeTest {
   val first=solid[solid.width/4,solid.height*3/4];val second=solid[solid.width*3/4,solid.height*3/4]
   assertTrue("High contrast must remove background transparency",kotlin.math.abs(first.red-second.red)<.01f&&kotlin.math.abs(first.blue-second.blue)<.01f)
   screenshot("material-contrast")
+ }
+
+ @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+ @Test fun backgroundPlaybackContinuesAndMediaControlsOperateTheSameQueue(){
+  val model=(rule.activity.application as PracticeApplication).model
+  rule.runOnUiThread {model.open(model.courses.first {it.id=="4dXbgvm4_7g"})}
+  rule.waitUntil(10000){model.opened!=null}
+  rule.mainClock.autoAdvance=false
+  rule.runOnUiThread {model.updateLoop(false);model.updateShadow(false);model.start(0)}
+  rule.waitUntil(10000){model.playback.progress>.05f}
+  val context=rule.activity.applicationContext
+  lateinit var future: com.google.common.util.concurrent.ListenableFuture<androidx.media3.session.MediaController>
+  rule.runOnUiThread {
+   future=androidx.media3.session.MediaController.Builder(context,
+    androidx.media3.session.SessionToken(context,android.content.ComponentName(context,PracticePlaybackService::class.java))).buildAsync()
+  }
+  val controller=future.get(10,java.util.concurrent.TimeUnit.SECONDS)
+  try {
+   rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+   rule.waitUntil(20000){model.playback.selected>0}
+   assertTrue(model.playback.running);assertFalse(model.playback.paused)
+   val notifications=context.getSystemService(android.app.NotificationManager::class.java).activeNotifications
+   assertTrue(notifications.any {it.notification.flags and android.app.Notification.FLAG_FOREGROUND_SERVICE!=0})
+   androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().runOnMainSync {controller.pause()}
+   rule.waitUntil(5000){model.playback.paused}
+   val selected=model.playback.selected
+   androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().runOnMainSync {controller.seekToNextMediaItem()}
+   rule.waitUntil(5000){model.playback.selected==selected+1}
+   assertTrue(model.playback.paused)
+   androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().runOnMainSync {controller.play()}
+   rule.waitUntil(10000){!model.playback.paused&&model.playback.progress>.05f}
+   rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+   val retained=model.playback.selected
+   rule.activityRule.scenario.recreate()
+   assertSame(model,(rule.activity.application as PracticeApplication).model)
+   assertTrue(model.playback.running);assertEquals(retained,model.playback.selected)
+  } finally {
+   androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().runOnMainSync {controller.release();model.back()}
+   rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+   rule.mainClock.autoAdvance=true
+  }
+ }
+ @Test fun screenOffDrillContinuesThroughTheSilentRepeatGap(){
+  val model=(rule.activity.application as PracticeApplication).model
+  rule.runOnUiThread {model.open(model.courses.first {it.id=="4dXbgvm4_7g"})}
+  rule.waitUntil(10000){model.opened!=null}
+  rule.mainClock.autoAdvance=false
+  rule.runOnUiThread {model.updateLoop(false);model.updateShadow(true);model.updateGap(1f);model.updateDrill(true);model.start(0)}
+  rule.waitUntil(10000){model.playback.progress>.05f}
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  try {
+   automation.executeShellCommand("input keyevent KEYCODE_SLEEP").close()
+   rule.waitUntil(20000){model.playback.waiting}
+   assertTrue(model.playback.running);assertFalse(model.playback.paused)
+   rule.waitUntil(20000){model.playback.repeat>=2&&!model.playback.waiting&&model.playback.progress>.05f}
+   assertTrue(model.playback.running);assertFalse(model.playback.paused)
+  } finally {
+   automation.executeShellCommand("input keyevent KEYCODE_WAKEUP").close()
+   automation.executeShellCommand("wm dismiss-keyguard").close()
+   rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+   rule.runOnUiThread {model.back();model.updateShadow(false);model.updateGap(1.5f)}
+   rule.mainClock.autoAdvance=true
+  }
  }
 
 }
