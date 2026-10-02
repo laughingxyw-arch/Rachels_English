@@ -67,20 +67,23 @@ private val LocalSeeking=staticCompositionLocalOf {false}
     val transition=rememberTransition(navigation,label="course-space")
     val gesture=remember {Animatable(0f)}
     var seeking by remember {mutableStateOf(false)}
+    var gestureToken by remember {mutableIntStateOf(0)}
     LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened)}}
     LaunchedEffect(seeking){if(seeking&&!reduced)snapshotFlow {gesture.value}.collect {navigation.seekTo(it.coerceIn(0f,1f),null)}}
     PredictiveBackHandler(enabled=model.opened!=null&&!settings) {events ->
         val origin=model.opened
+        val token=++gestureToken
+        val initial=if(seeking)gesture.value.coerceIn(0f,1f) else 0f
         val velocity=GestureVelocity()
-        gesture.snapTo(0f);seeking=true
+        gesture.snapTo(initial);seeking=true
         try {
-            events.collect {velocity.add(it.progress,android.os.SystemClock.uptimeMillis());if(!reduced)gesture.snapTo(it.progress)}
+            events.collect {val progress=initial+(1f-initial)*it.progress;velocity.add(progress,android.os.SystemClock.uptimeMillis());if(!reduced)gesture.snapTo(progress)}
             if(!reduced)gesture.animateTo(1f,spring(1f,500f),initialVelocity=velocity.velocity)
-            navigation.snapTo(null);model.back()
+            if(token==gestureToken){navigation.snapTo(null);model.back()}
         } catch(_: CancellationException){withContext(NonCancellable){
             if(!reduced)gesture.animateTo(0f,spring(1f,500f),initialVelocity=velocity.velocity)
-            navigation.snapTo(origin)
-        }} finally {seeking=false}
+            if(token==gestureToken)navigation.snapTo(origin)
+        }} finally {if(token==gestureToken)seeking=false}
     }
     val sceneScale by animateFloatAsState(if(settings&&!reduced).988f else 1f,if(reduced)snap() else spring(1f,500f),label="sheet-space")
     CompositionLocalProvider(LocalReduced provides reduced,LocalSeeking provides seeking,LocalMaterialStyle provides style,LocalBackdropSource provides backdrop) {

@@ -160,6 +160,15 @@ class NativePracticeTest {
    val expected=expanded.height+(course.height-expanded.height)*.55f
    assertEquals("Gesture progress must directly control the container geometry",expected,gestureBounds.height,20f)
    rule.runOnUiThread {rule.activity.onBackPressedDispatcher.dispatchOnBackCancelled()}
+   frames(32)
+   rule.runOnUiThread {
+    val back=rule.activity.onBackPressedDispatcher
+    back.dispatchOnBackStarted(androidx.activity.BackEventCompat(0f,200f,0f,androidx.activity.BackEventCompat.EDGE_LEFT))
+    back.dispatchOnBackProgressed(androidx.activity.BackEventCompat(80f,200f,.25f,androidx.activity.BackEventCompat.EDGE_LEFT))
+   }
+   frames(80)
+   screenshot("course-gesture-regrab")
+   rule.runOnUiThread {rule.activity.onBackPressedDispatcher.dispatchOnBackCancelled()}
    frames(1000)
    assertNotNull(model.opened)
    val restored=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot
