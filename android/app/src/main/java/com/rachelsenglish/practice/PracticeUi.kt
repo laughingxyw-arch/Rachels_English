@@ -58,6 +58,8 @@ private val Backdrop=Color(0xfff7f8fb)
 private val Tint=Color(0xffedf4fc)
 private val LocalReduced=staticCompositionLocalOf {false}
 private val LocalSeeking=staticCompositionLocalOf {false}
+val CoverBadgeOpacityKey=SemanticsPropertyKey<Float>("CoverBadgeOpacity")
+val CourseTitleLineCountKey=SemanticsPropertyKey<Int>("CourseTitleLineCount")
 val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 @Composable fun PracticeApp(model: PracticeModel) {
     val environment=rememberVisualEnvironment()
@@ -157,18 +159,33 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         boundsTransform={_,_->if(reduced)snap() else tween(360,easing=LinearEasing)})
 }
 @Composable private fun SharedTransitionScope.titleModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
-    val reduced=LocalReduced.current;val seeking=LocalSeeking.current
+    val reduced=LocalReduced.current
     return Modifier.sharedElement(rememberSharedContentState("title-${c.id}"),visibility,
-        boundsTransform={_,_->if(reduced)snap() else tween(360,easing=LinearEasing)})
+        boundsTransform={_,_->if(reduced)snap() else tween(360,easing=LinearEasing)}).skipToLookaheadSize()
 }
-@Composable private fun Cover(c: Course,repo: CourseRepository,modifier: Modifier) {
+@Composable private fun CourseTitle(c: Course,modifier: Modifier) {
+    var lines by remember(c.id){mutableIntStateOf(0)}
+    Text(c.title,fontSize=17.sp,lineHeight=23.sp,fontWeight=FontWeight.Medium,
+        modifier=modifier.testTag("course-title-${c.id}").semantics {this[CourseTitleLineCountKey]=lines},
+        onTextLayout={if(lines!=it.lineCount)lines=it.lineCount})
+}
+@Composable private fun coverBadge(visibility: AnimatedVisibilityScope,library: Boolean): State<Float> {
+    val reduced=LocalReduced.current
+    return visibility.transition.animateFloat(transitionSpec={if(reduced)snap() else tween(360,easing=LinearEasing)},label="cover-duration") {
+        if((it==EnterExitState.Visible)==library)1f else 0f
+    }
+}
+@Composable private fun Cover(c: Course,repo: CourseRepository,modifier: Modifier,badge: State<Float>) {
     val bitmap by produceState<android.graphics.Bitmap?>(repo.cachedCover(c),c.id,c.version){
-        // Return decoding results through the UI dispatcher before notifying Compose snapshots.
-        // Decoding itself remains on IO inside the repository.
+        // Decoding remains on IO; snapshot notifications return through the UI dispatcher.
         value=withContext(Dispatchers.Main.immediate){repo.cover(c)}
     }
     Box(modifier.clip(RoundedCornerShape(14.dp)).background(Tint)) {
         bitmap?.let {Image(it.asImageBitmap(),null,Modifier.fillMaxSize().testTag("cover-ready-${c.id}"),contentScale=ContentScale.Crop)}
+        Text("${c.seconds}s",fontSize=10.sp,color=Color.White,
+            modifier=Modifier.align(Alignment.BottomEnd).padding(5.dp).graphicsLayer {alpha=badge.value}
+                .testTag("cover-duration-${c.id}").semantics {this[CoverBadgeOpacityKey]=badge.value}
+                .clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha=.55f)).padding(5.dp,2.dp))
     }
 }
 @Composable private fun Library(model: PracticeModel,shared: SharedTransitionScope,visibility: AnimatedVisibilityScope,list: LazyGridState,query: String,changeQuery: (String)->Unit) {
@@ -195,12 +212,11 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 .testTag("course-${course.id}").fillMaxWidth().heightIn(min=88.dp).padding(vertical=8.dp),
                 verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
                 Box {
-                    Cover(course,model.repository,with(shared){coverModifier(course,visibility)}.size(112.dp,70.dp))
-                    Text("${course.seconds}s",fontSize=10.sp,color=Color.White,modifier=Modifier.align(Alignment.BottomEnd).padding(5.dp).clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha=.55f)).padding(5.dp,2.dp))
+                    Cover(course,model.repository,with(shared){coverModifier(course,visibility)}.size(112.dp,70.dp),coverBadge(visibility,true))
                     if(model.loadingId==course.id)CircularProgressIndicator(Modifier.align(Alignment.Center).size(24.dp),color=Color.White,strokeWidth=2.dp)
                 }
                 Column(Modifier.weight(1f)) {
-                    Text(course.title,fontSize=17.sp,lineHeight=23.sp,fontWeight=FontWeight.Medium,modifier=with(shared){titleModifier(course,visibility)})
+                    CourseTitle(course,with(shared){titleModifier(course,visibility)})
                     Text("${course.label} · ${course.count} 句",fontSize=12.sp,lineHeight=18.sp,color=Muted,modifier=Modifier.padding(top=4.dp))
                 }
             }
@@ -214,7 +230,9 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val headerVisible by remember(list,coverEnd){derivedStateOf {list.firstVisibleItemIndex==0&&list.firstVisibleItemScrollOffset<coverEnd}}
     val selected by remember(model){derivedStateOf {model.playback.selected}}
     val reduced=LocalReduced.current
-    LaunchedEffect(selected) {
+    LaunchedEffect(selected,visibility.transition.currentState,visibility.transition.targetState) {
+        // Keep the shared header stationary until its entry handoff has finished.
+        if(visibility.transition.currentState!=EnterExitState.Visible||visibility.transition.targetState!=EnterExitState.Visible)return@LaunchedEffect
         snapshotFlow {list.layoutInfo.totalItemsCount}.first {it>0}
         val visible=list.layoutInfo.visibleItemsInfo
         val item=visible.firstOrNull {it.index==selected+1}
@@ -231,9 +249,9 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 Column(Modifier.padding(bottom=18.dp)) {
                     Row(verticalAlignment=Alignment.CenterVertically) {GlyphButton("返回课程","back",model::back);Text("课程",fontSize=12.sp,color=Muted)}
                     Row(Modifier.padding(top=10.dp,bottom=24.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                        Cover(open.course,model.repository,(if(headerVisible)with(shared){coverModifier(open.course,visibility)} else Modifier).size(76.dp,50.dp))
+                        Cover(open.course,model.repository,(if(headerVisible)with(shared){coverModifier(open.course,visibility)} else Modifier).size(76.dp,50.dp),coverBadge(visibility,false))
                         Column(Modifier.weight(1f)) {
-                            Text(open.course.title,fontSize=21.sp,fontWeight=FontWeight.SemiBold,modifier=if(headerVisible)with(shared){titleModifier(open.course,visibility)} else Modifier)
+                            CourseTitle(open.course,if(headerVisible)with(shared){titleModifier(open.course,visibility)} else Modifier)
                             Text(open.course.label,fontSize=12.sp,color=Muted)
                         }
                         val context=LocalContext.current
@@ -275,12 +293,12 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 @Composable private fun Transport(model: PracticeModel,settings: ()->Unit,modifier: Modifier) {
     val p=model.playback
     val style=LocalMaterialStyle.current
-    val progress by animateFloatAsState(p.progress,if(LocalReduced.current||p.progress==0f)snap() else tween(45,easing=LinearEasing),label="transport-light")
+    val progress=animateFloatAsState(p.taskProgress?:0f,if(LocalReduced.current||p.taskProgress==0f)snap() else tween(45,easing=LinearEasing),label="transport-light")
     Column(modifier.animateContentSize(if(LocalReduced.current)snap() else spring(1f,600f)),horizontalAlignment=Alignment.CenterHorizontally) {
-        FrostedSurface(Modifier.testTag("player-surface").semantics {progressBarRangeInfo=ProgressBarRangeInfo(p.progress,0f..1f)},radius=32.dp) {
-            Canvas(Modifier.matchParentSize()){
+        FrostedSurface(Modifier.testTag("player-surface").semantics {p.taskProgress?.let {progressBarRangeInfo=ProgressBarRangeInfo(it,0f..1f)}},radius=32.dp) {
+            if(p.taskProgress!=null)Canvas(Modifier.matchParentSize()){
                 val colors=if(style.highContrast)listOf(Accent.copy(alpha=.12f),Accent.copy(alpha=.12f)) else listOf(Accent.copy(alpha=.025f),Color(0xff69b5ff).copy(alpha=.18f))
-                drawRect(Brush.horizontalGradient(colors),size=androidx.compose.ui.geometry.Size(size.width*progress,size.height))
+                drawRect(Brush.horizontalGradient(colors),size=androidx.compose.ui.geometry.Size(size.width*progress.value,size.height))
             }
             Row(Modifier.padding(6.dp,4.dp),verticalAlignment=Alignment.CenterVertically) {
                 GlyphButton("上一句","previous",model::previous,enabled=p.selected>0)

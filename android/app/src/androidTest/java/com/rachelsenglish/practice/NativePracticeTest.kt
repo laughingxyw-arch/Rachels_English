@@ -128,6 +128,68 @@ class NativePracticeTest {
   rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
   rule.waitUntil(5000){rule.onAllNodesWithTag("library").fetchSemanticsNodes().isNotEmpty()}
  }
+ @Test fun towerTitleKeepsItsLayoutAndDurationFollowsTheCover(){
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  fun scale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+  fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(15)}
+  fun titleLines()=rule.onAllNodesWithTag("course-title-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().map {it.config[CourseTitleLineCountKey]}
+  fun badgeValues()=rule.onAllNodesWithTag("cover-duration-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().map {it.config[CoverBadgeOpacityKey]}
+  try {
+   scale("1");rule.activityRule.scenario.recreate()
+   rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
+   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   assertTrue(titleLines().all {it==1})
+   assertTrue(badgeValues().all {it==1f})
+   rule.mainClock.autoAdvance=false
+   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+   rule.waitUntil(10000){model.opened?.course?.id=="epfQlb_Tgco"}
+   var enteringIntermediate=false
+   repeat(60){
+    frame()
+    assertTrue("Tower Bridge must not reflow or reveal one word first",titleLines().all {it==1})
+    if(badgeValues().any {it>.05f&&it<.95f})enteringIntermediate=true
+   }
+   assertTrue("Duration must fade with the entering cover",enteringIntermediate)
+   assertTrue(badgeValues().all {it==0f})
+   rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
+   var returningIntermediate=false
+   repeat(60){
+    frame()
+    assertTrue("Returning title must retain its line layout",titleLines().all {it==1})
+    if(badgeValues().any {it>.05f&&it<.95f})returningIntermediate=true
+   }
+   assertTrue("Duration must emerge before the return handoff",returningIntermediate)
+   assertTrue(badgeValues().all {it==1f})
+   screenshot("tower-return-settled")
+  } finally {rule.mainClock.autoAdvance=true;scale("0")}
+ }
+ @Test fun transportShowsTaskProgressAndHidesSingleSentenceAndLoopProgress(){
+  val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+  rule.runOnUiThread {model.updateLoop(false);model.updateShadow(false)}
+  rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+  rule.waitUntil(10000){model.opened!=null}
+  rule.mainClock.autoAdvance=false
+  rule.runOnUiThread {model.start(0)}
+  rule.waitUntil(10000){model.playback.progress>.1f&&model.playback.progress<.8f}
+  assertNotNull(model.playback.taskProgress)
+  assertTrue(model.playback.taskProgress!!<model.playback.progress)
+  rule.waitUntil(10000){model.playback.selected==1}
+  assertTrue("Task progress must survive the audio clip boundary",model.playback.taskProgress!!>.02f)
+  rule.runOnUiThread {model.pause()}
+  rule.mainClock.advanceTimeBy(1000)
+  val surface=rule.onNodeWithTag("player-surface",useUnmergedTree=true)
+  surface.assert(SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.ProgressBarRangeInfo))
+  rule.runOnUiThread {model.start(0,false);model.pause()}
+  rule.mainClock.advanceTimeBy(1000)
+  assertNull(model.playback.taskProgress)
+  surface.assert(SemanticsMatcher.keyNotDefined(androidx.compose.ui.semantics.SemanticsProperties.ProgressBarRangeInfo))
+  rule.runOnUiThread {model.start(0);model.updateLoop(true);model.pause()}
+  rule.mainClock.advanceTimeBy(1000)
+  assertNull(model.playback.taskProgress)
+  surface.assert(SemanticsMatcher.keyNotDefined(androidx.compose.ui.semantics.SemanticsProperties.ProgressBarRangeInfo))
+  rule.runOnUiThread {model.updateLoop(false);model.back()}
+  rule.mainClock.advanceTimeBy(1000);rule.mainClock.autoAdvance=true
+ }
  @Test fun courseContainerExpandsAndInterruptedBackRestoresIt(){
   val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
   fun animationScale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
