@@ -43,6 +43,8 @@ Cloudflare 使用 Pages 静态资源；不使用 R2、数据库或付费 Worker�
 
 界面遵循共享元素的空间连续性及可打断的弹簧反馈，尊重减少动态效果。Android 自适应图标保持背景、前景和单色层；玻璃质感由绘制层实现，不依赖 Apple 平台的系统材质。
 
+动画和交互以小米 15 / Android 16 的 120Hz 体验为性能目标，遵循[性能验收标准](docs/performance.md)。模拟器功能通过不代表真机稳定 120Hz；未测量的性能明确标记为未验证。
+
 ## Android 原生客户端（2.0 起）
 
 Android 使用 Kotlin、Jetpack Compose 与 Media3，不再通过 WebView 展示界面。课程模型、下载校验和本地缓存独立于 UI；Cloudflare 内容格式保持兼容。界面使用 Compose 共享元素转场、弹簧反馈、可拖动设置面板及跟随进度的返回手势。
