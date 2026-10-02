@@ -31,4 +31,4 @@ Cloudflare 使用 Pages 静态资源；不使用 R2、数据库或付费 Worker�
 
 ## 课程自动发布
 
-内容工作流独立检查课程包，不触发 APK 编译。本地已登录 Wrangler 可直接发布。若需要每次 GitHub 提交自动发布，另在仓库 Secrets 设置只限此账户的 `CLOUDFLARE_API_TOKEN`（Cloudflare Pages Edit），在 Variables 设置 `CLOUDFLARE_ACCOUNT_ID`。未配置时自动部署步骤跳过，校验仍运行。不要把本地 OAuth 登录令牌当成永久部署密钥上传。
+内容工作流独立检查课程包，不触发 APK 编译。本地已登录 Wrangler 可直接发布。若需要每次 GitHub 提交自动发布，另在仓库 Secrets 设置只限此账户的 `CLOUDFLARE_API_TOKEN`（Cloudflare Pages Edit），在 Secrets 设置 `CLOUDFLARE_ACCOUNT_ID`。未配置时自动部署步骤跳过，校验仍运行。不要把本地 OAuth 登录令牌当成永久部署密钥上传。
