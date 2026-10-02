@@ -47,6 +47,8 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 
 private val Ink: Color @Composable get()=if(LocalMaterialStyle.current.highContrast)Color(0xff101721) else Color(0xff25283b)
@@ -65,8 +67,10 @@ private val LocalSeeking=staticCompositionLocalOf {false}
     var query by rememberSaveable {mutableStateOf("")}
     var settings by rememberSaveable(model.opened?.course?.id) {mutableStateOf(false)}
     val settingsSheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
-    var sceneHeight by remember {mutableFloatStateOf(0f)}
+    var sceneSize by remember {mutableStateOf(IntSize.Zero)}
     var sheetHeight by remember {mutableFloatStateOf(0f)}
+    val progressSpring=remember(sceneSize){courseProgressSpring(maxOf(sceneSize.width,sceneSize.height).toFloat())}
+    val gestureScope=rememberCoroutineScope()
     val navigation=remember {SeekableTransitionState<OpenLesson?>(model.opened)}
     val transition=rememberTransition(navigation,label="course-space")
     val gesture=remember {Animatable(0f)}
@@ -74,38 +78,48 @@ private val LocalSeeking=staticCompositionLocalOf {false}
     var gestureToken by remember {mutableIntStateOf(0)}
     // Keep all shared geometry on one linear timeline. Apply physics to its progress,
     // rather than mixing bounds springs of different durations with a seekable gesture.
-    LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(model.opened!=null)gesture.snapTo(0f);if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened,animationSpec=spring(1f,500f))}}
-    LaunchedEffect(seeking){if(seeking&&!reduced)snapshotFlow {gesture.value to transition.totalDurationNanos}.collect {(progress,duration)->
-        // seekTo uses the duration of the longest child, including Compose's interruption
-        // animations. Geometry uses 360ms: seek its play time, not the parent's fraction.
-        val geometryShare=if(duration>0L)(360_000_000f/duration).coerceAtMost(1f) else 1f
-        navigation.seekTo((progress*geometryShare).coerceIn(0f,1f),null)
-    }}
+    LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(model.opened!=null)gesture.snapTo(0f);if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened,animationSpec=progressSpring)}}
     PredictiveBackHandler(enabled=model.opened!=null&&!settings) {events ->
         val origin=model.opened
         val token=++gestureToken
         val initial=if(seeking)gesture.value.coerceIn(0f,1f) else 0f
         val velocity=GestureVelocity()
         gesture.snapTo(initial);seeking=true
+        val tracking=if(!reduced)gestureScope.launch {
+            snapshotFlow {gesture.value to transition.totalDurationNanos}.collect {(progress,duration)->
+                val geometryShare=if(duration>0L)(360_000_000f/duration).coerceAtMost(1f) else 1f
+                navigation.seekTo((progress*geometryShare).coerceIn(0f,1f),null)
+            }
+        } else null
         try {
             events.collect {val progress=initial+(1f-initial)*it.progress;velocity.add(progress,android.os.SystemClock.uptimeMillis());if(!reduced)gesture.snapTo(progress)}
-            if(!reduced)gesture.animateTo(1f,spring(1f,500f),initialVelocity=velocity.velocity)
-            if(token==gestureToken){navigation.snapTo(null);model.back()}
-        } catch(_: CancellationException){withContext(NonCancellable){
-            if(token==gestureToken){
-                if(!reduced)gesture.animateTo(0f,spring(1f,500f),initialVelocity=velocity.velocity)
-                if(token==gestureToken)navigation.snapTo(origin)
+            // Stop the asynchronous finger follower before settling. The transition itself
+            // owns the remaining geometry and must finish before the static card takes over.
+            tracking?.cancelAndJoin()
+            if(!reduced)coroutineScope {
+                launch {gesture.animateTo(1f,progressSpring,initialVelocity=velocity.velocity)}
+                navigation.animateTo(null,animationSpec=progressSpring)
             }
-        }} finally {if(token==gestureToken)seeking=false}
+            if(token==gestureToken&&model.opened==origin){navigation.snapTo(null);model.back()}
+        } catch(_: CancellationException){withContext(NonCancellable){
+            tracking?.cancelAndJoin()
+            if(token==gestureToken&&model.opened==origin){
+                if(!reduced)coroutineScope {
+                    launch {gesture.animateTo(0f,progressSpring,initialVelocity=velocity.velocity)}
+                    navigation.animateTo(origin,animationSpec=progressSpring)
+                }
+                if(token==gestureToken&&model.opened==origin)navigation.snapTo(origin)
+            }
+        }} finally {tracking?.cancel();if(token==gestureToken)seeking=false}
     }
     CompositionLocalProvider(LocalReduced provides reduced,LocalSeeking provides seeking,LocalMaterialStyle provides style,LocalBackdropSource provides backdrop) {
         MaterialTheme(colorScheme=lightColorScheme(primary=Accent,background=Backdrop,surface=Color.White,onSurface=Ink,onBackground=Ink)) {
-            Box(Modifier.fillMaxSize().onSizeChanged {sceneHeight=it.height.toFloat()}.background(Backdrop).safeDrawingPadding()) {
+            Box(Modifier.fillMaxSize().onSizeChanged {sceneSize=it}.background(Backdrop).safeDrawingPadding()) {
                 SharedTransitionLayout(Modifier.fillMaxSize().graphicsLayer {
                     // Read the sheet's live offset in the layer phase, not in composition.
                     // This also follows drag reversal and restores the background while hiding.
                     val offset=if(settings&&sheetHeight>0f&&settingsSheet.hasExpandedState)settingsSheet.requireOffset() else Float.NaN
-                    val scale=sheetBackgroundScale(offset,sceneHeight,sheetHeight,reduced)
+                    val scale=sheetBackgroundScale(offset,sceneSize.height.toFloat(),sheetHeight,reduced)
                     scaleX=scale;scaleY=scale
                 }.testTag("reading-space").captureBackdrop(backdrop)) {
                     val shared=this
