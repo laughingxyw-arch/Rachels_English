@@ -36,6 +36,6 @@ class ListeningFeedback {
             }
         } else if(connected) "耳机已连接。" else null
         if(notice!=null)lastNotice=now
-        return notice
+        return if(connected&&notice!=null&&band!=VolumeBand.NORMAL)"耳机已连接。$notice" else notice
     }
 }

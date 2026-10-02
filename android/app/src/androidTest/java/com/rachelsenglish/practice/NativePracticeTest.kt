@@ -11,8 +11,11 @@ class NativePracticeTest {
   // Allow the platform window surface to present the settled Compose frame.
   Thread.sleep(200)
   val instrumentation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
-  val context=instrumentation.targetContext
   val bitmap=instrumentation.uiAutomation.takeScreenshot()
+  saveImage(name,bitmap)
+ }
+ private fun saveImage(name: String,bitmap: android.graphics.Bitmap){
+  val context=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
   if(android.os.Build.VERSION.SDK_INT>=29){
    val values=android.content.ContentValues().apply {
     put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME,"$name.png")
@@ -27,7 +30,10 @@ class NativePracticeTest {
 
  @get:Rule val rule=createAndroidComposeRule<MainActivity>()
  @Test fun bundledLessonPlaysAndSettingsRemainNative(){
-  rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g").fetchSemanticsNodes().isNotEmpty()}
+  val icon=rule.activity.packageManager.getApplicationIcon(rule.activity.applicationInfo)
+  val bitmap=android.graphics.Bitmap.createBitmap(384,384,android.graphics.Bitmap.Config.ARGB_8888)
+  icon.setBounds(0,0,384,384);icon.draw(android.graphics.Canvas(bitmap));saveImage("launcher-icon",bitmap)
+  rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
   screenshot("home")
   rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
@@ -88,7 +94,7 @@ class NativePracticeTest {
   rule.waitUntil(15000){!model.playback.running&&model.playback.progress==1f}
   rule.mainClock.advanceTimeBy(1000);rule.mainClock.autoAdvance=true
   screenshot("lesson-last")
-  rule.runOnUiThread {model.back()}
+  rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
   rule.waitUntil(5000){rule.onAllNodesWithTag("library").fetchSemanticsNodes().isNotEmpty()}
  }
 }

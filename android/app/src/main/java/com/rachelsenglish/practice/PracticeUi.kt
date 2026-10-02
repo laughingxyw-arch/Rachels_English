@@ -262,11 +262,12 @@ private val LocalReduced=staticCompositionLocalOf { false }
     val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(if(pressed).9f else 1f,if(LocalReduced.current)snap() else spring(.8f,700f),label="control-pressure")
     IconButton(onClick=click,enabled=enabled,interactionSource=interaction,modifier=Modifier.size(48.dp).semantics {contentDescription=label}) {
+        Crossfade(glyph,animationSpec=if(LocalReduced.current)snap() else tween(100),label="control-symbol") {symbol ->
         Canvas(Modifier.size(21.dp).graphicsLayer {scaleX=scale;scaleY=scale}) {
             val color=if(enabled)Ink else Muted.copy(alpha=.5f);val stroke=1.7.dp.toPx();val s=size.width/24f
             fun line(x1: Float,y1: Float,x2: Float,y2: Float)=drawLine(color,Offset(x1*s,y1*s),Offset(x2*s,y2*s),stroke,StrokeCap.Round)
             fun path(vararg pts: Float,fill: Boolean=false){val p=Path();p.moveTo(pts[0]*s,pts[1]*s);var i=2;while(i<pts.size){p.lineTo(pts[i]*s,pts[i+1]*s);i+=2};if(fill)p.close();drawPath(p,color,style=if(fill)androidx.compose.ui.graphics.drawscope.Fill else Stroke(stroke,cap=StrokeCap.Round,join=StrokeJoin.Round))}
-            when(glyph){
+            when(symbol){
                 "play"->path(9f,5f,20f,12f,9f,19f,fill=true)
                 "pause"->{line(9f,5f,9f,19f);line(16f,5f,16f,19f)}
                 "previous"->{line(6f,5f,6f,19f);path(19f,5f,9f,12f,19f,19f,19f,5f)}
@@ -278,6 +279,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
                 "external"->{path(9f,5f,5f,5f,5f,19f,19f,19f,19f,15f);path(14f,5f,19f,5f,19f,10f);line(19f,5f,11f,13f)}
                 else->listOf(5f,12f,19f).forEach {drawCircle(color,1.4f*s,Offset(it*s,12f*s))}
             }
+        }
         }
     }
 }
