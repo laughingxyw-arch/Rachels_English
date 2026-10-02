@@ -23,7 +23,11 @@ for c in courses:
  c.update(version=digest[:16],sha256=digest,bundle=dest,bundleBytes=(OUT/dest).stat().st_size)
 for f in used:
  for base in bases:
+  if base==APP and not (f.startswith(('audio/','clips-v5/','covers/'))):continue
   (base/f).parent.mkdir(parents=True,exist_ok=True);shutil.copy2(SITE/f,base/f)
+if args.bundle_android:
+ for c in courses:
+  target=APP/'lessons'/f'{c["id"]}.json';target.parent.mkdir(parents=True,exist_ok=True);target.write_text(json.dumps(data(SITE/'lessons'/f'{c["id"]}.js'),ensure_ascii=False))
 catalog=json.dumps(dict(schemaVersion=1,courses=courses),ensure_ascii=False,indent=2)
 for base in bases:(base/'catalog.json').write_text(catalog)
 (OUT/'_headers').write_text('/catalog.json\n  Cache-Control: no-cache\n/packages/*\n  Cache-Control: public, max-age=31536000, immutable\n')

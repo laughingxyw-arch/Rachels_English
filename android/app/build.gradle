@@ -1,4 +1,8 @@
-plugins { id 'com.android.application' }
+plugins {
+ id 'com.android.application'
+ id 'org.jetbrains.kotlin.android'
+ id 'org.jetbrains.kotlin.plugin.compose'
+}
 def releaseVersion = new Properties()
 file('../../release/version.properties').withInputStream { releaseVersion.load(it) }
 android {
@@ -8,6 +12,7 @@ android {
   applicationId 'com.rachelsenglish.practice'
   minSdk 26
   targetSdk 36
+  testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
   versionCode releaseVersion.getProperty('versionCode').toInteger()
   versionName releaseVersion.getProperty('versionName')
   buildConfigField 'String', 'CONTENT_BASE_URL', '"' + providers.gradleProperty('contentBaseUrl').getOrElse('https://rachels-english.pages.dev/') + '"'
@@ -21,6 +26,24 @@ android {
   }
  }
  buildTypes { release { signingConfig signingConfigs.release; minifyEnabled false } }
- buildFeatures { buildConfig true }
+ buildFeatures { buildConfig true; compose true }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+
+kotlin { jvmToolchain(17) }
+dependencies {
+ implementation platform('androidx.compose:compose-bom:2025.10.01')
+ implementation 'androidx.activity:activity-compose:1.11.0'
+ implementation 'androidx.compose.ui:ui'
+ implementation 'androidx.compose.foundation:foundation'
+ implementation 'androidx.compose.animation:animation'
+ implementation 'androidx.compose.material3:material3'
+ implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4'
+ implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.9.4'
+ implementation 'androidx.media3:media3-exoplayer:1.8.0'
+ testImplementation 'junit:junit:4.13.2'
+ androidTestImplementation platform('androidx.compose:compose-bom:2025.10.01')
+ androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+ androidTestImplementation 'androidx.test:runner:1.6.2'
+ debugImplementation 'androidx.compose.ui:ui-test-manifest'
 }

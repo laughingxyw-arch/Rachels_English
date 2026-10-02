@@ -40,3 +40,11 @@ Cloudflare 使用 Pages 静态资源；不使用 R2、数据库或付费 Worker�
 每个版本在 `release/v版本号.md` 维护更新、兼容性、验证和限制说明。推送与版本名称一致的 `v版本号` 标签后，GitHub Actions 执行 Release 编译、Lint、签名验证并发布带版本号的 APK 与 SHA-256 文件。手动运行工作流只生成构建产物，不创建 Release；同一版本不重复发布。签名保持不变，可覆盖安装。
 
 界面遵循共享元素的空间连续性及可打断的弹簧反馈，尊重减少动态效果。Android 自适应图标保持背景、前景和单色层；玻璃质感由绘制层实现，不依赖 Apple 平台的系统材质。
+
+## Android 原生客户端（2.0 起）
+
+Android 使用 Kotlin、Jetpack Compose 与 Media3，不再通过 WebView 展示界面。课程模型、下载校验和本地缓存独立于 UI；Cloudflare 内容格式保持兼容。界面使用 Compose 共享元素转场、弹簧反馈、可拖动设置面板及跟随进度的返回手势。
+
+`python3 scripts/build_content.py --bundle-android` 生成内置 JSON、封面与音频；Android 不打包 HTML/JavaScript 界面。普通内容更新继续只需运行不带该选项的构建与部署。
+
+GitHub 构建还运行复读队列测试及 Android 云端模拟器测试，检查课程打开、实际音频进度、模式、翻译开关和返回操作。开发电脑无需安装 Android SDK。
