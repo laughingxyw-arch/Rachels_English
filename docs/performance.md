@@ -30,6 +30,6 @@
 
 ## 当前验证状态
 
-2.1.2 已通过云端 Release 编译、功能与动画几何测试、背景模糊像素测试。尚未获得小米 15 的真机帧时间记录，**120Hz 稳定性未验证**。云端模拟器检查不作为真机性能验收。
+2.1.3 已通过云端 Release 编译、18 项单元测试和 5 项原生模拟器测试，覆盖设置背景缩放中间帧、面板关闭同步、拖动反向、共享转场及背景模糊像素。设置背景缩放跟随面板实际位置，状态在图形层阶段读取。尚未获得小米 15 的真机帧时间记录，**120Hz 稳定性未验证**。云端模拟器检查不作为真机性能验收。
 
 参考：[Android 慢渲染与帧预算](https://developer.android.com/topic/performance/issues/render)、[Macrobenchmark 指标](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-metrics)。
