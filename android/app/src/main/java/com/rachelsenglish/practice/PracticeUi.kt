@@ -78,8 +78,8 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val transition=rememberTransition(navigation,label="course-space")
     // Retained exit content must never sit above the destination's touch targets.
     // Keep separate transforms: AnimatedContent remembers each scene's enter spec.
-    val homeTransform=remember(reduced){(if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))).using(null)}
-    val lessonTransform=remember(reduced){(if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))).using(null)}
+    val homeTransform=remember(reduced){if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))}
+    val lessonTransform=remember(reduced){if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))}
     homeTransform.targetContentZIndex=if(transition.targetState==null)1f else 0f
     lessonTransform.targetContentZIndex=if(transition.targetState!=null)1f else 0f
     val gesture=remember {Animatable(0f)}
@@ -135,7 +135,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 }.testTag("reading-space").semantics {this[ReadingSceneActiveKey]=transition.currentState!=null||transition.targetState!=null}.captureBackdrop(backdrop)) {
                     val shared=this
                     transition.AnimatedContent(contentKey={it?.course?.id?:"home"},
-                        transitionSpec={if(targetState==null)homeTransform else lessonTransform}) {open ->
+                        transitionSpec={(if(targetState==null)homeTransform else lessonTransform).using(null)}) {open ->
                         if(open==null)Library(model,shared,this,libraryState,query,{query=it})
                         else LessonScreen(model,open,shared,this)
                     }
