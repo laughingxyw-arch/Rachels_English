@@ -45,6 +45,14 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             if(old.running!=value.running||old.paused!=value.paused||old.selected!=value.selected||old.waiting!=value.waiting)mediaChanged?.invoke()
         }
     val mediaPositionMs: Long get()=if(playback.waiting)0L else player.currentPosition
+    private val audioHandler=android.os.Handler(android.os.Looper.getMainLooper())
+    private var audioStartToken=0
+    private fun playAudio(){
+        val token=++audioStartToken
+        // Let the media service publish its foreground notification before audio focus.
+        // A subsequent pause/stop/seek invalidates this pending start.
+        audioHandler.post {if(token==audioStartToken&&playback.running&&!playback.paused&&!playback.waiting)player.play()}
+    }
     private val waitClock=PlaybackWaitClock()
     private val waitLock=(application.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager)
         .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK,"rachels:practice-gap").apply {setReferenceCounted(false)}
@@ -129,16 +137,16 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun start(selected: Int=playback.selected,all: Boolean=true){val data=opened?:return;stop();playAll=all;taskStart=selected;queue=practiceQueue(data.lesson,selected,drill,all,repeatCount);index=0;refreshTimeline();if(queue.isNotEmpty()){ensurePlaybackService();checkListening();begin()}}
     fun previous(){start((playback.selected-1).coerceAtLeast(0))}
     fun next(){val last=opened?.lesson?.groups?.lastIndex?:return;start((playback.selected+1).coerceAtMost(last))}
-    fun toggle(){when{!playback.running->start();playback.paused->{checkListening();ensurePlaybackService();playback=playback.copy(paused=false);if(playback.waiting)scheduleWait() else player.play()};else->pause()}}
-    fun pause(){if(playback.running&&!playback.paused){
+    fun toggle(){when{!playback.running->start();playback.paused->{checkListening();ensurePlaybackService();playback=playback.copy(paused=false);if(playback.waiting)scheduleWait() else playAudio()};else->pause()}}
+    fun pause(){audioStartToken++;if(playback.running&&!playback.paused){
         val remaining=if(playback.waiting)waitClock.remaining(android.os.SystemClock.elapsedRealtime()) else playback.waitSeconds
         playback=playback.copy(paused=true,waitSeconds=remaining);releaseWaitLock();player.pause()
     }}
-    fun stop(){releaseWaitLock();playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0,taskProgress=null);player.stop()}
+    fun stop(){audioStartToken++;releaseWaitLock();playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0,taskProgress=null);player.stop()}
     private fun begin(){releaseWaitLock();val data=opened?:return;val clip=queue.getOrNull(index)?:return
         playback=Playback(clip.group,true,false,0f,-1.0,if(drill)clip.repeat else 0,clip.total,whole=clip.whole,taskProgress=taskProgress(0f))
         prefs.edit().putInt("position.${data.course.id}",clip.group).apply()
-        player.setMediaItem(MediaItem.fromUri(repository.audio(data,clip.file)));player.prepare();player.play()
+        player.setMediaItem(MediaItem.fromUri(repository.audio(data,clip.file)));player.prepare();playAudio()
     }
     private fun enterWait(){val clip=queue.getOrNull(index)?:return
         if(index==queue.lastIndex&&!shadow&&!loop){advance();return}

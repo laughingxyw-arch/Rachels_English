@@ -537,7 +537,7 @@ class NativePracticeTest {
    rule.waitUntil(5000){model.playback.paused}
    val selected=model.playback.selected
    androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().runOnMainSync {controller.seekToNextMediaItem()}
-   rule.waitUntil(5000){model.playback.selected==selected+1}
+   rule.waitUntil(5000){model.playback.selected==selected+1&&model.playback.paused}
    assertTrue(model.playback.paused)
    androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().runOnMainSync {controller.play()}
    rule.waitUntil(10000){!model.playback.paused&&model.playback.progress>.05f}
