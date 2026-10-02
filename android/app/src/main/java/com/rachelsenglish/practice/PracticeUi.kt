@@ -71,7 +71,12 @@ private val LocalSeeking=staticCompositionLocalOf {false}
     // Keep all shared geometry on one linear timeline. Apply physics to its progress,
     // rather than mixing bounds springs of different durations with a seekable gesture.
     LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(model.opened!=null)gesture.snapTo(0f);if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened,animationSpec=spring(1f,500f))}}
-    LaunchedEffect(seeking){if(seeking&&!reduced)snapshotFlow {gesture.value to transition.totalDurationNanos}.collect {(fraction,_)->navigation.seekTo(fraction.coerceIn(0f,1f),null)}}
+    LaunchedEffect(seeking){if(seeking&&!reduced)snapshotFlow {gesture.value to transition.totalDurationNanos}.collect {(progress,duration)->
+        // seekTo uses the duration of the longest child, including Compose's interruption
+        // animations. Geometry uses 360ms: seek its play time, not the parent's fraction.
+        val geometryShare=if(duration>0L)(360_000_000f/duration).coerceAtMost(1f) else 1f
+        navigation.seekTo((progress*geometryShare).coerceIn(0f,1f),null)
+    }}
     PredictiveBackHandler(enabled=model.opened!=null&&!settings) {events ->
         val origin=model.opened
         val token=++gestureToken
