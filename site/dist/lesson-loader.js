@@ -3,6 +3,8 @@ if(window.PracticeApp){try{window.COURSES=JSON.parse(PracticeApp.getCourses());}
 const lessonId=new URLSearchParams(location.search).get('id')||'4dXbgvm4_7g';
 const course=window.COURSES.find(item=>item.id===lessonId);
 if(!course){location.replace('index.html');}else{
+ const cover=document.createElement('img');cover.className='lesson-cover';cover.src=course.cover;cover.alt='';cover.width=96;cover.height=54;cover.style.viewTransitionName='course-cover';document.querySelector('.heading').prepend(cover);
+ document.querySelector('h1').style.viewTransitionName='course-title';
  document.title=course.title+' · 原声跟读';
  document.querySelector('h1').innerHTML='';
  document.querySelector('h1').append(document.createTextNode(course.title));

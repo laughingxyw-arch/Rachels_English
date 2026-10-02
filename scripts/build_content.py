@@ -10,7 +10,7 @@ OUT.mkdir(parents=True,exist_ok=True)
 if args.bundle_android and APP.exists():shutil.rmtree(APP)
 bases=[OUT,APP] if args.bundle_android else [OUT]
 courses=data(SITE/'courses.js')
-used={'index.html','lesson.html','app.js','style.css','courses.js','home.js','lesson-loader.js'}
+used={'index.html','lesson.html','app.js','style.css','courses.js','home.js','lesson-loader.js','motion.css','motion.js','icon.svg'}
 for c in courses:
  lesson=data(SITE/'lessons'/f'{c["id"]}.js');files={g['audioFile'] for g in lesson['groups']+lesson['drill']};used.update(files);used.add(c['cover']);used.add('lessons/'+c['id']+'.js')
  buf=ROOT/'cloud'/f'{c["id"]}.zip'

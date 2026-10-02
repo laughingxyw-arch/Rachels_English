@@ -9,7 +9,7 @@ for file in (dist/'lessons').glob('*.js'):
 assets.update(p.relative_to(dist).as_posix() for p in dist.glob('*.html'))
 courses=json.loads((dist/'courses.js').read_text().split('=',1)[1].strip().rstrip(';'))
 assets.update(c['cover'] for c in courses)
-assets.update(['app.js','style.css','courses.js','home.js','lesson-loader.js'])
+assets.update(['app.js','style.css','courses.js','home.js','lesson-loader.js','motion.css','motion.js','icon.svg'])
 assets.update(p.relative_to(dist).as_posix() for p in (dist/'lessons').glob('*.js'))
 with zipfile.ZipFile(root/'listening-practice.zip','w',zipfile.ZIP_DEFLATED) as z:
  for asset in sorted(assets):z.write(dist/asset,asset)

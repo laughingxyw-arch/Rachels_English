@@ -25,7 +25,8 @@ jobs:
         run: |
           tag=$(gh release list --repo "${{ github.repository }}" --limit 1 --json tagName --jq '.[0].tagName // empty')
           if [ -n "$tag" ]; then
-            gh release download "$tag" --repo "${{ github.repository }}" --pattern rachels-english.apk --dir cloud/dist
+            gh release download "$tag" --repo "${{ github.repository }}" --pattern 'rachels-english*.apk' --dir /tmp/latest-apk
+            cp /tmp/latest-apk/*.apk cloud/dist/rachels-english.apk
           fi
       - name: Publish static courses when deployment token is configured
         if: env.CLOUDFLARE_API_TOKEN != ''

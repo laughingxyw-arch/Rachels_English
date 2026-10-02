@@ -32,3 +32,11 @@ Cloudflare 使用 Pages 静态资源；不使用 R2、数据库或付费 Worker�
 ## 课程自动发布
 
 内容工作流独立检查课程包，不触发 APK 编译。本地已登录 Wrangler 可直接发布。若需要每次 GitHub 提交自动发布，另在仓库 Secrets 设置只限此账户的 `CLOUDFLARE_API_TOKEN`（Cloudflare Pages Edit），在 Secrets 设置 `CLOUDFLARE_ACCOUNT_ID`。未配置时自动部署步骤跳过，校验仍运行。不要把本地 OAuth 登录令牌当成永久部署密钥上传。
+
+## 版本与发布
+
+应用版本统一定义在 `release/version.properties`：版本名称采用主版本.次版本.修订版本，Android 版本代码每次发布严格递增。新增课程只更新内容目录，不改变应用版本。
+
+每个版本在 `release/v版本号.md` 维护更新、兼容性、验证和限制说明。推送与版本名称一致的 `v版本号` 标签后，GitHub Actions 执行 Release 编译、Lint、签名验证并发布带版本号的 APK 与 SHA-256 文件。手动运行工作流只生成构建产物，不创建 Release；同一版本不重复发布。签名保持不变，可覆盖安装。
+
+界面遵循共享元素的空间连续性及可打断的弹簧反馈，尊重减少动态效果。Android 自适应图标保持背景、前景和单色层；玻璃质感由绘制层实现，不依赖 Apple 平台的系统材质。

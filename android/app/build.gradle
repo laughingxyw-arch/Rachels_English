@@ -1,4 +1,6 @@
 plugins { id 'com.android.application' }
+def releaseVersion = new Properties()
+file('../../release/version.properties').withInputStream { releaseVersion.load(it) }
 android {
  namespace 'com.rachelsenglish.practice'
  compileSdk 36
@@ -6,8 +8,8 @@ android {
   applicationId 'com.rachelsenglish.practice'
   minSdk 26
   targetSdk 36
-  versionCode providers.gradleProperty('appVersionCode').getOrElse('1').toInteger()
-  versionName '1.0.0'
+  versionCode releaseVersion.getProperty('versionCode').toInteger()
+  versionName releaseVersion.getProperty('versionName')
   buildConfigField 'String', 'CONTENT_BASE_URL', '"' + providers.gradleProperty('contentBaseUrl').getOrElse('https://rachels-english.pages.dev/') + '"'
  }
  signingConfigs {

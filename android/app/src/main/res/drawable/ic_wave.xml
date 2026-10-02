@@ -1,3 +1,7 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
- <path android:pathData="M38,45 L38,63 M54,33 L54,75 M70,41 L70,67" android:strokeWidth="7" android:strokeColor="#5552dc" android:strokeLineCap="round"/>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+ <path android:pathData="M40,27 L68,27 Q81,27 81,40 L81,72 Q81,85 68,85 L40,85 Q27,85 27,72 L27,40 Q27,27 40,27" android:fillColor="#225C488C"/>
+ <path android:pathData="M40,24 L68,24 Q82,24 82,38 L82,68 Q82,82 68,82 L40,82 Q26,82 26,68 L26,38 Q26,24 40,24" android:strokeColor="#BBFFFFFF" android:strokeWidth="1">
+  <aapt:attr name="android:fillColor"><gradient android:startX="28" android:startY="24" android:endX="80" android:endY="84" android:type="linear"><item android:offset="0" android:color="#F2FFFFFF"/><item android:offset="1" android:color="#88F6F3FF"/></gradient></aapt:attr>
+ </path>
+ <path android:pathData="M39,44 L39,62 M54,34 L54,72 M69,40 L69,66" android:strokeWidth="6" android:strokeLineCap="round"><aapt:attr name="android:strokeColor"><gradient android:startX="36" android:startY="32" android:endX="70" android:endY="74" android:type="linear"><item android:offset="0" android:color="#8175CA"/><item android:offset="1" android:color="#50478B"/></gradient></aapt:attr></path>
 </vector>
