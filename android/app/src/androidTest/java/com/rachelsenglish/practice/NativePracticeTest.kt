@@ -362,6 +362,38 @@ class NativePracticeTest {
    model.back()
   }
  }
+ @Test fun restoredSentenceIsPresentFromFirstLayoutWithoutAnEntryScroll(){
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  fun scale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+  fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(10)}
+  try {
+   rule.activity.getSharedPreferences("practice-native",0).edit().putInt("position.4dXbgvm4_7g",2).commit()
+   scale("1");rule.activityRule.scenario.recreate()
+   rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
+   rule.mainClock.autoAdvance=false
+   rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
+   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   rule.waitUntil(10000){model.opened?.course?.id=="4dXbgvm4_7g"}
+   var samples=0
+   repeat(100){
+    frame()
+    val node=rule.onAllNodesWithTag("dialogue-list",useUnmergedTree=true).fetchSemanticsNodes().firstOrNull()
+    if(node!=null){
+     samples++
+     assertEquals("The restored sentence must be first from the initial layout, not after entry",3,node.config[ReadingFirstItemKey])
+     assertEquals("Entry must not animate a second scroll",0,node.config[ReadingFirstOffsetKey])
+    }
+   }
+   assertTrue("The regression must sample entry and the settled reading page",samples>60)
+   val last=model.opened!!.lesson.groups.lastIndex
+   rule.runOnUiThread {model.start(last);model.pause()}
+   repeat(100){frame()}
+   rule.onNodeWithTag("sentence-$last").assertIsDisplayed()
+   val followed=rule.onNodeWithTag("dialogue-list",useUnmergedTree=true).fetchSemanticsNode().config[ReadingFirstItemKey]
+   assertTrue("Subsequent playback changes must still follow the new sentence",followed>3)
+   rule.runOnUiThread {model.back()};repeat(90){frame()}
+  } finally {rule.mainClock.autoAdvance=true;scale("0")}
+ }
  @Test fun settingsBackgroundTracksOpeningClosingAndDragReversal(){
   val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
   fun animationScale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}

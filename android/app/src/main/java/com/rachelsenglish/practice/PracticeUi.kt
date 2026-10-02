@@ -59,6 +59,8 @@ private val Tint=Color(0xffedf4fc)
 private val LocalReduced=staticCompositionLocalOf {false}
 private val LocalSeeking=staticCompositionLocalOf {false}
 val CoverBadgeOpacityKey=SemanticsPropertyKey<Float>("CoverBadgeOpacity")
+val ReadingFirstItemKey=SemanticsPropertyKey<Int>("ReadingFirstItem")
+val ReadingFirstOffsetKey=SemanticsPropertyKey<Int>("ReadingFirstOffset")
 val CourseTitleLineCountKey=SemanticsPropertyKey<Int>("CourseTitleLineCount")
 val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 @Composable fun PracticeApp(model: PracticeModel) {
@@ -231,14 +233,18 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     }
 }
 @Composable private fun LessonScreen(model: PracticeModel,open: OpenLesson,shared: SharedTransitionScope,visibility: AnimatedVisibilityScope) {
-    val list=androidx.compose.foundation.lazy.rememberLazyListState()
+    val selected by remember(model){derivedStateOf {model.playback.selected}}
+    // Restore before the first measure; entry must not reveal the header then scroll away.
+    val entrySelected=remember(open.course.id){selected}
+    val list=androidx.compose.foundation.lazy.rememberLazyListState(initialFirstVisibleItemIndex=if(entrySelected==0)0 else entrySelected+1)
+    var followedSelected by remember(open.course.id){mutableIntStateOf(entrySelected)}
     val coverEnd=with(LocalDensity.current){110.dp.roundToPx()}
     val headerVisible by remember(list,coverEnd){derivedStateOf {list.firstVisibleItemIndex==0&&list.firstVisibleItemScrollOffset<coverEnd}}
-    val selected by remember(model){derivedStateOf {model.playback.selected}}
     val reduced=LocalReduced.current
-    LaunchedEffect(selected,visibility.transition.currentState,visibility.transition.targetState) {
-        // Keep the shared header stationary until its entry handoff has finished.
-        if(visibility.transition.currentState!=EnterExitState.Visible||visibility.transition.targetState!=EnterExitState.Visible)return@LaunchedEffect
+    LaunchedEffect(selected) {
+        // Auto-follow only a subsequent sentence change, never the restored entry position.
+        if(selected==followedSelected)return@LaunchedEffect
+        followedSelected=selected
         snapshotFlow {list.layoutInfo.totalItemsCount}.first {it>0}
         val visible=list.layoutInfo.visibleItemsInfo
         val item=visible.firstOrNull {it.index==selected+1}
@@ -250,7 +256,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val corner by visibility.transition.animateDp(transitionSpec={if(reduced)snap() else tween(360,easing=LinearEasing)},label="course-corner") {if(it==EnterExitState.Visible)0.dp else 18.dp}
     Box(with(shared){containerModifier(open.course,visibility)}.testTag("lesson").clip(RoundedCornerShape(corner)).background(Backdrop)
         .then(with(shared){Modifier.skipToLookaheadSize()}).fillMaxSize()) {
-        LazyColumn(state=list,contentPadding=PaddingValues(16.dp,12.dp,16.dp,128.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+        LazyColumn(state=list,modifier=Modifier.testTag("dialogue-list").semantics {this[ReadingFirstItemKey]=list.firstVisibleItemIndex;this[ReadingFirstOffsetKey]=list.firstVisibleItemScrollOffset},contentPadding=PaddingValues(16.dp,12.dp,16.dp,128.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
             item(key="header") {
                 Column(Modifier.padding(bottom=18.dp)) {
                     Row(verticalAlignment=Alignment.CenterVertically) {GlyphButton("返回课程","back",model::back);Text("课程",fontSize=12.sp,color=Muted)}
