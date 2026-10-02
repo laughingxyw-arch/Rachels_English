@@ -72,7 +72,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
                 SharedTransitionLayout {
                     val shared=this
                     AnimatedContent(targetState=model.opened,contentKey={it?.course?.id?:"home"},
-                        transitionSpec={EnterTransition.None togetherWith ExitTransition.None},label="course-space") { open ->
+                        transitionSpec={if(reduced) EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))},label="course-space") { open ->
                         val visibility=this
                         if(open==null) Library(model,shared,visibility,libraryState,query,{query=it})
                         else Box(Modifier.fillMaxSize().graphicsLayer {
@@ -102,7 +102,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
 }
 @Composable private fun SharedTransitionScope.titleModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
     val reduced=LocalReduced.current
-    return Modifier.sharedBounds(rememberSharedContentState("title-${c.id}"),visibility,
+    return Modifier.sharedElement(rememberSharedContentState("title-${c.id}"),visibility,
         boundsTransform={_,_->if(reduced)snap() else spring(dampingRatio=.92f,stiffness=420f)})
 }
 @Composable private fun Cover(c: Course,repo: CourseRepository,modifier: Modifier) {
