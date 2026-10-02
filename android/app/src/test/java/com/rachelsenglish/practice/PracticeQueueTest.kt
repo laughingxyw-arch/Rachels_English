@@ -11,6 +11,17 @@ class PracticeQueueTest {
   assertEquals(listOf(1,2,3,1,2,3,1,2,3),q.map {it.repeat});assertTrue(q.takeLast(3).all {it.whole})}
  @Test fun originalDoesNotRepeat(){assertEquals(listOf("g0.wav","g1.wav"),practiceQueue(lesson,0,false,true).map {it.file})}
  @Test fun fullDrillContinuesIntoFollowingGroups(){assertEquals(12,practiceQueue(lesson,0,true,true).size);assertEquals(3,practiceQueue(lesson,1,true,true).size)}
+ @Test fun repeatCountAppliesToPartsAndWholeWithoutChangingOriginal(){
+  (2..5).forEach {n->
+   val q=practiceQueue(lesson,0,true,false,n)
+   assertEquals(3*n,q.size);assertEquals(n,q.count {it.whole})
+   assertEquals(List(3){(1..n).toList()}.flatten(),q.map {it.repeat})
+   assertTrue(q.all {it.total==n})
+  }
+  assertEquals(6,practiceQueue(lesson,0,true,false,1).size)
+  assertEquals(15,practiceQueue(lesson,0,true,false,9).size)
+  assertEquals(2,practiceQueue(lesson,0,false,true,5).size)
+ }
  @Test fun loopRewindsOnlyAtTheCurrentGroupBoundary(){
   val q=practiceQueue(lesson,0,true,true)
   assertEquals(1,nextClipIndex(q,0,true))

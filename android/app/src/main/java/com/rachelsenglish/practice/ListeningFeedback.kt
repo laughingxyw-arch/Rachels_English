@@ -29,13 +29,13 @@ class ListeningFeedback {
         val notice=if(band!=VolumeBand.NORMAL&&band !in reported) {
             reported.add(band)
             when(band){
-                VolumeBand.MUTED->"媒体音量已静音，可用音量键调高。"
-                VolumeBand.LOW->"媒体音量较低，可用音量键调整。"
-                VolumeBand.HIGH->"当前音量偏高，可以调低后再听。"
+                VolumeBand.MUTED->"媒体音量已静音"
+                VolumeBand.LOW->"媒体音量较低"
+                VolumeBand.HIGH->"当前音量偏高"
                 else->null
             }
         } else if(connected) "耳机已连接。" else null
         if(notice!=null)lastNotice=now
-        return if(connected&&notice!=null&&band!=VolumeBand.NORMAL)"耳机已连接。$notice" else notice
+        return if(connected&&notice!=null&&band!=VolumeBand.NORMAL)"耳机已连接 · $notice" else notice
     }
 }

@@ -58,11 +58,21 @@ class NativePracticeTest {
   rule.runOnIdle {assertTrue(model.drill);assertTrue(model.playback.paused)}
   rule.onNodeWithContentDescription("练习设置").performClick()
   rule.onNodeWithText("中文翻译").assertExists()
+  rule.onNodeWithTag("repeat-setting").performClick()
+  rule.onNodeWithTag("repeat-2").performClick()
+  rule.runOnIdle {assertEquals(2,model.repeatCount);assertEquals(2,model.playback.total);assertTrue(model.playback.paused)}
+  rule.onNodeWithTag("repeat-setting").performClick()
+  rule.onNodeWithTag("repeat-5").performClick()
+  rule.runOnIdle {assertEquals(5,model.repeatCount);assertEquals(5,model.playback.total);assertTrue(model.playback.paused);model.updateRepeatCount(3)}
   screenshot("settings")
   rule.onNodeWithText("中文翻译").performClick()
   rule.runOnIdle {assertTrue(model.translation);model.updateTranslation(false)}
   rule.onNodeWithContentDescription("关闭设置").performClick()
   rule.waitForIdle()
+  rule.runOnIdle {model.notify("媒体音量已静音")}
+  rule.onNodeWithTag("notice").assertExists()
+  screenshot("notice")
+  rule.runOnIdle {model.consumeMessage()}
   rule.runOnUiThread {
    val back=rule.activity.onBackPressedDispatcher
    back.dispatchOnBackStarted(androidx.activity.BackEventCompat(0f,200f,0f,androidx.activity.BackEventCompat.EDGE_LEFT))

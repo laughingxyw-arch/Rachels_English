@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -28,11 +29,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalAccessibilityManager
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -40,8 +43,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 
 private val Ink=Color(0xff25283b)
@@ -54,27 +57,22 @@ private val LocalReduced=staticCompositionLocalOf { false }
     val context=LocalContext.current;val lifecycle=LocalLifecycleOwner.current
     var reduced by remember { mutableStateOf(Settings.Global.getFloat(context.contentResolver,Settings.Global.ANIMATOR_DURATION_SCALE,1f)==0f) }
     DisposableEffect(lifecycle){val observer=LifecycleEventObserver { _,event -> if(event==Lifecycle.Event.ON_RESUME)reduced=Settings.Global.getFloat(context.contentResolver,Settings.Global.ANIMATOR_DURATION_SCALE,1f)==0f };lifecycle.lifecycle.addObserver(observer);onDispose {lifecycle.lifecycle.removeObserver(observer)}}
-    val snackbar=remember { SnackbarHostState() }
-    LaunchedEffect(Unit){snapshotFlow {model.message}.filterNotNull().collect {text->snackbar.showSnackbar(text);if(model.message==text)model.consumeMessage()}}
     val libraryState=rememberLazyGridState()
     var query by rememberSaveable {mutableStateOf("")}
     val backProgress=remember {Animatable(0f)}
     var backDirection by remember {mutableFloatStateOf(1f)}
     PredictiveBackHandler(enabled=model.opened!=null) { events ->
-        try {events.collect {backDirection=if(it.swipeEdge==androidx.activity.BackEventCompat.EDGE_LEFT)1f else -1f;backProgress.snapTo(it.progress)};model.back();backProgress.snapTo(0f)}
+        try {events.collect {backDirection=if(it.swipeEdge==androidx.activity.BackEventCompat.EDGE_LEFT)1f else -1f;backProgress.snapTo(it.progress)};model.back()}
         catch(_: CancellationException) {withContext(NonCancellable){if(reduced)backProgress.snapTo(0f) else backProgress.animateTo(0f,spring(.9f,600f))}}
     }
+    LaunchedEffect(model.opened?.course?.id){if(model.opened==null&&!reduced)delay(500);backProgress.snapTo(0f)}
     CompositionLocalProvider(LocalReduced provides reduced) {
         MaterialTheme(colorScheme=lightColorScheme(primary=Accent,background=Backdrop,surface=Color.White,onSurface=Ink,onBackground=Ink)) {
             Box(Modifier.fillMaxSize().background(Backdrop).safeDrawingPadding()) {
                 SharedTransitionLayout {
                     val shared=this
                     AnimatedContent(targetState=model.opened,contentKey={it?.course?.id?:"home"},
-                        transitionSpec={
-                            if(reduced)EnterTransition.None togetherWith ExitTransition.None
-                            else if(targetState!=null) (fadeIn(tween(160))+slideInHorizontally(spring(.94f,500f)){it/10}) togetherWith (fadeOut(tween(140))+slideOutHorizontally(tween(220)){ -it/18 })
-                            else (fadeIn(tween(160))+slideInHorizontally(spring(.94f,500f)){ -it/18 }) togetherWith (fadeOut(tween(140))+slideOutHorizontally(tween(220)){it/10})
-                        },label="course-space") { open ->
+                        transitionSpec={EnterTransition.None togetherWith ExitTransition.None},label="course-space") { open ->
                         val visibility=this
                         if(open==null) Library(model,shared,visibility,libraryState,query,{query=it})
                         else Box(Modifier.fillMaxSize().graphicsLayer {
@@ -84,10 +82,18 @@ private val LocalReduced=staticCompositionLocalOf { false }
                         }) { LessonScreen(model,open,shared,visibility) }
                     }
                 }
-                SnackbarHost(snackbar,Modifier.align(Alignment.BottomCenter).padding(bottom=88.dp))
+                NoticePill(model,Modifier.align(Alignment.BottomCenter).padding(horizontal=24.dp).padding(bottom=if(model.opened!=null)88.dp else 24.dp))
             }
         }
     }
+}
+@Composable private fun SharedTransitionScope.containerModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
+    val reduced=LocalReduced.current
+    return Modifier.sharedBounds(rememberSharedContentState("container-${c.id}"),visibility,
+        boundsTransform={_,_->if(reduced)snap() else spring(.95f,420f)},
+        enter=if(reduced)EnterTransition.None else fadeIn(tween(180,delayMillis=80)),
+        exit=if(reduced)ExitTransition.None else fadeOut(tween(100)),
+        resizeMode=SharedTransitionScope.ResizeMode.RemeasureToBounds)
 }
 @Composable private fun SharedTransitionScope.coverModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
     val reduced=LocalReduced.current
@@ -123,7 +129,8 @@ private val LocalReduced=staticCompositionLocalOf { false }
         items(courses,key={it.id}) {course ->
             val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
             val scale by animateFloatAsState(if(pressed).978f else 1f,if(LocalReduced.current)snap() else spring(.85f,650f),label="card-pressure")
-            Row(Modifier.graphicsLayer {scaleX=scale;scaleY=scale}.clip(RoundedCornerShape(18.dp))
+            Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale;scaleY=scale}.clip(RoundedCornerShape(18.dp)).background(Color.White)
+                .then(with(shared){Modifier.skipToLookaheadSize()})
                 .clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={model.open(course)})
                 .testTag("course-${course.id}").fillMaxWidth().heightIn(min=88.dp).padding(vertical=8.dp),
                 verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
@@ -146,7 +153,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
     val list=androidx.compose.foundation.lazy.rememberLazyListState()
     val coverEnd=with(LocalDensity.current){110.dp.roundToPx()}
     val headerVisible by remember(list,coverEnd){derivedStateOf {list.firstVisibleItemIndex==0&&list.firstVisibleItemScrollOffset<coverEnd}}
-    val selected=model.playback.selected
+    val selected by remember(model){derivedStateOf {model.playback.selected}}
     val reduced=LocalReduced.current
     LaunchedEffect(selected) {
         snapshotFlow {list.layoutInfo.totalItemsCount}.first {it>0}
@@ -156,7 +163,9 @@ private val LocalReduced=staticCompositionLocalOf { false }
             if(reduced)list.scrollToItem(selected+1) else list.animateScrollToItem(selected+1)
         }
     }
-    Box(Modifier.fillMaxSize().testTag("lesson")) {
+    val corner by visibility.transition.animateDp(transitionSpec={if(reduced)snap() else spring(.95f,420f)},label="course-corner") {if(it==EnterExitState.Visible)0.dp else 18.dp}
+    Box(with(shared){containerModifier(open.course,visibility)}.clip(RoundedCornerShape(corner)).background(Backdrop)
+        .then(with(shared){Modifier.skipToLookaheadSize()}).fillMaxSize().testTag("lesson")) {
         LazyColumn(state=list,contentPadding=PaddingValues(16.dp,12.dp,16.dp,128.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
             item(key="header") {
                 Column(Modifier.padding(bottom=18.dp)) {
@@ -170,7 +179,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
                         val context=LocalContext.current
                         GlyphButton("打开原视频","external",{runCatching {context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://www.youtube.com/watch?v=${open.course.id}")))}})
                     }
-                    ModeSelector(model.drill,model::updateDrill)
+                    ModeSelector(model.drill,model.repeatCount,model::updateDrill)
                 }
             }
             items(open.lesson.groups,key={it.id}) {sentence ->
@@ -182,12 +191,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
                     Row(horizontalArrangement=Arrangement.spacedBy(14.dp)) {
                         Text("%02d".format(sentence.id+1),fontSize=11.sp,color=if(active)Accent else Muted,modifier=Modifier.padding(top=6.dp))
                         Column(Modifier.weight(1f)) {
-                            val text=buildAnnotatedString {sentence.phrases.forEachIndexed {i,p ->
-                                if(i>0)append(" ")
-                                val speaking=active&&model.playback.source>=p.start&&model.playback.source<p.end
-                                withStyle(SpanStyle(color=if(speaking)Accent else if(active)Ink else Muted,textDecoration=if(speaking)TextDecoration.Underline else null)){append(p.text)}
-                            }}
-                            Text(text,fontSize=21.sp,lineHeight=34.sp)
+                            ReadingText(sentence,active,if(active)model.playback.source else -1.0,reduced)
                             if(model.translation&&sentence.translation.isNotEmpty())Text(sentence.translation,fontSize=13.sp,lineHeight=21.sp,color=Muted,modifier=Modifier.padding(top=10.dp))
                             if(active&&model.cues&&sentence.cues.isNotEmpty())Text(sentence.cues.joinToString(" · "),fontSize=11.sp,lineHeight=18.sp,color=Accent.copy(alpha=.75f),modifier=Modifier.padding(top=10.dp))
                         }
@@ -205,23 +209,28 @@ private val LocalReduced=staticCompositionLocalOf { false }
     }
     if(settings) SettingsSheet(model){settings=false}
 }
-@Composable private fun ModeSelector(drill: Boolean,onChange: (Boolean)->Unit) {
+@Composable private fun ModeSelector(drill: Boolean,repeats: Int,onChange: (Boolean)->Unit) {
     BoxWithConstraints(Modifier.width(204.dp).height(56.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xffe8eef6)).padding(4.dp)) {
         val half=maxWidth/2
         val offset by animateDpAsState(if(drill)half else 0.dp,if(LocalReduced.current)snap() else spring(.86f,650f),label="mode-selection")
         Box(Modifier.offset(x=offset).width(half).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(Color.White))
         Row {listOf(false,true).forEach {value -> Box(Modifier.width(half).fillMaxHeight().clip(RoundedCornerShape(10.dp))
             .selectable(selected=drill==value,role=Role.Tab,onClick={onChange(value)}).testTag(if(value)"mode-drill" else "mode-original"),contentAlignment=Alignment.Center) {
-            Text(if(value)"Drill · 三遍" else "原句",fontSize=13.sp,color=if(drill==value)Ink else Muted,fontWeight=if(drill==value)FontWeight.Medium else FontWeight.Normal)
+            Text(if(value)"Drill · ${repeats}×" else "原句",fontSize=13.sp,color=if(drill==value)Ink else Muted,fontWeight=if(drill==value)FontWeight.Medium else FontWeight.Normal)
         }}}
     }
 }
 @Composable private fun Transport(model: PracticeModel,settings: ()->Unit,modifier: Modifier) {
     val p=model.playback
+    val progress by animateFloatAsState(p.progress,if(LocalReduced.current||p.progress==0f)snap() else tween(45,easing=LinearEasing),label="transport-light")
     Column(modifier.animateContentSize(if(LocalReduced.current)snap() else spring(.95f,600f)), horizontalAlignment=Alignment.CenterHorizontally) {
-        Box(Modifier.clip(RoundedCornerShape(50)).background(Brush.linearGradient(listOf(Color.White,Color(0xffedf4fc))))
-            .border(1.dp,Color.White,RoundedCornerShape(50)).semantics {progressBarRangeInfo=ProgressBarRangeInfo(p.progress,0f..1f)}) {
-            Canvas(Modifier.matchParentSize()){drawRect(Accent.copy(alpha=.09f),size=androidx.compose.ui.geometry.Size(size.width*p.progress,size.height))}
+        Box(Modifier.shadow(18.dp,RoundedCornerShape(50),ambientColor=Ink.copy(alpha=.10f),spotColor=Ink.copy(alpha=.16f))
+            .clip(RoundedCornerShape(50)).background(Brush.verticalGradient(listOf(Color(0xfffefeff),Color(0xfff4f8fe),Color(0xffeaf1fa))))
+            .border(1.dp,Color.White.copy(alpha=.95f),RoundedCornerShape(50)).semantics {progressBarRangeInfo=ProgressBarRangeInfo(p.progress,0f..1f)}) {
+            Canvas(Modifier.matchParentSize()){
+                drawRect(Brush.horizontalGradient(listOf(Accent.copy(alpha=.035f),Color(0xff69b5ff).copy(alpha=.19f))),size=androidx.compose.ui.geometry.Size(size.width*progress,size.height))
+                drawRect(Brush.verticalGradient(listOf(Color.White.copy(alpha=.28f),Color.Transparent,Ink.copy(alpha=.035f))))
+            }
             Row(Modifier.padding(6.dp,4.dp),verticalAlignment=Alignment.CenterVertically) {
                 GlyphButton("上一句","previous",model::previous,enabled=p.selected>0)
                 GlyphButton(if(p.running&&!p.paused)"暂停" else "播放",if(p.running&&!p.paused)"pause" else "play",model::toggle)
@@ -242,6 +251,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
     ModalBottomSheet(onDismissRequest=dismiss,containerColor=Backdrop,sheetState=sheet) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=28.dp).padding(bottom=24.dp)) {
             Row(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalAlignment=Alignment.CenterVertically){Text("练习设置",fontSize=17.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f));GlyphButton("关闭设置","close",close)}
+            if(model.drill) RepeatSetting(model)
             Setting("循环当前组",model.loop,model::updateLoop)
             Setting("留白跟读",model.shadow,model::updateShadow)
             if(model.shadow){Row(Modifier.fillMaxWidth().padding(vertical=8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -255,13 +265,61 @@ private val LocalReduced=staticCompositionLocalOf { false }
 }
 @Composable private fun Setting(label: String,checked: Boolean,change: (Boolean)->Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min=56.dp).toggleable(checked,role=Role.Switch,onValueChange=change),verticalAlignment=Alignment.CenterVertically) {
-        Text(label,fontSize=15.sp,modifier=Modifier.weight(1f));Switch(checked,onCheckedChange=null)
+        Text(label,fontSize=15.sp,modifier=Modifier.weight(1f));Switch(checked,onCheckedChange=null,colors=SwitchDefaults.colors(uncheckedTrackColor=Color(0xffe3e9f1),uncheckedBorderColor=Color.Transparent,uncheckedThumbColor=Color.White))
+    }
+}
+@Composable private fun RepeatSetting(model: PracticeModel) {
+    var expanded by rememberSaveable {mutableStateOf(false)}
+    val reduced=LocalReduced.current
+    Column {
+        Row(Modifier.fillMaxWidth().heightIn(min=56.dp).clip(RoundedCornerShape(12.dp))
+            .clickable(role=Role.Button,onClick={expanded=!expanded}).testTag("repeat-setting")
+            .semantics {stateDescription="${model.repeatCount} 次"},verticalAlignment=Alignment.CenterVertically) {
+            Text("复读次数",fontSize=15.sp,modifier=Modifier.weight(1f))
+            Text("${model.repeatCount}×",fontSize=14.sp,color=Accent)
+        }
+        AnimatedVisibility(expanded,enter=if(reduced)EnterTransition.None else expandVertically(spring(.95f,600f))+fadeIn(tween(120)),exit=if(reduced)ExitTransition.None else shrinkVertically(tween(160))+fadeOut(tween(100))) {
+            Row(Modifier.fillMaxWidth().padding(bottom=8.dp).selectableGroup(),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+                (2..5).forEach {count ->
+                    Box(Modifier.weight(1f).heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
+                        .background(if(model.repeatCount==count)Tint else Color.Transparent)
+                        .selectable(model.repeatCount==count,role=Role.RadioButton,onClick={model.updateRepeatCount(count);expanded=false})
+                        .testTag("repeat-$count"),contentAlignment=Alignment.Center) {Text("${count}×",fontSize=14.sp,color=if(model.repeatCount==count)Accent else Muted)}
+                }
+            }
+        }
+    }
+}
+@Composable private fun NoticePill(model: PracticeModel,modifier: Modifier) {
+    val text=model.message
+    var last by remember {mutableStateOf("")}
+    SideEffect {if(text!=null)last=text}
+    val accessibility=LocalAccessibilityManager.current
+    LaunchedEffect(text,model.messageIsError){if(text!=null){
+        val duration=accessibility?.calculateRecommendedTimeoutMillis(if(model.messageIsError)5000L else 3000L,containsIcons=true,containsText=true)?:3000L
+        delay(duration);if(model.message==text)model.consumeMessage()
+    }}
+    val reduced=LocalReduced.current
+    AnimatedVisibility(text!=null,modifier=modifier,enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(.95f,650f)){it/4},exit=if(reduced)ExitTransition.None else fadeOut(tween(160))+slideOutVertically(tween(160)){it/6}) {
+        Row(Modifier.widthIn(max=300.dp).shadow(10.dp,RoundedCornerShape(24.dp),ambientColor=Ink.copy(alpha=.07f),spotColor=Ink.copy(alpha=.09f))
+            .clip(RoundedCornerShape(24.dp)).background(Color(0xfff9fbff)).border(1.dp,Color.White,RoundedCornerShape(24.dp))
+            .semantics(mergeDescendants=true){liveRegion=if(model.messageIsError)LiveRegionMode.Assertive else LiveRegionMode.Polite}
+            .testTag("notice").padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(9.dp)) {
+            Canvas(Modifier.size(15.dp)) {
+                val color=if(model.messageIsError)Color(0xffa94b44) else Accent
+                if(model.messageIsError){drawCircle(color.copy(alpha=.15f));drawLine(color,Offset(size.width/2,size.height*.25f),Offset(size.width/2,size.height*.58f),1.4.dp.toPx(),StrokeCap.Round);drawCircle(color,.8.dp.toPx(),Offset(size.width/2,size.height*.76f))}
+                else {listOf(.38f,.72f,.52f).forEachIndexed {i,h ->val x=size.width*(.22f+.28f*i);drawLine(color,Offset(x,size.height*(1-h)/2),Offset(x,size.height*(1+h)/2),1.6.dp.toPx(),StrokeCap.Round)}}
+            }
+            Text(text?:last,fontSize=12.sp,lineHeight=18.sp,color=Ink,maxLines=3,modifier=Modifier.weight(1f,fill=false))
+        }
     }
 }
 @Composable private fun GlyphButton(label: String,glyph: String,click: ()->Unit,enabled: Boolean=true) {
     val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(if(pressed).9f else 1f,if(LocalReduced.current)snap() else spring(.8f,700f),label="control-pressure")
-    IconButton(onClick=click,enabled=enabled,interactionSource=interaction,modifier=Modifier.size(48.dp).semantics {contentDescription=label}) {
+    IconButton(onClick=click,enabled=enabled,interactionSource=interaction,modifier=Modifier.size(48.dp).drawBehind {
+        if(glyph=="play"||glyph=="pause")drawCircle(Brush.verticalGradient(listOf(Color.White.copy(alpha=.75f),Accent.copy(alpha=if(pressed).10f else .025f))),radius=20.dp.toPx()*scale)
+    }.semantics {contentDescription=label}) {
         Crossfade(glyph,animationSpec=if(LocalReduced.current)snap() else tween(100),label="control-symbol") {symbol ->
         Canvas(Modifier.size(21.dp).graphicsLayer {scaleX=scale;scaleY=scale}) {
             val color=if(enabled)Ink else Muted.copy(alpha=.5f);val stroke=1.7.dp.toPx();val s=size.width/24f

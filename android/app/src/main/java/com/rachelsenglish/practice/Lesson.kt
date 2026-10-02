@@ -33,9 +33,9 @@ data class Lesson(val groups: List<Sentence>, val drill: List<DrillBlock>) {
 fun safePath(path: String)=path.isNotEmpty()&&!path.startsWith('/')&&!path.contains("..")&&!path.contains('\\')&&!path.contains(':')
 data class Clip(val group: Int, val file: String, val duration: Double, val sourceStart: Double,
     val lead: Double, val whole: Boolean, val repeat: Int=1, val total: Int=1)
-fun practiceQueue(lesson: Lesson, selected: Int, drill: Boolean, all: Boolean): List<Clip> =
+fun practiceQueue(lesson: Lesson, selected: Int, drill: Boolean, all: Boolean, repeats: Int=3): List<Clip> =
     if(drill) lesson.drill.filter { if(all) it.group>=selected else it.group==selected }.flatMap { b ->
-        (1..b.repeats).map { Clip(b.group,b.audioFile,b.duration,b.sourceStart,b.lead,b.whole,it,b.repeats) }
+        (1..repeats.coerceIn(2,5)).map { Clip(b.group,b.audioFile,b.duration,b.sourceStart,b.lead,b.whole,it,repeats.coerceIn(2,5)) }
     } else lesson.groups.filter { if(all) it.id>=selected else it.id==selected }.map { Clip(it.id,it.audioFile,it.duration,it.start,it.lead,true) }
 
 fun nextClipIndex(queue: List<Clip>,index: Int,loop: Boolean): Int {
