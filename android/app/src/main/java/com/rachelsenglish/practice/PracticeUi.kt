@@ -91,10 +91,10 @@ private val LocalSeeking=staticCompositionLocalOf {false}
     CompositionLocalProvider(LocalReduced provides reduced,LocalSeeking provides seeking,LocalMaterialStyle provides style,LocalBackdropSource provides backdrop) {
         MaterialTheme(colorScheme=lightColorScheme(primary=Accent,background=Backdrop,surface=Color.White,onSurface=Ink,onBackground=Ink)) {
             Box(Modifier.fillMaxSize().background(Backdrop).safeDrawingPadding()) {
-                SharedTransitionLayout(Modifier.graphicsLayer {scaleX=sceneScale;scaleY=sceneScale}.captureBackdrop(backdrop)) {
+                SharedTransitionLayout(Modifier.fillMaxSize().graphicsLayer {scaleX=sceneScale;scaleY=sceneScale}.captureBackdrop(backdrop)) {
                     val shared=this
                     transition.AnimatedContent(contentKey={it?.course?.id?:"home"},
-                        transitionSpec={if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))}) {open ->
+                        transitionSpec={(if(reduced)EnterTransition.None togetherWith ExitTransition.None else fadeIn(tween(120,delayMillis=80)) togetherWith fadeOut(tween(80))).using(null)}) {open ->
                         if(open==null)Library(model,shared,this,libraryState,query,{query=it})
                         else LessonScreen(model,open,shared,this)
                     }
@@ -116,7 +116,7 @@ private val LocalSeeking=staticCompositionLocalOf {false}
         boundsTransform={_,_->if(reduced)snap() else if(seeking)tween(360,easing=LinearEasing) else spring(1f,500f)},
         enter=if(reduced)EnterTransition.None else if(seeking)fadeIn(tween(100,delayMillis=200)) else fadeIn(tween(180,delayMillis=80)),
         exit=if(reduced||seeking)ExitTransition.None else fadeOut(tween(100)),
-        resizeMode=SharedTransitionScope.ResizeMode.RemeasureToBounds)
+        resizeMode=SharedTransitionScope.ResizeMode.RemeasureToBounds,placeholderSize=SharedTransitionScope.PlaceholderSize.AnimatedSize)
 }
 @Composable private fun SharedTransitionScope.coverModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
     val reduced=LocalReduced.current;val seeking=LocalSeeking.current
