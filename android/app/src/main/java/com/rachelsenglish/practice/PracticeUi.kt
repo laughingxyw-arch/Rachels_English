@@ -68,7 +68,9 @@ private val LocalSeeking=staticCompositionLocalOf {false}
     val gesture=remember {Animatable(0f)}
     var seeking by remember {mutableStateOf(false)}
     var gestureToken by remember {mutableIntStateOf(0)}
-    LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(model.opened!=null)gesture.snapTo(0f);if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened)}}
+    // Keep all shared geometry on one linear timeline. Apply physics to its progress,
+    // rather than mixing bounds springs of different durations with a seekable gesture.
+    LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(model.opened!=null)gesture.snapTo(0f);if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened,animationSpec=spring(1f,500f))}}
     LaunchedEffect(seeking){if(seeking&&!reduced)snapshotFlow {gesture.value to transition.totalDurationNanos}.collect {(fraction,_)->navigation.seekTo(fraction.coerceIn(0f,1f),null)}}
     PredictiveBackHandler(enabled=model.opened!=null&&!settings) {events ->
         val origin=model.opened
@@ -113,7 +115,7 @@ private val LocalSeeking=staticCompositionLocalOf {false}
 @Composable private fun SharedTransitionScope.containerModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
     val reduced=LocalReduced.current;val seeking=LocalSeeking.current
     return Modifier.sharedBounds(rememberSharedContentState("container-${c.id}"),visibility,
-        boundsTransform={_,_->if(reduced)snap() else if(seeking)tween(360,easing=LinearEasing) else spring(1f,500f)},
+        boundsTransform={_,_->if(reduced)snap() else tween(360,easing=LinearEasing)},
         enter=if(reduced)EnterTransition.None else if(seeking)fadeIn(tween(100,delayMillis=200)) else fadeIn(tween(180,delayMillis=80)),
         exit=if(reduced||seeking)ExitTransition.None else fadeOut(tween(100)),
         resizeMode=SharedTransitionScope.ResizeMode.RemeasureToBounds,placeHolderSize=SharedTransitionScope.PlaceHolderSize.animatedSize)
@@ -121,12 +123,12 @@ private val LocalSeeking=staticCompositionLocalOf {false}
 @Composable private fun SharedTransitionScope.coverModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
     val reduced=LocalReduced.current;val seeking=LocalSeeking.current
     return Modifier.sharedElement(rememberSharedContentState("cover-${c.id}"),visibility,
-        boundsTransform={_,_->if(reduced)snap() else if(seeking)tween(360,easing=LinearEasing) else spring(dampingRatio=1f,stiffness=500f)})
+        boundsTransform={_,_->if(reduced)snap() else tween(360,easing=LinearEasing)})
 }
 @Composable private fun SharedTransitionScope.titleModifier(c: Course,visibility: AnimatedVisibilityScope): Modifier {
     val reduced=LocalReduced.current;val seeking=LocalSeeking.current
     return Modifier.sharedElement(rememberSharedContentState("title-${c.id}"),visibility,
-        boundsTransform={_,_->if(reduced)snap() else if(seeking)tween(360,easing=LinearEasing) else spring(dampingRatio=1f,stiffness=500f)})
+        boundsTransform={_,_->if(reduced)snap() else tween(360,easing=LinearEasing)})
 }
 @Composable private fun Cover(c: Course,repo: CourseRepository,modifier: Modifier) {
     val bitmap by produceState<android.graphics.Bitmap?>(repo.cachedCover(c),c.id,c.version){
@@ -190,7 +192,7 @@ private val LocalSeeking=staticCompositionLocalOf {false}
         }
     }
     val seeking=LocalSeeking.current
-    val corner by visibility.transition.animateDp(transitionSpec={if(reduced)snap() else if(seeking)tween(360,easing=LinearEasing) else spring(1f,500f)},label="course-corner") {if(it==EnterExitState.Visible)0.dp else 18.dp}
+    val corner by visibility.transition.animateDp(transitionSpec={if(reduced)snap() else tween(360,easing=LinearEasing)},label="course-corner") {if(it==EnterExitState.Visible)0.dp else 18.dp}
     Box(with(shared){containerModifier(open.course,visibility)}.testTag("lesson").clip(RoundedCornerShape(corner)).background(Backdrop)
         .then(with(shared){Modifier.skipToLookaheadSize()}).fillMaxSize()) {
         LazyColumn(state=list,contentPadding=PaddingValues(16.dp,12.dp,16.dp,128.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
