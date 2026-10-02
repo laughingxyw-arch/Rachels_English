@@ -37,3 +37,8 @@ fun practiceQueue(lesson: Lesson, selected: Int, drill: Boolean, all: Boolean): 
     if(drill) lesson.drill.filter { if(all) it.group>=selected else it.group==selected }.flatMap { b ->
         (1..b.repeats).map { Clip(b.group,b.audioFile,b.duration,b.sourceStart,b.lead,b.whole,it,b.repeats) }
     } else lesson.groups.filter { if(all) it.id>=selected else it.id==selected }.map { Clip(it.id,it.audioFile,it.duration,it.start,it.lead,true) }
+
+fun nextClipIndex(queue: List<Clip>,index: Int,loop: Boolean): Int {
+    val group=queue.getOrNull(index)?.group
+    return if(loop&&group!=null&&queue.getOrNull(index+1)?.group!=group)queue.indexOfFirst {it.group==group} else index+1
+}

@@ -36,6 +36,11 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         setAudioAttributes(AudioAttributes.DEFAULT,true);setHandleAudioBecomingNoisy(true)
     }
     private var queue=emptyList<Clip>();private var index=0;private var openJob: Job?=null;private var openToken=0
+    private val listening=ListeningMonitor(application) { removed ->
+        if(removed&&opened!=null&&playback.running){pause();message="耳机已断开，播放已暂停。"}
+    }
+    private val feedback=ListeningFeedback()
+    private var foreground=false
     init {
         player.addListener(object: Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {if(state==Player.STATE_ENDED&&playback.running&&!playback.waiting)enterWait()}
@@ -58,28 +63,31 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             }
         }
         sync(false)
+        viewModelScope.launch {while(true){delay(800);if(foreground&&opened!=null&&playback.running&&!playback.paused)checkListening()}}
     }
+    fun foreground(value: Boolean){foreground=value}
+    private fun checkListening(){feedback.update(listening.environment(),android.os.SystemClock.elapsedRealtime())?.let {message=it}}
     fun consumeMessage(){message=null}
     fun sync(explicit: Boolean=true){if(syncing)return;syncing=true;viewModelScope.launch {
         try {courses=repository.sync();if(explicit)message="课程已更新"}catch(e: Exception){if(explicit)message="同步失败，已缓存课程仍可使用。"}finally{syncing=false}
     }}
     fun open(course: Course){val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
-        try {val result=repository.open(course);stop();opened=result;drill=false
+        try {val result=repository.open(course);stop();opened=result;drill=false;feedback.reset()
             playback=Playback(selected=prefs.getInt("position.${course.id}",0).coerceIn(result.lesson.groups.indices))
             if(result.offlineFallback)message="暂时无法更新，已打开本地课程。"
         }catch(e: kotlinx.coroutines.CancellationException){throw e}catch(e: Exception){message="课程下载失败，请稍后重试。"}finally{if(token==openToken)loadingId=null}
     }}
     fun back(){openToken++;openJob?.cancel();loadingId=null;stop();opened=null}
-    fun updateDrill(value: Boolean){stop();drill=value;playback=playback.copy(progress=0f)}
+    fun updateDrill(value: Boolean){if(drill==value)return;val resume=playback.running;val paused=playback.paused;stop();drill=value;playback=playback.copy(progress=0f);if(resume){start();if(paused)pause()}}
     fun updateTranslation(v: Boolean){translation=v;prefs.edit().putBoolean("translation",v).apply()}
     fun updateCues(v: Boolean){cues=v;prefs.edit().putBoolean("cues",v).apply()}
     fun updateLoop(v: Boolean){loop=v;prefs.edit().putBoolean("loop",v).apply()}
     fun updateShadow(v: Boolean){shadow=v;prefs.edit().putBoolean("shadow",v).apply()}
     fun updateGap(v: Float){gap=v;prefs.edit().putFloat("gap",v).apply()}
-    fun start(selected: Int=playback.selected,all: Boolean=false){val data=opened?:return;stop();queue=practiceQueue(data.lesson,selected,drill,all);index=0;if(queue.isNotEmpty())begin()}
+    fun start(selected: Int=playback.selected,all: Boolean=true){val data=opened?:return;stop();queue=practiceQueue(data.lesson,selected,drill,all);index=0;if(queue.isNotEmpty()){checkListening();begin()}}
     fun previous(){start((playback.selected-1).coerceAtLeast(0))}
     fun next(){val last=opened?.lesson?.groups?.lastIndex?:return;start((playback.selected+1).coerceAtMost(last))}
-    fun toggle(){when{!playback.running->start();playback.paused->{playback=playback.copy(paused=false);if(!playback.waiting)player.play()};else->pause()}}
+    fun toggle(){when{!playback.running->start();playback.paused->{checkListening();playback=playback.copy(paused=false);if(!playback.waiting)player.play()};else->pause()}}
     fun pause(){if(playback.running){playback=playback.copy(paused=true);player.pause()}}
     fun stop(){playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0);player.stop()}
     private fun begin(){val data=opened?:return;val clip=queue.getOrNull(index)?:return
@@ -93,9 +101,9 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         val seconds=if(shadow)maxOf(.8,(clip.duration-.2)*gap).toFloat() else if(drill){if(next?.group==clip.group&&next.repeat>1).7f else 1.2f}else .5f
         playback=playback.copy(progress=1f,waiting=true,source=-1.0,waitSeconds=seconds)
     }
-    private fun advance(){index++;if(index<queue.size){begin();return}
-        if(loop){opened?.let {queue=practiceQueue(it.lesson,playback.selected,drill,false);index=0;begin()}}
-        else {stop();playback=playback.copy(progress=1f)}
+    private fun advance(){
+        index=nextClipIndex(queue,index,loop);if(index<queue.size){begin();return}
+        stop();playback=playback.copy(progress=1f)
     }
-    override fun onCleared(){player.release();super.onCleared()}
+    override fun onCleared(){listening.close();player.release();super.onCleared()}
 }

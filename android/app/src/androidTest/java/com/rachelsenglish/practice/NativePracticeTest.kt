@@ -8,6 +8,8 @@ import org.junit.Test
 class NativePracticeTest {
  private fun screenshot(name: String){
   rule.waitForIdle()
+  // Allow the platform window surface to present the settled Compose frame.
+  Thread.sleep(200)
   val instrumentation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
   val context=instrumentation.targetContext
   val bitmap=instrumentation.uiAutomation.takeScreenshot()
@@ -25,6 +27,7 @@ class NativePracticeTest {
 
  @get:Rule val rule=createAndroidComposeRule<MainActivity>()
  @Test fun bundledLessonPlaysAndSettingsRemainNative(){
+  rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g").fetchSemanticsNodes().isNotEmpty()}
   screenshot("home")
   rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
@@ -40,10 +43,15 @@ class NativePracticeTest {
   rule.mainClock.advanceTimeBy(32)
   rule.mainClock.autoAdvance=true
   rule.runOnIdle {assertTrue(model.playback.paused);assertFalse(model.translation)}
+  rule.onNodeWithContentDescription("上一句").assertIsNotEnabled()
+  val target=rule.onNodeWithContentDescription("播放").fetchSemanticsNode().boundsInRoot
+  val density=rule.activity.resources.displayMetrics.density
+  assertTrue(target.width/density>=47.9f);assertTrue(target.height/density>=47.9f)
   screenshot("lesson")
   rule.onNodeWithTag("mode-drill").performClick()
-  rule.runOnIdle {assertTrue(model.drill)}
+  rule.runOnIdle {assertTrue(model.drill);assertTrue(model.playback.paused)}
   rule.onNodeWithContentDescription("练习设置").performClick()
+  rule.onNodeWithText("中文翻译").assertExists()
   screenshot("settings")
   rule.onNodeWithText("中文翻译").performClick()
   rule.runOnIdle {assertTrue(model.translation);model.updateTranslation(false)}
@@ -58,6 +66,29 @@ class NativePracticeTest {
   rule.waitForIdle()
   rule.runOnIdle {assertNotNull(model.opened)}
   rule.onNodeWithContentDescription("返回课程").performClick()
+  rule.waitUntil(5000){rule.onAllNodesWithTag("library").fetchSemanticsNodes().isNotEmpty()}
+ }
+ @Test fun originalLoopsCurrentSentenceThenContinuesToTheEnd(){
+  val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+  rule.runOnIdle {model.updateShadow(false);model.updateLoop(true)}
+  rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+  rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
+  rule.mainClock.autoAdvance=false
+  rule.runOnUiThread {model.start(0)}
+  // The first original clip is short: observe the wait and restart of group 0.
+  rule.waitUntil(10000){model.playback.waiting}
+  rule.waitUntil(5000){model.playback.running&&!model.playback.waiting&&model.playback.progress>.05f}
+  assertEquals(0,model.playback.selected)
+  rule.runOnUiThread {model.updateLoop(false)}
+  rule.waitUntil(10000){model.playback.selected==1}
+  // Starting at the penultimate sentence must reach the last and finish.
+  val last=model.opened!!.lesson.groups.lastIndex
+  rule.runOnUiThread {model.start(last-1)}
+  rule.waitUntil(15000){model.playback.selected==last}
+  rule.waitUntil(15000){!model.playback.running&&model.playback.progress==1f}
+  rule.mainClock.advanceTimeBy(1000);rule.mainClock.autoAdvance=true
+  screenshot("lesson-last")
+  rule.runOnUiThread {model.back()}
   rule.waitUntil(5000){rule.onAllNodesWithTag("library").fetchSemanticsNodes().isNotEmpty()}
  }
 }

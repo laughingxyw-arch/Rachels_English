@@ -10,3 +10,27 @@
 @media(max-width:600px){.lesson-cover{width:72px;height:48px;border-radius:10px}.heading{gap:12px}.heading h1{font-size:19px}.heading .source{font-size:11px}.player{max-width:300px}.shell{padding-bottom:130px}}
 @media(prefers-reduced-motion:reduce){@view-transition{navigation:none}::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 html[data-reduced-motion] *,html[data-reduced-motion] *:before,html[data-reduced-motion] *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}html[data-reduced-motion]::view-transition-group(*),html[data-reduced-motion]::view-transition-old(*),html[data-reduced-motion]::view-transition-new(*){animation:none!important}
+
+/* Stable touch targets and a denser library match the native client. */
+:root{--accent:#1765c1;--muted:#6d7288}
+.settings summary,#previous,#next,#all,.primary,.settings-heading button,.gap-options button,.modes button{min-width:48px;min-height:48px}
+.settings summary,#previous,#next,#all,.primary{width:48px;height:48px}
+.controls{gap:0}.player{max-width:320px;background:linear-gradient(150deg,#fffffff5,#edf4fcf5)}
+.repeat{display:block;min-width:28px;margin:0 2px}.repeat:empty{display:block}
+.setting-row{min-height:56px}.sentence.active{background:#edf4fc}.active .number{color:#1765c1}
+.phrase.speaking{background-image:linear-gradient(90deg,#76baff,#1765c1)}
+.toggle:checked{background:#1765c1;border-color:#1765c1}
+.settings-panel{max-height:calc(100dvh - 140px);overflow:auto;background:#f7f9fcf7}
+.settings-heading{height:52px}.settings-heading button{margin-right:-10px}
+.home .shell{padding-top:28px}.library-title{margin-bottom:20px}
+#course-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px}
+.course-link{display:flex;align-items:center;gap:14px;min-height:88px;padding:8px 0}
+.course-cover{width:112px;height:70px;aspect-ratio:auto;flex-shrink:0;border-radius:12px}
+.course-content{padding:0}.course-content h2{font-size:17px;line-height:1.4;margin-bottom:4px}
+.course-meta{font-size:12px;gap:4px}.course-meta time{display:none}
+.course-length{right:5px;bottom:5px;font-size:10px;padding:1px 5px}
+.back-link{min-height:48px;margin-bottom:8px}.source{display:inline-flex;align-items:center;min-height:48px}
+button:disabled{opacity:.4;cursor:default}
+@media(max-width:760px){#course-list{grid-template-columns:1fr}.home .shell{padding-top:26px}.player{max-width:320px}}
+
+#all{display:none}.player{max-width:288px}

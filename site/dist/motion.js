@@ -11,7 +11,32 @@
  const modes=document.querySelector('.modes');
  if(modes){const plate=document.createElement('span');plate.className='mode-plate';plate.setAttribute('aria-hidden','true');modes.prepend(plate);const move=spring(x=>plate.style.transform=`translateX(${x}px)`);const position=()=>{const selected=modes.querySelector('.selected');if(selected){plate.style.width=selected.offsetWidth+'px';move.to(selected.offsetLeft-4);}};new MutationObserver(position).observe(modes,{subtree:true,attributes:true,attributeFilter:['class']});new ResizeObserver(position).observe(modes);position();}
  const settings=document.querySelector('.settings');
- if(settings){const panel=settings.querySelector('.settings-panel'),handle=panel.querySelector('.settings-heading');let start=0,drag=0,down=false;const motion=spring(y=>{panel.style.transform=`translateY(${y}px) scale(${1-Math.min(Math.max(y,0)/2500,.05)})`;panel.style.opacity=String(1-Math.min(Math.max(y,0)/420,.5));});settings.addEventListener('toggle',()=>{if(settings.open){motion.set(reduced()?0:12);motion.to(0);}else motion.set(0);});handle.addEventListener('pointerdown',event=>{if(event.target.closest('button')||event.button!==0)return;start=event.clientY;drag=0;down=true;handle.setPointerCapture(event.pointerId);motion.set(0);});handle.addEventListener('pointermove',event=>{if(down){drag=Math.max(-12,(event.clientY-start));motion.set(drag);}});const finish=event=>{if(!down)return;down=false;if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);if(event.type!=='pointercancel'&&drag>72){settings.open=false;settings.querySelector('summary').focus();motion.set(0);}else motion.to(0);};handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);}
+ if(settings){
+  const panel=settings.querySelector('.settings-panel'),handle=panel.querySelector('.settings-heading'),trigger=settings.querySelector('summary');
+  let start=0,drag=0,down=false,closing=null;
+  const motion=spring(y=>{panel.style.transform=`translateY(${y}px) scale(${1-Math.min(Math.max(y,0)/2500,.05)})`;panel.style.opacity=String(1-Math.min(Math.max(y,0)/420,.5));});
+  const finishClose=focus=>{settings.open=false;trigger.setAttribute('aria-expanded','false');motion.set(0);if(focus)trigger.focus();};
+  window.closePracticeSettings=(focus=false)=>{
+   if(!settings.open||closing)return;
+   if(reduced()){finishClose(focus);return;}
+   const style=getComputedStyle(panel);
+   closing=panel.animate([{transform:style.transform,opacity:style.opacity},{transform:'translateY(18px) scale(.98)',opacity:0}],{duration:160,easing:'cubic-bezier(.3,0,.8,.4)'});
+   closing.finished.then(()=>{finishClose(focus);closing=null;},()=>{closing=null;});
+  };
+  trigger.addEventListener('click',event=>{
+   if(closing){event.preventDefault();closing.cancel();motion.to(0);return;}
+   if(settings.open){event.preventDefault();window.closePracticeSettings(true);}
+  });
+  settings.addEventListener('toggle',()=>{if(settings.open){motion.set(reduced()?0:18);motion.to(0);}else motion.set(0);});
+  handle.addEventListener('pointerdown',event=>{if(event.target.closest('button')||event.button!==0)return;if(closing)closing.cancel();start=event.clientY;drag=0;down=true;handle.setPointerCapture(event.pointerId);motion.set(0);});
+  handle.addEventListener('pointermove',event=>{if(down){drag=Math.max(-12,event.clientY-start);motion.set(drag);}});
+  const finish=event=>{if(!down)return;down=false;if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);if(event.type!=='pointercancel'&&drag>72)window.closePracticeSettings(true);else motion.to(0);};
+  handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);
+ }
+ addEventListener('pageswap',()=>{
+  const cover=document.querySelector('.lesson-cover');
+  if(cover){const r=cover.getBoundingClientRect();if(r.bottom<=0||r.top>=innerHeight){cover.style.viewTransitionName='none';const title=document.querySelector('.heading h1');if(title)title.style.viewTransitionName='none';}}
+ });
  // Navigations can be interrupted instead of locking the interface behind snapshots.
  addEventListener('pagereveal',event=>{if(!event.viewTransition)return;if(reduced())event.viewTransition.skipTransition();else{const interrupt=()=>event.viewTransition.skipTransition();addEventListener('pointerdown',interrupt,{once:true});event.viewTransition.finished.finally(()=>removeEventListener('pointerdown',interrupt));}});
 })();
