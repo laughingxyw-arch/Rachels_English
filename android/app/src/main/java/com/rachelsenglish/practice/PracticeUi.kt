@@ -54,8 +54,9 @@ private val LocalReduced=staticCompositionLocalOf { false }
     val snackbar=remember { SnackbarHostState() }
     LaunchedEffect(Unit){snapshotFlow {model.message}.filterNotNull().collect {text->snackbar.showSnackbar(text);if(model.message==text)model.consumeMessage()}}
     val backProgress=remember {Animatable(0f)}
+    var backDirection by remember {mutableFloatStateOf(1f)}
     PredictiveBackHandler(enabled=model.opened!=null) { events ->
-        try {events.collect { backProgress.snapTo(it.progress) };model.back();backProgress.snapTo(0f)}
+        try {events.collect {backDirection=if(it.swipeEdge==androidx.activity.BackEventCompat.EDGE_LEFT)1f else -1f;backProgress.snapTo(it.progress)};model.back();backProgress.snapTo(0f)}
         catch(_: CancellationException) {withContext(NonCancellable){if(reduced)backProgress.snapTo(0f) else backProgress.animateTo(0f,spring(.9f,600f))}}
     }
     CompositionLocalProvider(LocalReduced provides reduced) {
@@ -69,7 +70,7 @@ private val LocalReduced=staticCompositionLocalOf { false }
                         if(open==null) Library(model,shared,visibility)
                         else Box(Modifier.fillMaxSize().graphicsLayer {
                             val progress=if(reduced)0f else backProgress.value
-                            translationX=size.width*.12f*progress;scaleX=1f-.04f*progress;scaleY=scaleX
+                            translationX=size.width*.12f*progress*backDirection;scaleX=1f-.04f*progress;scaleY=scaleX
                             shape=RoundedCornerShape((progress*24).dp);clip=progress>0
                         }) { LessonScreen(model,open,shared,visibility) }
                     }
