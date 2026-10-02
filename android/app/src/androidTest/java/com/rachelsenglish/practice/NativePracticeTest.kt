@@ -124,6 +124,7 @@ class NativePracticeTest {
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
    rule.waitUntil(10000){model.opened!=null}
+   rule.waitForIdle();rule.mainClock.advanceTimeByFrame();rule.waitForIdle()
    rule.mainClock.advanceTimeBy(160)
    screenshot("course-expand-mid")
    val middle=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot
@@ -140,6 +141,8 @@ class NativePracticeTest {
    rule.mainClock.advanceTimeBy(1000)
    assertNotNull(model.opened)
    rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
+   rule.waitForIdle();rule.mainClock.advanceTimeByFrame();rule.waitForIdle()
+   rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    rule.mainClock.advanceTimeBy(160);screenshot("course-return-mid")
    rule.mainClock.advanceTimeBy(1000)
    rule.onNodeWithTag("library").assertExists()
