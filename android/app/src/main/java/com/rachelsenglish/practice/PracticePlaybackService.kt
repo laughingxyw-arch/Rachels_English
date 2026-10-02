@@ -62,8 +62,8 @@ private class PracticeSessionPlayer(private val model: PracticeModel): SimpleBas
         val commands=Player.Commands.Builder().addAll(Player.COMMAND_PLAY_PAUSE,Player.COMMAND_PREPARE,
             Player.COMMAND_STOP,Player.COMMAND_GET_CURRENT_MEDIA_ITEM,Player.COMMAND_GET_TIMELINE,
             Player.COMMAND_GET_METADATA,Player.COMMAND_RELEASE)
-        if(p.selected>0)commands.add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,Player.COMMAND_SEEK_TO_PREVIOUS)
-        if(p.selected<playlist.lastIndex)commands.add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,Player.COMMAND_SEEK_TO_NEXT)
+        if(p.selected>0)commands.addAll(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,Player.COMMAND_SEEK_TO_PREVIOUS)
+        if(p.selected<playlist.lastIndex)commands.addAll(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,Player.COMMAND_SEEK_TO_NEXT)
         return State.Builder().setAvailableCommands(commands.build())
             .setPlaylist(playlist).setCurrentMediaItemIndex(if(playlist.isEmpty())0 else p.selected)
             .setPlaybackState(if(p.running&&playlist.isNotEmpty())Player.STATE_READY else Player.STATE_IDLE)
