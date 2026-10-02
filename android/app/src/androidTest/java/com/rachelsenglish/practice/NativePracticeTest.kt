@@ -351,6 +351,14 @@ class NativePracticeTest {
   rule.runOnIdle {
    model.finishBack(origin)
    assertSame("Equal course data must not make the new session count as the old one",reopened,model.opened)
+   model.open(reopened.course)
+  }
+  rule.waitUntil(10000){model.opened!=null&&model.opened!==reopened}
+  val newest=model.opened!!
+  rule.runOnIdle {
+   assertEquals("The regression must cover structurally equal course sessions",reopened,newest)
+   model.finishBack(reopened)
+   assertSame("Already-completed reopen must also survive old return cleanup",newest,model.opened)
    model.back()
   }
  }

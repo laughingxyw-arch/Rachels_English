@@ -21,7 +21,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     val repository=CourseRepository(application)
     private val prefs=application.getSharedPreferences("practice-native",0)
     var courses by mutableStateOf(repository.courses);private set
-    var opened by mutableStateOf<OpenLesson?>(null);private set
+    var opened by mutableStateOf<OpenLesson?>(null,referentialEqualityPolicy());private set
     var loadingId by mutableStateOf<String?>(null);private set
     var syncing by mutableStateOf(false);private set
     var message by mutableStateOf<String?>(null);private set
