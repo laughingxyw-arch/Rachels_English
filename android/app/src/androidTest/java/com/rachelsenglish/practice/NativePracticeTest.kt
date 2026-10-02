@@ -3,6 +3,7 @@ import androidx.compose.ui.test.*
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -75,15 +76,15 @@ class NativePracticeTest {
   rule.onNodeWithTag("repeat-setting").performClick()
   rule.onNodeWithTag("repeat-5").performClick()
   rule.runOnIdle {assertEquals(5,model.repeatCount);assertEquals(5,model.playback.total);assertTrue(model.playback.paused);assertEquals(retainedProgress,model.playback.progress,.0001f);model.updateRepeatCount(3)}
-  rule.onNodeWithTag("appearance-setting").performClick()
-  rule.onNodeWithText("减少透明效果").performClick()
+  rule.onNodeWithTag("appearance-setting").performScrollTo().performClick()
+  rule.onNodeWithText("减少透明效果").performScrollTo().performClick()
   rule.runOnIdle {assertTrue(model.reduceTransparency)}
-  rule.onNodeWithText("增强对比度").performClick()
+  rule.onNodeWithText("增强对比度").performScrollTo().performClick()
   rule.runOnIdle {assertTrue(model.enhanceContrast)}
-  rule.onNodeWithText("增强对比度").performClick()
-  rule.onNodeWithText("减少透明效果").performClick()
+  rule.onNodeWithText("增强对比度").performScrollTo().performClick()
+  rule.onNodeWithText("减少透明效果").performScrollTo().performClick()
   rule.runOnIdle {assertFalse(model.reduceTransparency);assertFalse(model.enhanceContrast)}
-  rule.onNodeWithTag("appearance-setting").performClick()
+  rule.onNodeWithTag("appearance-setting").performScrollTo().performClick()
   screenshot("settings")
   rule.onNodeWithText("中文翻译").performClick()
   rule.runOnIdle {assertTrue(model.translation);model.updateTranslation(false)}

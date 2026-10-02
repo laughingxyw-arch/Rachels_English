@@ -144,7 +144,7 @@ private val LocalReduced=staticCompositionLocalOf {false}
         }
         items(courses,key={it.id}) {course ->
             val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
-            val scale by animateFloatAsState(if(pressed).978f else 1f,if(LocalReduced.current)snap() else spring(.85f,650f),label="card-pressure")
+            val scale by animateFloatAsState(if(pressed).978f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="card-pressure")
             Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale;scaleY=scale}.clip(RoundedCornerShape(18.dp)).background(Color.White)
                 .then(with(shared){Modifier.skipToLookaheadSize()})
                 .clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={model.open(course)})
@@ -208,7 +208,7 @@ private val LocalReduced=staticCompositionLocalOf {false}
                         Column(Modifier.weight(1f)) {
                             ReadingText(sentence,active,if(active)model.playback.source else -1.0,reduced)
                             if(model.translation&&sentence.translation.isNotEmpty())Text(sentence.translation,fontSize=13.sp,lineHeight=21.sp,color=Muted,modifier=Modifier.padding(top=10.dp))
-                            if(active&&model.cues&&sentence.cues.isNotEmpty())Text(sentence.cues.joinToString(" · "),fontSize=11.sp,lineHeight=18.sp,color=Accent.copy(alpha=.75f),modifier=Modifier.padding(top=10.dp))
+                            if(active&&model.cues&&sentence.cues.isNotEmpty())Text(sentence.cues.joinToString(" · "),fontSize=11.sp,lineHeight=18.sp,color=Accent.copy(alpha=if(LocalMaterialStyle.current.highContrast)1f else .75f),modifier=Modifier.padding(top=10.dp))
                         }
                     }
                 }
@@ -286,7 +286,7 @@ private val LocalReduced=staticCompositionLocalOf {false}
             Text("复读次数",fontSize=15.sp,modifier=Modifier.weight(1f))
             Text("${model.repeatCount}×",fontSize=14.sp,color=Accent)
         }
-        AnimatedVisibility(expanded,enter=if(reduced)EnterTransition.None else expandVertically(spring(.95f,600f))+fadeIn(tween(120)),exit=if(reduced)ExitTransition.None else shrinkVertically(tween(160))+fadeOut(tween(100))) {
+        AnimatedVisibility(expanded,enter=if(reduced)EnterTransition.None else expandVertically(spring(1f,600f))+fadeIn(tween(120)),exit=if(reduced)ExitTransition.None else shrinkVertically(tween(160))+fadeOut(tween(100))) {
             Row(Modifier.fillMaxWidth().padding(bottom=8.dp).selectableGroup(),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
                 (2..5).forEach {count ->
                     Box(Modifier.weight(1f).heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
@@ -323,7 +323,7 @@ private val LocalReduced=staticCompositionLocalOf {false}
         delay(duration);if(model.message==text)model.consumeMessage()
     }}
     val reduced=LocalReduced.current
-    AnimatedVisibility(text!=null,modifier=modifier,enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(.95f,650f)){it/4},exit=if(reduced)ExitTransition.None else fadeOut(tween(160))+slideOutVertically(tween(160)){it/6}) {
+    AnimatedVisibility(text!=null,modifier=modifier,enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(1f,650f)){it/4},exit=if(reduced)ExitTransition.None else fadeOut(tween(160))+slideOutVertically(tween(160)){it/6}) {
         FrostedSurface(Modifier.widthIn(max=300.dp).semantics {liveRegion=if(model.messageIsError)LiveRegionMode.Assertive else LiveRegionMode.Polite}.testTag("notice"),radius=24.dp,weight=SurfaceWeight.Chip) {
         Row(Modifier.padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(9.dp)) {
             Canvas(Modifier.size(15.dp)) {

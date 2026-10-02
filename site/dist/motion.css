@@ -54,3 +54,20 @@ button:disabled{opacity:.4;cursor:default}
 #repeat-options{display:flex;gap:4px;padding-bottom:8px}
 #repeat-options button{flex:1;min-width:0;min-height:48px;padding:8px;font-size:14px}
 #repeat-options button[aria-pressed=true]{background:#edf4fc;color:var(--accent)}
+
+/* Shared material language; text and icons stay outside the filtered layer. */
+.player{isolation:isolate;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;border:.75px solid #ffffffd9;box-shadow:0 10px 30px #25385213,0 2px 5px #2538520b}
+.player:before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;background:linear-gradient(180deg,#ffffffd6,#f5f9ffc2);backdrop-filter:blur(16px) saturate(112%);-webkit-backdrop-filter:blur(16px) saturate(112%)}
+.settings-panel{background:linear-gradient(180deg,#fffffff0,#f8faffeb);backdrop-filter:blur(22px) saturate(108%);-webkit-backdrop-filter:blur(22px) saturate(108%);border:.75px solid #ffffffd9;box-shadow:0 14px 38px #25385220,0 2px 6px #2538520a;transform-origin:calc(100% - 24px) 100%}
+#appearance-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:56px;padding:0;font-size:14px;text-align:left}
+#appearance-value{font-size:12px;color:var(--muted)}
+#appearance-options[hidden]{display:none}
+html[data-solid-material] .player:before{background:#f5f9ff;backdrop-filter:none;-webkit-backdrop-filter:none}
+html[data-solid-material] .settings-panel{background:#f8faff;backdrop-filter:none;-webkit-backdrop-filter:none}
+html[data-high-contrast]{--muted:#414957;--ink:#101721}
+html[data-high-contrast] .player,html[data-high-contrast] .settings-panel{border:1.25px solid #454d5a}
+html[data-high-contrast] .player:before,html[data-high-contrast] .settings-panel{background:#fff}
+html[data-high-contrast] .sentence-button,html[data-high-contrast] .translation,html[data-high-contrast] .number,html[data-high-contrast] .source,html[data-high-contrast] .back-link{color:#101721}
+html[data-high-contrast] .phrase.speaking{color:#1765c1}
+html[data-high-contrast] .cues{opacity:1;color:#1765c1}
+@media(forced-colors:active){.player,.settings-panel{border:1px solid CanvasText}.player:before,.settings-panel{background:Canvas;backdrop-filter:none}.reading-trace path{stroke:Highlight}.mode-plate{background:Highlight}}
