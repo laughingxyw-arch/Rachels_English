@@ -18,7 +18,7 @@ if(window.PracticeApp){
  document.querySelector('#course-list').addEventListener('click',event=>{const link=event.target.closest('.course-link');if(link){event.preventDefault();PracticeApp.openCourse(new URL(link.href).searchParams.get('id'));}});
 }
 
-function markCourse(id){document.querySelectorAll('.course-cover,.course-content h2').forEach(el=>el.style.viewTransitionName='none');const link=[...document.querySelectorAll('.course-link')].find(el=>el.dataset.course===id);if(link){link.querySelector('.course-cover').style.viewTransitionName='course-cover';link.querySelector('h2').style.viewTransitionName='course-title';}}
+function markCourse(id){document.querySelectorAll('.course-link,.course-cover,.course-content h2').forEach(el=>el.style.viewTransitionName='none');const link=[...document.querySelectorAll('.course-link')].find(el=>el.dataset.course===id);if(link){link.style.viewTransitionName='course-container';link.querySelector('.course-cover').style.viewTransitionName='course-cover';link.querySelector('h2').style.viewTransitionName='course-title';}}
 markCourse(sessionStorage.getItem('selected-course'));
 document.querySelector('#course-list').addEventListener('click',event=>{const link=event.target.closest('.course-link');if(link){sessionStorage.setItem('selected-course',link.dataset.course);markCourse(link.dataset.course);}},true);
 addEventListener('pagereveal',()=>markCourse(sessionStorage.getItem('selected-course')));

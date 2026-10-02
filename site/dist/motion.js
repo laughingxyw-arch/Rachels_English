@@ -1,5 +1,6 @@
 'use strict';
 (() => {
+ const lessonShell=document.body.classList.contains('home')?null:document.querySelector('.shell');if(lessonShell)lessonShell.style.viewTransitionName='course-container';
  const preference=matchMedia('(prefers-reduced-motion: reduce)');
  const reduced=()=>preference.matches||Boolean(window.PracticeApp?.reducedMotion?.());
  const sync=()=>document.documentElement.toggleAttribute('data-reduced-motion',reduced());
@@ -10,6 +11,7 @@
  document.addEventListener('pointerdown',event=>{const el=event.target.closest('button,summary,.course-link');if(!el||el.classList.contains('sentence-button'))return;let motion=presses.get(el);if(!motion){const visual=el.querySelector('svg,.course-cover');motion=spring(x=>{if(visual)visual.style.setProperty('scale',String(x));},1);presses.set(el,motion);}motion.to(.965);const reset=()=>{motion.to(1);removeEventListener('pointerup',reset);removeEventListener('pointercancel',reset);};addEventListener('pointerup',reset,{once:true});addEventListener('pointercancel',reset,{once:true});});
  const modes=document.querySelector('.modes');
  if(modes){const plate=document.createElement('span');plate.className='mode-plate';plate.setAttribute('aria-hidden','true');modes.prepend(plate);const move=spring(x=>plate.style.transform=`translateX(${x}px)`);const position=()=>{const selected=modes.querySelector('.selected');if(selected){plate.style.width=selected.offsetWidth+'px';move.to(selected.offsetLeft-4);}};new MutationObserver(position).observe(modes,{subtree:true,attributes:true,attributeFilter:['class']});new ResizeObserver(position).observe(modes);position();}
+ const player=document.querySelector('.player');if(player&&!reduced())player.animate([{opacity:0,transform:'translateX(-50%) translateY(14px)'},{opacity:1,transform:'translateX(-50%) translateY(0)'}],{duration:260,delay:100,easing:'cubic-bezier(.18,.8,.22,1)',fill:'backwards'});
  const settings=document.querySelector('.settings');
  if(settings){
   const panel=settings.querySelector('.settings-panel'),handle=panel.querySelector('.settings-heading'),trigger=settings.querySelector('summary');

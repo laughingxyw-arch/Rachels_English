@@ -56,14 +56,20 @@ class NativePracticeTest {
   screenshot("lesson")
   rule.onNodeWithTag("mode-drill").performClick()
   rule.runOnIdle {assertTrue(model.drill);assertTrue(model.playback.paused)}
+  rule.mainClock.autoAdvance=false
+  rule.runOnUiThread {model.toggle()}
+  rule.waitUntil(10000){model.playback.progress>.1f&&model.playback.progress<.8f}
+  rule.runOnUiThread {model.pause()}
+  rule.mainClock.advanceTimeBy(32);rule.mainClock.autoAdvance=true
+  val retainedProgress=model.playback.progress
   rule.onNodeWithContentDescription("练习设置").performClick()
   rule.onNodeWithText("中文翻译").assertExists()
   rule.onNodeWithTag("repeat-setting").performClick()
   rule.onNodeWithTag("repeat-2").performClick()
-  rule.runOnIdle {assertEquals(2,model.repeatCount);assertEquals(2,model.playback.total);assertTrue(model.playback.paused)}
+  rule.runOnIdle {assertEquals(2,model.repeatCount);assertEquals(2,model.playback.total);assertTrue(model.playback.paused);assertEquals(retainedProgress,model.playback.progress,.0001f)}
   rule.onNodeWithTag("repeat-setting").performClick()
   rule.onNodeWithTag("repeat-5").performClick()
-  rule.runOnIdle {assertEquals(5,model.repeatCount);assertEquals(5,model.playback.total);assertTrue(model.playback.paused);model.updateRepeatCount(3)}
+  rule.runOnIdle {assertEquals(5,model.repeatCount);assertEquals(5,model.playback.total);assertTrue(model.playback.paused);assertEquals(retainedProgress,model.playback.progress,.0001f);model.updateRepeatCount(3)}
   screenshot("settings")
   rule.onNodeWithText("中文翻译").performClick()
   rule.runOnIdle {assertTrue(model.translation);model.updateTranslation(false)}
@@ -106,5 +112,37 @@ class NativePracticeTest {
   screenshot("lesson-last")
   rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
   rule.waitUntil(5000){rule.onAllNodesWithTag("library").fetchSemanticsNodes().isNotEmpty()}
+ }
+ @Test fun courseContainerExpandsAndInterruptedBackRestoresIt(){
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  fun animationScale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+  try {
+   animationScale("1");rule.activityRule.scenario.recreate()
+   rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
+   val course=rule.onNodeWithTag("course-4dXbgvm4_7g").fetchSemanticsNode().boundsInRoot
+   rule.mainClock.autoAdvance=false
+   rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
+   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   rule.waitUntil(10000){model.opened!=null}
+   rule.mainClock.advanceTimeBy(160)
+   screenshot("course-expand-mid")
+   val middle=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot
+   assertTrue("The course surface must expand beyond the source row",middle.height>course.height)
+   rule.mainClock.advanceTimeBy(1000)
+   val expanded=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot
+   assertTrue("The container must keep growing through the transition",expanded.height>=middle.height)
+   rule.runOnUiThread {
+    val back=rule.activity.onBackPressedDispatcher
+    back.dispatchOnBackStarted(androidx.activity.BackEventCompat(0f,200f,0f,androidx.activity.BackEventCompat.EDGE_LEFT))
+    back.dispatchOnBackProgressed(androidx.activity.BackEventCompat(100f,200f,.55f,androidx.activity.BackEventCompat.EDGE_LEFT))
+    back.dispatchOnBackCancelled()
+   }
+   rule.mainClock.advanceTimeBy(1000)
+   assertNotNull(model.opened)
+   rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
+   rule.mainClock.advanceTimeBy(160);screenshot("course-return-mid")
+   rule.mainClock.advanceTimeBy(1000)
+   rule.onNodeWithTag("library").assertExists()
+  } finally {rule.mainClock.autoAdvance=true;animationScale("0")}
  }
 }

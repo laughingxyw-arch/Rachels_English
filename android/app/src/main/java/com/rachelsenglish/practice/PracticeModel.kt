@@ -108,7 +108,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         player.setMediaItem(MediaItem.fromUri(repository.audio(data,clip.file)));player.prepare();player.play()
     }
     private fun enterWait(){val clip=queue.getOrNull(index)?:return
-        if(index==queue.lastIndex&&!shadow){advance();return}
+        if(index==queue.lastIndex&&!shadow&&!loop){advance();return}
         val next=queue.getOrNull(index+1)
         val seconds=if(shadow)maxOf(.8,(clip.duration-.2)*gap).toFloat() else if(drill){if(next?.group==clip.group&&next.repeat>1).7f else 1.2f}else .5f
         playback=playback.copy(progress=1f,waiting=true,source=-1.0,waitSeconds=seconds)
