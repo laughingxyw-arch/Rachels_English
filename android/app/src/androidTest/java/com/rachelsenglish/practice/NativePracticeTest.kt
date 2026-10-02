@@ -60,7 +60,7 @@ class NativePracticeTest {
   val density=rule.activity.resources.displayMetrics.density
   assertTrue(target.width/density>=47.9f);assertTrue(target.height/density>=47.9f)
   screenshot("lesson")
-  rule.onNodeWithTag("mode-drill").performClick()
+  rule.onNodeWithTag("mode-toggle").performClick()
   rule.runOnIdle {assertTrue(model.drill);assertTrue(model.playback.paused)}
   rule.mainClock.autoAdvance=false
   rule.runOnUiThread {model.toggle()}
@@ -391,6 +391,48 @@ class NativePracticeTest {
    rule.onNodeWithTag("sentence-$last").assertIsDisplayed()
    val followed=rule.onNodeWithTag("dialogue-list",useUnmergedTree=true).fetchSemanticsNode().config[ReadingFirstItemKey]
    assertTrue("Subsequent playback changes must still follow the new sentence",followed>3)
+   rule.runOnUiThread {model.back()};repeat(90){frame()}
+  } finally {rule.mainClock.autoAdvance=true;scale("0")}
+ }
+ @Test fun playerModeRollsDownAndSettingsPressDoesNotPaintAGrayRow(){
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  fun scale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+  fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(15)}
+  try {
+   scale("1");rule.activityRule.scenario.recreate()
+   rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
+   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
+   rule.waitForIdle();rule.mainClock.autoAdvance=false
+   val model=ViewModelProvider(rule.activity)[PracticeModel::class.java]
+   val mode=rule.onNodeWithTag("mode-toggle",useUnmergedTree=true)
+   val bounds=mode.fetchSemanticsNode().boundsInRoot
+   assertTrue(bounds.height/rule.activity.resources.displayMetrics.density>=47.9f)
+   rule.onAllNodesWithTag("mode-original").assertCountEquals(0)
+   mode.performClick();repeat(4){frame()}
+   val middle=mode.fetchSemanticsNode().config[ModeRollPositionKey]
+   assertTrue(model.drill);assertTrue("The roller must pass through intermediate positions",middle>0f&&middle<1f)
+   screenshot("player-mode-mid")
+   mode.performClick()
+   var previous=middle
+   repeat(80){frame();val position=mode.fetchSemanticsNode().config[ModeRollPositionKey];assertTrue("Repeated taps must keep rolling down without a reset",position>=previous-.002f);previous=position}
+   assertFalse(model.drill);assertEquals(2f,previous,.002f)
+   screenshot("player-mode-original")
+   rule.onNodeWithContentDescription("练习设置").performClick();repeat(70){frame()}
+   val row=rule.onNodeWithTag("setting-循环当前组",useUnmergedTree=true)
+   val before=row.captureToImage().toPixelMap()
+   row.performTouchInput {down(androidx.compose.ui.geometry.Offset(10f,center.y))};repeat(15){frame()}
+   val during=row.captureToImage().toPixelMap()
+   for(x in listOf(4,10,20)){
+    val y=4
+    val a=before[x,y];val b=during[x,y]
+    assertEquals("A held row must not paint a ripple background",a.red,b.red,.015f)
+    assertEquals(a.green,b.green,.015f);assertEquals(a.blue,b.blue,.015f)
+   }
+   screenshot("settings-row-held")
+   val wasChecked=model.loop
+   row.performTouchInput {up()};repeat(30){frame()}
+   assertEquals(!wasChecked,model.loop)
+   rule.onNodeWithContentDescription("关闭设置").performClick();repeat(70){frame()}
    rule.runOnUiThread {model.back()};repeat(90){frame()}
   } finally {rule.mainClock.autoAdvance=true;scale("0")}
  }

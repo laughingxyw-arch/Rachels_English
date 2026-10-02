@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -59,6 +60,7 @@ private val Tint=Color(0xffedf4fc)
 private val LocalReduced=staticCompositionLocalOf {false}
 private val LocalSeeking=staticCompositionLocalOf {false}
 val CoverBadgeOpacityKey=SemanticsPropertyKey<Float>("CoverBadgeOpacity")
+val ModeRollPositionKey=SemanticsPropertyKey<Float>("ModeRollPosition")
 val ReadingFirstItemKey=SemanticsPropertyKey<Int>("ReadingFirstItem")
 val ReadingFirstOffsetKey=SemanticsPropertyKey<Int>("ReadingFirstOffset")
 val CourseTitleLineCountKey=SemanticsPropertyKey<Int>("CourseTitleLineCount")
@@ -269,7 +271,6 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                         val context=LocalContext.current
                         GlyphButton("打开原视频","external",{runCatching {context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://www.youtube.com/watch?v=${open.course.id}")))}})
                     }
-                    ModeSelector(model.drill,model.repeatCount,model::updateDrill)
                 }
             }
             items(open.lesson.groups,key={it.id}) {sentence ->
@@ -291,15 +292,33 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
     }
 }
-@Composable private fun ModeSelector(drill: Boolean,repeats: Int,onChange: (Boolean)->Unit) {
-    BoxWithConstraints(Modifier.width(204.dp).height(56.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xffe8eef6)).padding(4.dp)) {
-        val half=maxWidth/2
-        val offset by animateDpAsState(if(drill)half else 0.dp,if(LocalReduced.current)snap() else spring(1f,700f),label="mode-selection")
-        Box(Modifier.offset(x=offset).width(half).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(Color.White))
-        Row {listOf(false,true).forEach {value -> Box(Modifier.width(half).fillMaxHeight().clip(RoundedCornerShape(10.dp))
-            .selectable(selected=drill==value,role=Role.Tab,onClick={onChange(value)}).testTag(if(value)"mode-drill" else "mode-original"),contentAlignment=Alignment.Center) {
-            Text(if(value)"Drill · ${repeats}×" else "原句",fontSize=13.sp,color=if(drill==value)Ink else Muted,fontWeight=if(drill==value)FontWeight.Medium else FontWeight.Normal)
-        }}}
+@Composable private fun ModeRoller(drill: Boolean,onChange: (Boolean)->Unit) {
+    val reduced=LocalReduced.current
+    val interaction=remember {MutableInteractionSource()}
+    val pressed by interaction.collectIsPressedAsState()
+    var step by remember {mutableIntStateOf(if(drill)1 else 0)}
+    val roll=remember {Animatable(step.toFloat())}
+    LaunchedEffect(drill){if((step%2==1)!=drill)step++}
+    LaunchedEffect(step,reduced){if(reduced)roll.snapTo(step.toFloat()) else roll.animateTo(step.toFloat(),spring(1f,650f,visibilityThreshold=.002f))}
+    val pressure=animateFloatAsState(if(pressed).96f else 1f,if(reduced)snap() else spring(1f,900f),label="mode-pressure")
+    val measurer=rememberTextMeasurer()
+    val textStyle=TextStyle(fontSize=13.sp,fontWeight=FontWeight.Medium,color=Accent)
+    val original=measurer.measure(AnnotatedString("原句"),style=textStyle)
+    val practice=measurer.measure(AnnotatedString("Drill"),style=textStyle)
+    Box(Modifier.width(52.dp).height(48.dp)
+        .clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={step++;onChange(!drill)})
+        .testTag("mode-toggle").semantics {contentDescription="切换播放模式";stateDescription=if(drill)"Drill" else "原句";this[ModeRollPositionKey]=roll.value},contentAlignment=Alignment.Center) {
+        Canvas(Modifier.fillMaxWidth().height(20.dp).clipToBounds().graphicsLayer {scaleX=pressure.value;scaleY=pressure.value}) {
+            val position=roll.value
+            val base=kotlin.math.floor(position).toInt()
+            val fraction=position-base
+            fun label(index: Int,offset: Float,opacity: Float){
+                val layout=if(index%2==0)original else practice
+                drawText(layout,topLeft=Offset((size.width-layout.size.width)/2,(size.height-layout.size.height)/2+offset),alpha=opacity)
+            }
+            label(base,fraction*size.height,1f-fraction*.6f)
+            label(base+1,(fraction-1f)*size.height,.4f+fraction*.6f)
+        }
     }
 }
 @Composable private fun Transport(model: PracticeModel,settings: ()->Unit,modifier: Modifier) {
@@ -316,7 +335,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 GlyphButton("上一句","previous",model::previous,enabled=p.selected>0)
                 GlyphButton(if(p.running&&!p.paused)"暂停" else "播放",if(p.running&&!p.paused)"pause" else "play",model::toggle)
                 GlyphButton("下一句","next",model::next,enabled=p.selected<(model.opened?.lesson?.groups?.lastIndex?:0))
-                Box(Modifier.width(44.dp),contentAlignment=Alignment.Center){Text(if(p.repeat>0)"${p.repeat}/${p.total}" else "${p.selected+1}/${model.opened?.lesson?.groups?.size?:0}",fontSize=11.sp,color=Accent,maxLines=1)}
+                ModeRoller(model.drill,model::updateDrill)
                 GlyphButton("练习设置","more",settings)
             }
         }
@@ -336,7 +355,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
             Setting("留白跟读",model.shadow,model::updateShadow)
             if(model.shadow){Row(Modifier.fillMaxWidth().padding(vertical=8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 listOf(1f,1.5f,2f).forEach {factor->Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(if(model.gap==factor)Tint else Color.Transparent)
-                    .selectable(model.gap==factor,role=Role.RadioButton,onClick={model.updateGap(factor)}).heightIn(min=48.dp).padding(12.dp),contentAlignment=Alignment.Center){Text("${factor}×",fontSize=13.sp,color=if(model.gap==factor)Accent else Muted)}
+                    .selectable(model.gap==factor,interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.RadioButton,onClick={model.updateGap(factor)}).heightIn(min=48.dp).padding(12.dp),contentAlignment=Alignment.Center){Text("${factor}×",fontSize=13.sp,color=if(model.gap==factor)Accent else Muted)}
             }}}
             Setting("中文翻译",model.translation,model::updateTranslation)
             Setting("发音提示",model.cues,model::updateCues)
@@ -346,7 +365,8 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     }
 }
 @Composable private fun Setting(label: String,checked: Boolean,change: (Boolean)->Unit,enabled: Boolean=true) {
-    Row(Modifier.fillMaxWidth().heightIn(min=56.dp).toggleable(checked,enabled=enabled,role=Role.Switch,onValueChange=change),verticalAlignment=Alignment.CenterVertically) {
+    val interaction=remember {MutableInteractionSource()}
+    Row(Modifier.fillMaxWidth().heightIn(min=56.dp).testTag("setting-$label").toggleable(value=checked,interactionSource=interaction,indication=null,enabled=enabled,role=Role.Switch,onValueChange=change),verticalAlignment=Alignment.CenterVertically) {
         Text(label,fontSize=15.sp,modifier=Modifier.weight(1f));Switch(checked,onCheckedChange=null,enabled=enabled,colors=SwitchDefaults.colors(uncheckedTrackColor=Color(0xffe3e9f1),uncheckedBorderColor=Color.Transparent,uncheckedThumbColor=Color.White))
     }
 }
@@ -355,7 +375,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val reduced=LocalReduced.current
     Column {
         Row(Modifier.fillMaxWidth().heightIn(min=56.dp).clip(RoundedCornerShape(12.dp))
-            .clickable(role=Role.Button,onClick={expanded=!expanded}).testTag("repeat-setting")
+            .clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={expanded=!expanded}).testTag("repeat-setting")
             .semantics {stateDescription="${model.repeatCount} 次"},verticalAlignment=Alignment.CenterVertically) {
             Text("复读次数",fontSize=15.sp,modifier=Modifier.weight(1f))
             Text("${model.repeatCount}×",fontSize=14.sp,color=Accent)
@@ -365,7 +385,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 (2..5).forEach {count ->
                     Box(Modifier.weight(1f).heightIn(min=48.dp).clip(RoundedCornerShape(12.dp))
                         .background(if(model.repeatCount==count)Tint else Color.Transparent)
-                        .selectable(model.repeatCount==count,role=Role.RadioButton,onClick={model.updateRepeatCount(count);expanded=false})
+                        .selectable(model.repeatCount==count,interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.RadioButton,onClick={model.updateRepeatCount(count);expanded=false})
                         .testTag("repeat-$count"),contentAlignment=Alignment.Center) {Text("${count}×",fontSize=14.sp,color=if(model.repeatCount==count)Accent else Muted)}
                 }
             }
@@ -375,7 +395,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 @Composable private fun AppearanceSetting(model: PracticeModel,systemContrast: Boolean) {
     var expanded by rememberSaveable {mutableStateOf(false)}
     Column {
-        Row(Modifier.fillMaxWidth().heightIn(min=56.dp).clickable(role=Role.Button,onClick={expanded=!expanded}).testTag("appearance-setting"),verticalAlignment=Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().heightIn(min=56.dp).clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={expanded=!expanded}).testTag("appearance-setting"),verticalAlignment=Alignment.CenterVertically) {
             Text("显示辅助",fontSize=15.sp,modifier=Modifier.weight(1f))
             Text(if(model.enhanceContrast||systemContrast)"高对比度" else if(model.reduceTransparency)"实色" else "自动",fontSize=12.sp,color=Muted)
         }
