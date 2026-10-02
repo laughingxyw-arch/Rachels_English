@@ -188,7 +188,7 @@ class NativePracticeTest {
   try {
    animationScale("1");rule.activityRule.scenario.recreate()
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
-   val target=rule.onNodeWithTag("course-surface-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
+   val target=rule.onNodeWithTag("course-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
    rule.waitForIdle();rule.mainClock.autoAdvance=false
@@ -206,7 +206,7 @@ class NativePracticeTest {
    for(i in 0..120){
     frame()
     if(model.opened==null){
-     landingHeight=rule.onNodeWithTag("course-surface-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.height
+     landingHeight=rule.onNodeWithTag("course-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.height
      break
     }
     lastHeight=rule.onNodeWithTag("lesson").fetchSemanticsNode().boundsInRoot.height
@@ -217,7 +217,7 @@ class NativePracticeTest {
    assertEquals("The final animation frame must land on the same height as the static card; tail=$samples",lastHeight,landed,1f)
    assertEquals("The resting card must retain its original height",target.height,landed,1f)
    repeat(12){frame()}
-   assertEquals("No layout correction may resize the card after handoff",landed,rule.onNodeWithTag("course-surface-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.height,1f)
+   assertEquals("No layout correction may resize the card after handoff",landed,rule.onNodeWithTag("course-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.height,1f)
    screenshot("course-gesture-landed")
   } finally {rule.mainClock.autoAdvance=true;animationScale("0")}
  }
