@@ -579,9 +579,13 @@ class NativePracticeTest {
   val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
   fun night(value: String){automation.executeShellCommand("cmd uimode night $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
   fun dark()=rule.onNodeWithTag("app-root",useUnmergedTree=true).fetchSemanticsNode().config[DarkThemeKey]
+  fun waitTheme(expected: Boolean){rule.waitUntil(10000){
+   if(!rule.mainClock.autoAdvance)rule.mainClock.advanceTimeByFrame()
+   dark()==expected
+  }}
   val model=(rule.activity.application as PracticeApplication).model
   try {
-   night("yes");rule.waitUntil(10000){dark()}
+   night("yes");waitTheme(true)
    val home=rule.onNodeWithTag("app-root",useUnmergedTree=true).captureToImage().toPixelMap()
    assertTrue(home[3,3].red<.15f)
    val card=rule.onNodeWithTag("course-4dXbgvm4_7g").captureToImage().toPixelMap()
@@ -593,16 +597,16 @@ class NativePracticeTest {
    rule.runOnUiThread {model.updateLoop(true);model.updateShadow(false);model.updateDrill(false);model.start(0)}
    rule.waitUntil(10000){model.playback.progress>.05f}
    val activity=rule.activity;val lesson=model.opened
-   night("no");rule.waitUntil(10000){!dark()}
+   night("no");waitTheme(false)
    assertSame(activity,rule.activity);assertSame(lesson,model.opened)
    assertTrue(model.playback.running);assertFalse(model.playback.paused)
-   night("yes");rule.waitUntil(10000){dark()}
+   night("yes");waitTheme(true)
    rule.runOnUiThread {model.pause()};rule.mainClock.advanceTimeBy(1000);rule.mainClock.autoAdvance=true
    screenshot("dark-lesson")
    rule.onNodeWithContentDescription("练习设置").performClick()
    rule.onNodeWithTag("settings-sheet").assertExists()
-   night("no");rule.waitUntil(10000){!dark()};rule.onNodeWithTag("settings-sheet").assertExists()
-   night("yes");rule.waitUntil(10000){dark()};rule.onNodeWithTag("settings-sheet").assertExists()
+   night("no");waitTheme(false);rule.onNodeWithTag("settings-sheet").assertExists()
+   night("yes");waitTheme(true);rule.onNodeWithTag("settings-sheet").assertExists()
    assertSame(activity,rule.activity);assertSame(lesson,model.opened);assertTrue(model.playback.paused)
    screenshot("dark-settings")
    rule.runOnIdle {model.updateEnhanceContrast(true)}
