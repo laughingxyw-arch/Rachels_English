@@ -120,7 +120,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         try {courses=repository.sync();if(explicit)notify("课程已更新")}catch(e: Exception){if(explicit)notify("同步失败，已缓存课程仍可使用。",true)}finally{syncing=false}
     }}
     fun open(course: Course){val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
-        try {val result=repository.open(course);stop();opened=result;drill=false;feedback.reset()
+        try {val result=repository.open(course);stop();queue=emptyList();index=0;refreshTimeline();opened=result;drill=false;feedback.reset()
             artworkJob?.cancel();mediaArtwork=null
             artworkJob=viewModelScope.launch {
                 val bytes=repository.mediaArtwork(result.course)
