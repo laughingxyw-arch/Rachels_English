@@ -94,6 +94,13 @@ class CourseRepository(private val context: Context) {
             if(f.isFile)BitmapFactory.decodeFile(f.path,options) else context.assets.open("site/${c.cover}").use { BitmapFactory.decodeStream(it,null,options) }
         }.getOrNull()?.also {coverCache.put("${c.id}/${c.version}",it)}
     }
+    suspend fun mediaArtwork(c: Course): ByteArray? = withContext(Dispatchers.IO) {
+        val image=cover(c)?:return@withContext null
+        val largest=maxOf(image.width,image.height)
+        val scaled=if(largest>512){val ratio=512f/largest;Bitmap.createScaledBitmap(image,(image.width*ratio).toInt().coerceAtLeast(1),(image.height*ratio).toInt().coerceAtLeast(1),true)}else image
+        try {java.io.ByteArrayOutputStream().use {out->if(scaled.compress(Bitmap.CompressFormat.JPEG,85,out))out.toByteArray() else null}}
+        finally {if(scaled!==image)scaled.recycle()}
+    }
     private fun fetch(path: String,limit: Int): ByteArray {
         require(safePath(path)&&BuildConfig.CONTENT_BASE_URL.startsWith("https://"))
         val connection=URL(BuildConfig.CONTENT_BASE_URL+path).openConnection() as HttpURLConnection

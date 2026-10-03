@@ -46,35 +46,42 @@ class PracticePlaybackService: MediaSessionService() {
 // Exposing the clip ExoPlayer directly would report ENDED between every repeat.
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 private class PracticeSessionPlayer(private val model: PracticeModel,private val onTaskStateChanged: () -> Unit): SimpleBasePlayer(Looper.getMainLooper()) {
-    private var lesson: OpenLesson?=null
-    private var mode: Boolean?=null
+    private var lastDiscontinuity=0
+    private var itemKey: List<Any?> =emptyList()
     private var playlist=emptyList<MediaItemData>()
     init {model.mediaChanged={invalidateState();onTaskStateChanged()}}
     override fun getState(): State {
-        val data=model.opened
-        if(lesson!==data||mode!=model.drill){
-            lesson=data;mode=model.drill
-            playlist=data?.lesson?.groups?.map { sentence ->
-                val text=sentence.phrases.joinToString(" "){it.text}
+        val data=model.opened;val p=model.playback
+        val duration=model.mediaDurationMs
+        val key=listOf(data,model.mediaTaskId,model.drill,model.repeatCount,p.selected,duration,model.mediaArtwork)
+        if(itemKey!=key){
+            itemKey=key
+            playlist=if(data==null||duration<=0)emptyList() else {
+                val text=data.lesson.groups[p.selected].phrases.joinToString(" "){it.text}
                 val metadata=MediaMetadata.Builder().setTitle(text)
-                    .setArtist("${data.course.title} · ${if(model.drill)"Drill" else "原句"}")
-                    .setAlbumTitle(data.course.title).build()
-                MediaItemData.Builder("${data.course.id}:${sentence.id}")
-                    .setMediaItem(MediaItem.Builder().setMediaId("${data.course.id}:${sentence.id}")
-                        .setMediaMetadata(metadata).build()).build()
-            }?:emptyList()
+                    .setArtist("${data.course.title} · ${if(model.drill)"Drill · ${model.repeatCount}×" else "原句"}")
+                    .setAlbumTitle(data.course.title)
+                    .setArtworkData(model.mediaArtwork,MediaMetadata.PICTURE_TYPE_FRONT_COVER).build()
+                // One system track represents one complete task. Clip/repeat changes
+                // update metadata and position without replacing its stable identity.
+                val id="${data.course.id}:task:${model.mediaTaskId}"
+                listOf(MediaItemData.Builder(id).setDurationUs(duration*1000).setIsSeekable(true)
+                    .setMediaItem(MediaItem.Builder().setMediaId(id).setMediaMetadata(metadata).build()).build())
+            }
         }
-        val p=model.playback
         val commands=Player.Commands.Builder().addAll(Player.COMMAND_PLAY_PAUSE,Player.COMMAND_PREPARE,
             Player.COMMAND_STOP,Player.COMMAND_GET_CURRENT_MEDIA_ITEM,Player.COMMAND_GET_TIMELINE,
             Player.COMMAND_GET_METADATA,Player.COMMAND_RELEASE)
+        if(duration>0)commands.add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
         if(p.selected>0)commands.addAll(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,Player.COMMAND_SEEK_TO_PREVIOUS)
-        if(p.selected<playlist.lastIndex)commands.addAll(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,Player.COMMAND_SEEK_TO_NEXT)
-        return State.Builder().setAvailableCommands(commands.build())
-            .setPlaylist(playlist).setCurrentMediaItemIndex(if(playlist.isEmpty())0 else p.selected)
-            .setPlaybackState(if(p.running&&playlist.isNotEmpty())Player.STATE_READY else Player.STATE_IDLE)
+        if(p.selected<(data?.lesson?.groups?.lastIndex?:0))commands.addAll(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,Player.COMMAND_SEEK_TO_NEXT)
+        val state=State.Builder().setAvailableCommands(commands.build())
+            .setPlaylist(playlist).setCurrentMediaItemIndex(0)
+            .setPlaybackState(if(p.running&&playlist.isNotEmpty())Player.STATE_READY else if(model.mediaEnded&&playlist.isNotEmpty())Player.STATE_ENDED else Player.STATE_IDLE)
             .setPlayWhenReady(p.running&&!p.paused,Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
-            .setContentPositionMs {model.mediaPositionMs}.build()
+            .setContentPositionMs {model.mediaPositionMs}
+        if(lastDiscontinuity!=model.mediaDiscontinuity){lastDiscontinuity=model.mediaDiscontinuity;state.setPositionDiscontinuity(Player.DISCONTINUITY_REASON_AUTO_TRANSITION,model.mediaPositionMs)}
+        return state.build()
     }
     override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {
         if(playWhenReady){if(!model.playback.running||model.playback.paused)model.toggle()}else model.pause()
@@ -84,6 +91,7 @@ private class PracticeSessionPlayer(private val model: PracticeModel,private val
     override fun handleStop(): ListenableFuture<*>{model.stop();return Futures.immediateVoidFuture()}
     override fun handleRelease(): ListenableFuture<*>{model.mediaChanged=null;return Futures.immediateVoidFuture()}
     override fun handleSeek(mediaItemIndex: Int,positionMs: Long,seekCommand: Int): ListenableFuture<*> {
+        if(seekCommand==Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM){model.seekMedia(positionMs);return Futures.immediateVoidFuture()}
         val paused=model.playback.paused
         when(seekCommand){
             Player.COMMAND_SEEK_TO_PREVIOUS,Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM->model.previous()

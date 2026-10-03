@@ -626,4 +626,66 @@ class NativePracticeTest {
   }
  }
 
+ @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+ @Test fun systemMediaReceivesRealArtworkAndTheSeekableWholeDrillTimeline(){
+  val model=(rule.activity.application as PracticeApplication).model
+  rule.runOnUiThread {model.open(model.courses.first {it.id=="4dXbgvm4_7g"})}
+  rule.waitUntil(10000){model.opened!=null&&model.mediaArtwork!=null}
+  rule.mainClock.autoAdvance=false
+  rule.runOnUiThread {model.updateLoop(false);model.updateShadow(false);model.updateRepeatCount(3);model.updateDrill(true);model.start(0)}
+  rule.waitUntil(10000){model.playback.progress>.05f}
+  val context=rule.activity.applicationContext
+  lateinit var future: com.google.common.util.concurrent.ListenableFuture<androidx.media3.session.MediaController>
+  rule.runOnUiThread {future=androidx.media3.session.MediaController.Builder(context,
+   androidx.media3.session.SessionToken(context,android.content.ComponentName(context,PracticePlaybackService::class.java))).buildAsync()}
+  val controller=future.get(10,java.util.concurrent.TimeUnit.SECONDS)
+  val notification=context.getSystemService(android.app.NotificationManager::class.java).activeNotifications.first {
+   it.notification.extras.containsKey(android.app.Notification.EXTRA_MEDIA_SESSION)}
+  val token=notification.notification.extras.getParcelable(android.app.Notification.EXTRA_MEDIA_SESSION,android.media.session.MediaSession.Token::class.java)!!
+  val platform=android.media.session.MediaController(context,token)
+  val queue=practiceQueue(model.opened!!.lesson,0,true,true,3)
+  val timeline=TaskTimeline(queue,true,false,1.5f)
+  val duration=(timeline.totalSeconds*1000).toLong()
+  val main=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+  try {
+   rule.waitUntil(10000){platform.metadata?.getBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART)!=null}
+   assertEquals(duration,platform.metadata!!.getLong(android.media.MediaMetadata.METADATA_KEY_DURATION))
+   assertTrue(platform.playbackState!!.actions and android.media.session.PlaybackState.ACTION_SEEK_TO!=0L)
+   val cover=platform.metadata!!.getBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART)!!
+   assertTrue(cover.width>32&&cover.height>32)
+   var taskId="";main.runOnMainSync {taskId=controller.currentMediaItem!!.mediaId;assertEquals(duration,controller.duration)}
+   rule.waitUntil(20000){model.playback.repeat>=2&&!model.playback.waiting}
+   assertTrue(model.mediaPositionMs>(queue[0].duration*1000).toLong())
+   main.runOnMainSync {assertEquals(taskId,controller.currentMediaItem!!.mediaId);assertEquals(duration,controller.duration);controller.pause()}
+   rule.waitUntil(5000){model.playback.paused}
+   val waitPosition=(queue[0].duration*1000).toLong()+200
+   main.runOnMainSync {controller.seekTo(waitPosition)}
+   rule.waitUntil(5000){model.playback.waiting&&model.playback.paused&&kotlin.math.abs(model.mediaPositionMs-waitPosition)<100}
+   Thread.sleep(350);assertTrue(model.playback.paused);assertTrue(kotlin.math.abs(model.mediaPositionMs-waitPosition)<20)
+   val target=(timeline.elapsedSeconds(1,queue[1].duration*.2)*1000).toLong()
+   main.runOnMainSync {controller.seekTo(target)}
+   rule.waitUntil(5000){model.playback.repeat==2&&!model.playback.waiting&&model.playback.paused&&kotlin.math.abs(model.mediaPositionMs-target)<100}
+   main.runOnMainSync {controller.play()}
+   rule.waitUntil(10000){!model.playback.paused&&model.mediaPositionMs>target+100}
+   assertEquals(duration,platform.metadata!!.getLong(android.media.MediaMetadata.METADATA_KEY_DURATION))
+   rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+   rule.waitUntil(10000){(platform.playbackState?.position?:0)>0}
+   assertNotNull(platform.metadata!!.getBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART))
+   main.runOnMainSync {controller.pause()}
+   rule.waitUntil(5000){model.playback.paused}
+   rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+   rule.mainClock.advanceTimeBy(1000);rule.mainClock.autoAdvance=true
+   automationNotificationScreenshot("system-media-artwork-progress")
+  } finally {
+   main.runOnMainSync {controller.release();model.back()}
+   rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED);rule.mainClock.autoAdvance=true
+  }
+ }
+ private fun automationNotificationScreenshot(name: String){
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  automation.executeShellCommand("cmd statusbar expand-notifications").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}
+  Thread.sleep(500)
+  try {saveImage(name,automation.takeScreenshot())}finally {automation.executeShellCommand("cmd statusbar collapse").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+ }
+
 }

@@ -30,4 +30,26 @@ class TaskTimelineTest {
   assertFalse(t.spansSentences)
   assertFalse(TaskTimeline(emptyList(),false,false,1f).spansSentences)
  }
+ @Test fun seekingDistinguishesAudioAndIntentionalSilence(){
+  val t=TaskTimeline(listOf(clip(0,2.0),clip(1,4.0)),false,false,1f)
+  assertEquals(TaskPoint(0,1.0,0.0,false),t.locate(1.0))
+  assertEquals(TaskPoint(0,2.0,.25,true),t.locate(2.25))
+  assertEquals(TaskPoint(1,0.0,0.0,false),t.locate(2.5))
+  assertEquals(TaskPoint(1,1.0,0.0,false),t.locate(3.5))
+  assertEquals(TaskPoint(2,0.0,0.0,false),t.locate(100.0))
+ }
+ @Test fun seekPositionRoundTripsAcrossEveryDrillRepeatAndGap(){
+  val q=listOf(clip(0,2.0,1),clip(0,2.0,2),clip(1,4.0,1))
+  val t=TaskTimeline(q,true,true,1.5f)
+  for(ms in 0 until (t.totalSeconds*1000).toInt() step 37){
+   val position=ms/1000.0;val point=t.locate(position)
+   assertEquals(position,t.elapsedSeconds(point.index,point.clipSeconds,point.waitSeconds),.000001)
+  }
+ }
+ @Test fun aLoopReportsOneCycleIncludingItsClosingGap(){
+  val t=TaskTimeline(listOf(clip(0,2.0,1),clip(0,2.0,2)),true,false,1f,true)
+  assertEquals(5.9,t.totalSeconds,.00001)
+  assertEquals(1,t.locate(5.3).index);assertTrue(t.locate(5.3).waiting);assertEquals(.6,t.locate(5.3).waitSeconds,.00001)
+ }
+
 }
