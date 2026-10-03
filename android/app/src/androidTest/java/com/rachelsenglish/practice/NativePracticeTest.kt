@@ -676,6 +676,12 @@ class NativePracticeTest {
    rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
    rule.mainClock.advanceTimeBy(1000);rule.mainClock.autoAdvance=true
    automationNotificationScreenshot("system-media-artwork-progress")
+   main.runOnMainSync {controller.seekTo(duration)}
+   rule.waitUntil(5000){!model.playback.running&&model.mediaEnded}
+   main.runOnMainSync {model.updateLoop(true);controller.seekTo(0)}
+   rule.waitUntil(5000){model.playback.running&&model.playback.paused&&model.mediaPositionMs<50}
+   assertEquals(model.opened!!.lesson.groups.lastIndex,model.playback.selected)
+   main.runOnMainSync {model.updateLoop(false)}
   } finally {
    main.runOnMainSync {controller.release();model.back()}
    rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED);rule.mainClock.autoAdvance=true

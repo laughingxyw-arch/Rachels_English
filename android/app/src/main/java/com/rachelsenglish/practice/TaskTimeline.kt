@@ -4,6 +4,7 @@ package com.rachelsenglish.practice
 class TaskTimeline(private val queue: List<Clip>,drill: Boolean,shadow: Boolean,gap: Float,loop: Boolean=false) {
     val waits=DoubleArray(queue.size){i -> clipWaitSeconds(queue,i,drill,shadow,gap,loop)}
     private val starts=DoubleArray(queue.size)
+    val clipCount: Int get()=queue.size
     val totalSeconds: Double
     val spansSentences=queue.map {it.group}.distinct().size>1
     init {

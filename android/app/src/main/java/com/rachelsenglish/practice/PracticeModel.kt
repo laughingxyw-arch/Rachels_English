@@ -161,12 +161,12 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     }}
     fun stop(){audioStartToken++;releaseWaitLock();playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0,taskProgress=null);player.stop()}
     fun seekMedia(positionMs: Long){
-        if(queue.isEmpty()||opened==null)return
+        if(queue.isEmpty()||opened==null||mediaTimeline.clipCount==0)return
         val paused=!playback.running||playback.paused
         val point=mediaTimeline.locate(positionMs.coerceAtLeast(0)/1000.0)
-        if(point.index>=(if(loop)queue.count {it.group==queue.getOrNull(index)?.group} else queue.size)){
+        if(point.index>=mediaTimeline.clipCount){
             if(loop){seekMedia(0);return}
-            index=queue.size;stop();playback=playback.copy(progress=1f,taskProgress=if(timeline.spansSentences)1f else null);mediaChanged?.invoke();return
+            index=queue.size;stop();playback=playback.copy(selected=queue.last().group,progress=1f,taskProgress=if(timeline.spansSentences)1f else null);mediaChanged?.invoke();return
         }
         audioStartToken++;releaseWaitLock();player.pause()
         index=mediaOffset+point.index
@@ -206,7 +206,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     }
     private fun refreshTimeline(){
         timeline=TaskTimeline(queue,drill,shadow,gap)
-        val group=queue.getOrNull(index)?.group?:queue.firstOrNull()?.group
+        val group=queue.getOrNull(index)?.group?:queue.lastOrNull()?.group
         mediaOffset=if(loop)queue.indexOfFirst {it.group==group}.coerceAtLeast(0) else 0
         mediaTimeline=if(loop)TaskTimeline(queue.filter {it.group==group},drill,shadow,gap,true) else timeline
         mediaChanged?.invoke()
