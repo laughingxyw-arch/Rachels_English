@@ -163,7 +163,10 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun seekMedia(positionMs: Long){
         if(queue.isEmpty()||opened==null||mediaTimeline.clipCount==0)return
         val paused=!playback.running||playback.paused
-        val point=mediaTimeline.locate(positionMs.coerceAtLeast(0)/1000.0)
+        // The system exposes integer milliseconds; its displayed endpoint can
+        // round down from the precise audio timeline by less than one millisecond.
+        val point=if(positionMs>=mediaDurationMs)TaskPoint(mediaTimeline.clipCount,0.0,0.0,false)
+            else mediaTimeline.locate(positionMs.coerceAtLeast(0)/1000.0)
         if(point.index>=mediaTimeline.clipCount){
             if(loop){seekMedia(0);return}
             index=queue.size;stop();playback=playback.copy(selected=queue.last().group,progress=1f,taskProgress=if(timeline.spansSentences)1f else null);mediaChanged?.invoke();return
