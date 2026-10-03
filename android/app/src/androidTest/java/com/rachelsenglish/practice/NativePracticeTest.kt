@@ -689,8 +689,11 @@ class NativePracticeTest {
  }
  private fun automationNotificationScreenshot(name: String){
   val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
-  automation.executeShellCommand("cmd statusbar expand-notifications").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}
-  Thread.sleep(500)
+  val metrics=rule.activity.resources.displayMetrics
+  // Open the actual system shade with a user gesture; cmd statusbar can return
+  // before SystemUI has presented it on hosted emulators.
+  automation.executeShellCommand("input swipe ${metrics.widthPixels/2} 1 ${metrics.widthPixels/2} ${metrics.heightPixels*3/4} 400").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}
+  Thread.sleep(1000)
   try {saveImage(name,automation.takeScreenshot())}finally {automation.executeShellCommand("cmd statusbar collapse").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
  }
 
