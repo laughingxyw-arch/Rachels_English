@@ -1,5 +1,18 @@
 window.COURSES = [
   {
+    "id": "hLgMIwFeE88",
+    "title": "Booksmart",
+    "label": "电影对白",
+    "videoTitle": "Speaking English | How to Understand Native Speakers",
+    "excerpt": "Our class’s official policy…",
+    "added": "2026-10-04",
+    "sourceSeconds": 17.33,
+    "sourceStartSeconds": 7869.54,
+    "groupCount": 7,
+    "drillSeconds": 107.26,
+    "cover": "covers/hLgMIwFeE88-scene.webp"
+  },
+  {
     "id": "epfQlb_Tgco",
     "title": "Tower Bridge",
     "label": "电影对白",

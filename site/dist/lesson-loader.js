@@ -9,7 +9,7 @@ if(!course){location.replace('index.html');}else{
  document.querySelector('h1').innerHTML='';
  document.querySelector('h1').append(document.createTextNode(course.title));
  const label=document.createElement('span');label.textContent=course.label;document.querySelector('h1').append(label);
- document.querySelector('.source').href='https://www.youtube.com/watch?v='+course.id;
+ document.querySelector('.source').href='https://www.youtube.com/watch?v='+course.id+(course.sourceStartSeconds?'&t='+Math.floor(course.sourceStartSeconds)+'s':'');
  document.querySelector('#dialogue').setAttribute('aria-busy','true');
  const data=document.createElement('script');data.src='lessons/'+course.id+'.js';
  data.onload=()=>{const app=document.createElement('script');app.src='app.js';app.onload=()=>document.querySelector('#dialogue').removeAttribute('aria-busy');document.body.append(app);};
