@@ -118,7 +118,7 @@ class NativePracticeTest {
    rule.onNodeWithContentDescription("更新课程").assertDoesNotExist()
    rule.onNodeWithContentDescription("学习记录").performClick()
    val positions=mutableListOf<Float>()
-   repeat(85){frame();positions.add(rule.onNodeWithTag("records-space",useUnmergedTree=true).fetchSemanticsNode().config[RecordsProgressKey])}
+   repeat(85){frame();positions.add(rule.onNodeWithTag("records-space",useUnmergedTree=true).fetchSemanticsNode().config[RecordsProgressKey]);if(it==5)screenshot("study-enter-mid")}
    assertTrue(positions.any {it>.05f&&it<.95f});assertEquals(1f,positions.last(),.001f)
    listOf("更早三个月","更近三个月","前一天","后一天").forEach {rule.onNodeWithContentDescription(it).assertDoesNotExist()}
    rule.onNodeWithText("少").assertDoesNotExist();rule.onNodeWithText("多").assertDoesNotExist()

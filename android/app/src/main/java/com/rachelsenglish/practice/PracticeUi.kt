@@ -80,6 +80,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val scheme=remember(palette){practiceColorScheme(palette)}
     val reduced=style.reducedMotion
     val backdrop=rememberBackdropSource()
+    val recordsBackdrop=rememberBackdropSource()
     val libraryState=rememberLazyGridState()
     var utilityPage by rememberSaveable {mutableStateOf<String?>(null)}
     val recordsProgress=remember {Animatable(if(utilityPage!=null)1f else 0f)}
@@ -162,7 +163,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
             }
         }} finally {tracking?.cancel();if(token==gestureToken)seeking=false}
     }
-    CompositionLocalProvider(LocalContentColor provides palette.ink,LocalPracticePalette provides palette,LocalReduced provides reduced,LocalSeeking provides seeking,LocalMaterialStyle provides style,LocalBackdropSource provides backdrop) {
+    CompositionLocalProvider(LocalContentColor provides palette.ink,LocalPracticePalette provides palette,LocalReduced provides reduced,LocalSeeking provides seeking,LocalMaterialStyle provides style,LocalBackdropSource provides (if(utilityPage!=null)recordsBackdrop else backdrop)) {
         MaterialTheme(colorScheme=scheme) {
             Box(Modifier.fillMaxSize().testTag("app-root").semantics {this[DarkThemeKey]=dark}.onSizeChanged {sceneSize=it}.background(Backdrop).safeDrawingPadding()) {
                 SharedTransitionLayout(Modifier.fillMaxSize().graphicsLayer {
@@ -184,15 +185,15 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 AnimatedVisibility(model.opened!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp).then(if(utilityPage!=null)Modifier.clearAndSetSemantics {} else Modifier).graphicsLayer {alpha=if(seeking||model.opened==null)(1f-gesture.value).coerceIn(0f,1f) else 1f},
                     enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(1f,600f)){it/3},
                     exit=if(reduced)ExitTransition.None else fadeOut(tween(100))) {
-                    Transport(model,{settings=true},Modifier.padding(horizontal=28.dp))
+                    CompositionLocalProvider(LocalBackdropSource provides backdrop){Transport(model,{settings=true},Modifier.padding(horizontal=28.dp))}
                 }
                 if(utilityPage!=null) {
-                    Box(Modifier.fillMaxSize().graphicsLayer {
+                    Box(Modifier.fillMaxSize().captureBackdrop(recordsBackdrop).graphicsLayer {
                         translationX=size.width*(1f-recordsProgress.value)
                         val offset=if(settings&&sheetHeight>0f&&settingsSheet.hasExpandedState)settingsSheet.requireOffset() else Float.NaN
                         val scale=sheetBackgroundScale(offset,sceneSize.height.toFloat(),sheetHeight,reduced)
                         scaleX=scale;scaleY=scale
-                    }.testTag("records-space").semantics {this[RecordsProgressKey]=recordsProgress.value}.captureBackdrop(backdrop)) {
+                    }.testTag("records-space").semantics {this[RecordsProgressKey]=recordsProgress.value}) {
                         UtilityPage(model,closeRecords,{settings=true},{course->closeRecords();model.open(course)})
                     }
                 }
