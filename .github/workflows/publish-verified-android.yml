@@ -45,4 +45,4 @@ jobs:
           sha256sum "$name" > "$name.sha256"
           cp "release/v${version}.md" verified-notes.md
           printf '\n构建来源：`%s`。验证记录：https://github.com/%s/actions/runs/%s\n' "$SOURCE_SHA" "$GITHUB_REPOSITORY" "$BUILD_RUN" >> verified-notes.md
-          gh release create "v${version}" "$name" "$name.sha256" --repo "$GITHUB_REPOSITORY" --target "$SOURCE_SHA" --draft --title "原声练习 ${version} · 复读与交互打磨" --notes-file verified-notes.md
+          gh release create "v${version}" "$name" "$name.sha256" --repo "$GITHUB_REPOSITORY" --target "$SOURCE_SHA" --draft --title "原声练习 ${version}" --notes-file verified-notes.md

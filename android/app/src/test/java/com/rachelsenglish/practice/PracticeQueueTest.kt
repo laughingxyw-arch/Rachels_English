@@ -30,5 +30,16 @@ class PracticeQueueTest {
   assertEquals(9,nextClipIndex(q,11,true))
   assertEquals(q.size,nextClipIndex(q,11,false))
  }
+ @Test fun repeatScopesAreExclusiveAndWholeLessonWrapsAfterAllDrillParts(){
+  for(drill in listOf(false,true)){
+   val queue=practiceQueue(lesson,0,drill,true,2)
+   assertEquals(queue.size,nextClipIndex(queue,queue.lastIndex,PracticeLoop.OFF))
+   assertEquals(0,nextClipIndex(queue,queue.lastIndex,PracticeLoop.LESSON))
+   assertEquals(queue.indexOfFirst {it.group==1},nextClipIndex(queue,queue.lastIndex,PracticeLoop.SENTENCE))
+   val firstBoundary=queue.indexOfLast {it.group==0}
+   assertEquals(firstBoundary+1,nextClipIndex(queue,firstBoundary,PracticeLoop.LESSON))
+   assertEquals(0,nextClipIndex(queue,firstBoundary,PracticeLoop.SENTENCE))
+  }
+ }
  @Test fun cachePathsCannotEscape(){listOf("../x","/x","https://x","a\\b","a/../../b").forEach {assertFalse(safePath(it))};assertTrue(safePath("audio/course/g01.wav"))}
 }

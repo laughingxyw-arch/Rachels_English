@@ -76,6 +76,8 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val reduced=style.reducedMotion
     val backdrop=rememberBackdropSource()
     val libraryState=rememberLazyGridState()
+    var utilityPage by rememberSaveable {mutableStateOf<String?>(null)}
+    var preferencesOrigin by rememberSaveable {mutableStateOf<String?>(null)}
     var query by rememberSaveable {mutableStateOf("")}
     var settings by rememberSaveable(model.opened?.course?.id) {mutableStateOf(false)}
     val settingsSheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
@@ -97,7 +99,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     // Keep all shared geometry on one linear timeline. Apply physics to its progress,
     // rather than mixing bounds springs of different durations with a seekable gesture.
     LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(model.opened!=null)gesture.snapTo(0f);if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened,animationSpec=progressSpring)}}
-    PredictiveBackHandler(enabled=model.opened!=null&&!settings) {events ->
+    PredictiveBackHandler(enabled=model.opened!=null&&!settings&&utilityPage==null) {events ->
         val origin=model.opened
         val token=++gestureToken
         val initial=if(seeking)gesture.value.coerceIn(0f,1f) else 0f
@@ -145,7 +147,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                     val shared=this
                     transition.AnimatedContent(contentKey={it?.course?.id?:"home"},
                         transitionSpec={(if(targetState==null)homeTransform else lessonTransform).using(null)}) {open ->
-                        if(open==null)Library(model,shared,this,libraryState,query,{query=it})
+                        if(open==null)Library(model,shared,this,libraryState,query,{query=it},{utilityPage="records"})
                         else LessonScreen(model,open,shared,this)
                     }
                 }
@@ -154,9 +156,14 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                     exit=if(reduced)ExitTransition.None else fadeOut(tween(100))) {
                     Transport(model,{settings=true},Modifier.padding(horizontal=28.dp))
                 }
+                if(utilityPage!=null) {
+                    val close: ()->Unit={utilityPage=if(utilityPage=="preferences")preferencesOrigin else null}
+                    androidx.activity.compose.BackHandler(onBack=close)
+                    UtilityPage(model,utilityPage!!,environment.highContrast,close,{preferencesOrigin="records";utilityPage="preferences"},{course->utilityPage=null;model.open(course)})
+                }
                 NoticePill(model,Modifier.align(Alignment.BottomCenter).padding(horizontal=24.dp).padding(bottom=if(model.opened!=null)88.dp else 24.dp))
             }
-            if(settings&&model.opened!=null)SettingsSheet(model,environment.highContrast,settingsSheet,{sheetHeight=it}){settings=false}
+            if(settings&&model.opened!=null)SettingsSheet(model,settingsSheet,{sheetHeight=it},{settings=false},{settings=false;preferencesOrigin=null;utilityPage="preferences"})
         }
     }
 }
@@ -203,7 +210,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 .clip(RoundedCornerShape(5.dp)).background(Color.Black.copy(alpha=.55f)).padding(5.dp,2.dp))
     }
 }
-@Composable private fun Library(model: PracticeModel,shared: SharedTransitionScope,visibility: AnimatedVisibilityScope,list: LazyGridState,query: String,changeQuery: (String)->Unit) {
+@Composable private fun Library(model: PracticeModel,shared: SharedTransitionScope,visibility: AnimatedVisibilityScope,list: LazyGridState,query: String,changeQuery: (String)->Unit,records: ()->Unit) {
     val courses=model.courses.filter { "${it.title} ${it.label}".contains(query,true) }
     LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,24.dp),
         horizontalArrangement=Arrangement.spacedBy(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.testTag("library")) {
@@ -213,6 +220,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 Row(Modifier.fillMaxWidth().padding(top=12.dp),verticalAlignment=Alignment.CenterVertically) {
                     Text("原声练习",fontSize=28.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f))
                     Text("${model.courses.size} 门课程",fontSize=12.sp,color=Muted)
+                    GlyphButton("学习记录","history",records)
                     GlyphButton("更新课程","refresh",{model.sync()},enabled=!model.syncing)
                 }
                 if(model.courses.size>=6) OutlinedTextField(query,changeQuery,singleLine=true,placeholder={Text("查找课程")},modifier=Modifier.fillMaxWidth().padding(top=20.dp),shape=RoundedCornerShape(16.dp))
@@ -349,7 +357,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         if(p.running&&p.waiting&&model.shadow)Text("跟读 · %.1f 秒".format(p.waitSeconds),fontSize=11.sp,color=Muted,modifier=Modifier.padding(top=5.dp))
     }
 }
-@Composable private fun SettingsSheet(model: PracticeModel,systemContrast: Boolean,sheet: SheetState,measure: (Float)->Unit,dismiss: ()->Unit) {
+@Composable private fun SettingsSheet(model: PracticeModel,sheet: SheetState,measure: (Float)->Unit,dismiss: ()->Unit,preferences: ()->Unit) {
     val scope=rememberCoroutineScope()
     val close: ()->Unit={scope.launch {sheet.hide();dismiss()};Unit}
     ModalBottomSheet(onDismissRequest=dismiss,modifier=Modifier.onSizeChanged {measure(it.height.toFloat())}.testTag("settings-sheet"),containerColor=Color.Transparent,scrimColor=if(LocalPracticePalette.current.dark)Color.Black.copy(alpha=.4f) else Color(0xff172539).copy(alpha=.16f),dragHandle=null,sheetState=sheet) {
@@ -358,20 +366,20 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
             Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom=14.dp).size(28.dp,3.dp).clip(RoundedCornerShape(2.dp)).background(Muted.copy(alpha=.3f)))
             Row(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalAlignment=Alignment.CenterVertically){Text("练习设置",fontSize=17.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f));GlyphButton("关闭设置","close",close)}
             if(model.drill) RepeatSetting(model)
-            Setting("循环当前组",model.loop,model::updateLoop)
+            LoopSetting(model)
             Setting("留白跟读",model.shadow,model::updateShadow)
             if(model.shadow){Row(Modifier.fillMaxWidth().padding(vertical=8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 listOf(1f,1.5f,2f).forEach {factor->Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(if(model.gap==factor)Tint else Color.Transparent)
                     .selectable(model.gap==factor,interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.RadioButton,onClick={model.updateGap(factor)}).heightIn(min=48.dp).padding(12.dp),contentAlignment=Alignment.Center){Text("${factor}×",fontSize=13.sp,color=if(model.gap==factor)Accent else Muted)}
             }}}
-            Setting("中文翻译",model.translation,model::updateTranslation)
-            Setting("发音提示",model.cues,model::updateCues)
-            AppearanceSetting(model,systemContrast)
+            Row(Modifier.fillMaxWidth().heightIn(min=56.dp).clickable(interactionSource=remember {MutableInteractionSource()},indication=null,onClick={scope.launch {sheet.hide();preferences()}}).testTag("more-settings"),verticalAlignment=Alignment.CenterVertically) {
+                Text("更多设置",fontSize=15.sp,modifier=Modifier.weight(1f));Text("›",color=Muted)
+            }
         }
         }
     }
 }
-@Composable private fun Setting(label: String,checked: Boolean,change: (Boolean)->Unit,enabled: Boolean=true) {
+@Composable internal fun Setting(label: String,checked: Boolean,change: (Boolean)->Unit,enabled: Boolean=true) {
     val interaction=remember {MutableInteractionSource()}
     Row(Modifier.fillMaxWidth().heightIn(min=56.dp).testTag("setting-$label").toggleable(value=checked,interactionSource=interaction,indication=null,enabled=enabled,role=Role.Switch,onValueChange=change),verticalAlignment=Alignment.CenterVertically) {
         Text(label,fontSize=15.sp,modifier=Modifier.weight(1f));Switch(checked,onCheckedChange=null,enabled=enabled,colors=SwitchDefaults.colors(uncheckedTrackColor=LocalPracticePalette.current.track,uncheckedBorderColor=Color.Transparent,uncheckedThumbColor=if(LocalPracticePalette.current.dark)LocalPracticePalette.current.muted else Color.White))
@@ -399,7 +407,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
     }
 }
-@Composable private fun AppearanceSetting(model: PracticeModel,systemContrast: Boolean) {
+@Composable internal fun AppearanceSetting(model: PracticeModel,systemContrast: Boolean) {
     var expanded by rememberSaveable {mutableStateOf(false)}
     Column {
         Row(Modifier.fillMaxWidth().heightIn(min=56.dp).clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={expanded=!expanded}).testTag("appearance-setting"),verticalAlignment=Alignment.CenterVertically) {
@@ -438,7 +446,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
     }
 }
-@Composable private fun GlyphButton(label: String,glyph: String,click: ()->Unit,enabled: Boolean=true) {
+@Composable internal fun GlyphButton(label: String,glyph: String,click: ()->Unit,enabled: Boolean=true) {
     val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
     val ink=Ink;val muted=Muted;val accent=Accent
     val highlight=if(LocalPracticePalette.current.dark)Color.White.copy(alpha=.07f) else Color.White.copy(alpha=.75f)
@@ -459,11 +467,34 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 "back"->path(14f,6f,8f,12f,14f,18f)
                 "close"->{line(7f,7f,17f,17f);line(17f,7f,7f,17f)}
                 "all"->{line(4f,6f,20f,6f);line(4f,11f,14f,11f);line(4f,16f,11f,16f);path(16f,14f,21f,17f,16f,20f,fill=true)}
+                "history"->{drawRoundRect(color,Offset(4*s,4*s),androidx.compose.ui.geometry.Size(16*s,16*s),androidx.compose.ui.geometry.CornerRadius(3*s),style=Stroke(stroke));listOf(8f,12f,16f).forEach {x->listOf(8f,12f,16f).forEach {y->drawCircle(color,1f*s,Offset(x*s,y*s))}}}
                 "refresh"->{drawArc(color,35f,280f,false,Offset(4*s,4*s),androidx.compose.ui.geometry.Size(16*s,16*s),style=Stroke(stroke,cap=StrokeCap.Round));path(16f,3f,20f,7f,15f,8f)}
                 "external"->{path(9f,5f,5f,5f,5f,19f,19f,19f,19f,15f);path(14f,5f,19f,5f,19f,10f);line(19f,5f,11f,13f)}
                 else->listOf(5f,12f,19f).forEach {drawCircle(color,1.4f*s,Offset(it*s,12f*s))}
             }
         }
+        }
+    }
+}
+
+@Composable private fun LoopSetting(model: PracticeModel) {
+    var expanded by rememberSaveable {mutableStateOf(false)}
+    Column {
+        Row(Modifier.fillMaxWidth().heightIn(min=56.dp).testTag("loop-setting")
+            .clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={expanded=!expanded})
+            .semantics {stateDescription=model.loopMode.label},verticalAlignment=Alignment.CenterVertically) {
+            Text("循环",fontSize=15.sp,modifier=Modifier.weight(1f))
+            Text(model.loopMode.label,fontSize=14.sp,color=Accent);Text("  ›",color=Muted)
+        }
+        AnimatedVisibility(expanded,enter=if(LocalReduced.current)EnterTransition.None else expandVertically(spring(1f,600f))+fadeIn(tween(120)),exit=if(LocalReduced.current)ExitTransition.None else shrinkVertically(tween(160))+fadeOut(tween(100))) {
+            Row(Modifier.fillMaxWidth().selectableGroup().padding(bottom=8.dp)) {
+                PracticeLoop.entries.forEach {mode->
+                    Box(Modifier.weight(1f).heightIn(min=48.dp).testTag("loop-${mode.name}")
+                        .selectable(model.loopMode==mode,interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.RadioButton,onClick={model.updateLoopMode(mode);expanded=false}),contentAlignment=Alignment.Center) {
+                        Text(mode.label,fontSize=14.sp,color=if(model.loopMode==mode)Accent else Muted)
+                    }
+                }
+            }
         }
     }
 }

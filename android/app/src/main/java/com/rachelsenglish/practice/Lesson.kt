@@ -38,7 +38,13 @@ fun practiceQueue(lesson: Lesson, selected: Int, drill: Boolean, all: Boolean, r
         (1..repeats.coerceIn(2,5)).map { Clip(b.group,b.audioFile,b.duration,b.sourceStart,b.lead,b.whole,it,repeats.coerceIn(2,5)) }
     } else lesson.groups.filter { if(all) it.id>=selected else it.id==selected }.map { Clip(it.id,it.audioFile,it.duration,it.start,it.lead,true) }
 
+enum class PracticeLoop(val label: String) { OFF("关闭"), SENTENCE("单句"), LESSON("整集") }
 fun nextClipIndex(queue: List<Clip>,index: Int,loop: Boolean): Int {
     val group=queue.getOrNull(index)?.group
     return if(loop&&group!=null&&queue.getOrNull(index+1)?.group!=group)queue.indexOfFirst {it.group==group} else index+1
+}
+fun nextClipIndex(queue: List<Clip>,index: Int,mode: PracticeLoop): Int =when(mode){
+    PracticeLoop.OFF->index+1
+    PracticeLoop.SENTENCE->nextClipIndex(queue,index,true)
+    PracticeLoop.LESSON->if(index==queue.lastIndex)0 else index+1
 }

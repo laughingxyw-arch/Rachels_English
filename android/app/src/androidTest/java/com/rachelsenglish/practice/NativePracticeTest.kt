@@ -70,13 +70,15 @@ class NativePracticeTest {
   rule.mainClock.advanceTimeBy(32);rule.mainClock.autoAdvance=true
   val retainedProgress=model.playback.progress
   rule.onNodeWithContentDescription("练习设置").performClick()
-  rule.onNodeWithText("中文翻译").assertExists()
+  rule.onNodeWithTag("more-settings").assertExists()
   rule.onNodeWithTag("repeat-setting").performClick()
   rule.onNodeWithTag("repeat-2").performClick()
   rule.runOnIdle {assertEquals(2,model.repeatCount);assertEquals(2,model.playback.total);assertTrue(model.playback.paused);assertEquals(retainedProgress,model.playback.progress,.0001f)}
   rule.onNodeWithTag("repeat-setting").performClick()
   rule.onNodeWithTag("repeat-5").performClick()
   rule.runOnIdle {assertEquals(5,model.repeatCount);assertEquals(5,model.playback.total);assertTrue(model.playback.paused);assertEquals(retainedProgress,model.playback.progress,.0001f);model.updateRepeatCount(3)}
+  rule.onNodeWithTag("more-settings").performScrollTo().performClick()
+  rule.onNodeWithTag("utility-preferences").assertExists()
   rule.onNodeWithTag("appearance-setting").performScrollTo().performClick()
   rule.onNodeWithText("减少透明效果").performScrollTo().performClick()
   rule.runOnIdle {assertTrue(model.reduceTransparency)}
@@ -105,6 +107,43 @@ class NativePracticeTest {
   rule.runOnIdle {assertNotNull(model.opened)}
   rule.onNodeWithContentDescription("返回课程").performClick()
   rule.waitUntil(5000){rule.onAllNodesWithTag("library").fetchSemanticsNodes().isNotEmpty()}
+ }
+ @Test fun wholeLessonLoopAndLearningRecordsUseActualAudioOnly(){
+  val model=(rule.activity.application as PracticeApplication).model
+  val context=rule.activity
+  val audio=context.getSystemService(android.media.AudioManager::class.java)
+  audio.setStreamVolume(android.media.AudioManager.STREAM_MUSIC,5,0)
+  rule.runOnUiThread {model.updateLoopMode(PracticeLoop.OFF);model.updateShadow(false)}
+  rule.onNodeWithContentDescription("学习记录").performClick()
+  rule.onNodeWithTag("utility-records").assertExists()
+  rule.onNodeWithTag("study-heatmap").assertExists()
+  screenshot("study-records")
+  rule.onNodeWithContentDescription("学习设置").performClick()
+  rule.onNodeWithText("有效学习").assertExists()
+  rule.onNodeWithContentDescription("关闭设置").performClick()
+  rule.onNodeWithTag("utility-records").assertExists()
+  rule.onNodeWithContentDescription("关闭设置").performClick()
+  rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+  rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
+  rule.mainClock.autoAdvance=false
+  val course=model.opened!!.course.id
+  var before=0L
+  rule.runOnUiThread {before=model.studySnapshot().filter {it.course==course}.sumOf {it.audioMs};model.start(model.opened!!.lesson.groups.lastIndex)}
+  rule.waitUntil(10000){model.playback.progress>.1f}
+  rule.runOnUiThread {model.updateLoopMode(PracticeLoop.LESSON)}
+  rule.waitUntil(10000){model.playback.selected==0&&model.playback.running}
+  var heard=0L
+  rule.runOnUiThread {model.pause();heard=model.studySnapshot().filter {it.course==course}.sumOf {it.audioMs};assertTrue(heard>before);assertTrue(heard-before<10000)}
+  Thread.sleep(1000)
+  rule.runOnUiThread {
+   assertEquals(heard,model.studySnapshot().filter {it.course==course}.sumOf {it.audioMs})
+   model.seekMedia(model.mediaDurationMs/2)
+   assertEquals(heard,model.studySnapshot().filter {it.course==course}.sumOf {it.audioMs})
+   model.updateLoopMode(PracticeLoop.OFF);model.updateDrill(true);model.updateRepeatCount(2);model.updateLoopMode(PracticeLoop.LESSON);model.start(model.opened!!.lesson.groups.lastIndex)
+  }
+  rule.waitUntil(15000){model.playback.selected==0&&model.playback.running}
+  rule.runOnUiThread {model.stop();model.updateLoopMode(PracticeLoop.OFF);model.updateRepeatCount(3)}
+  rule.mainClock.advanceTimeBy(32);rule.mainClock.autoAdvance=true
  }
  @Test fun originalLoopsCurrentSentenceThenContinuesToTheEnd(){
   val model=(rule.activity.application as PracticeApplication).model
@@ -419,7 +458,7 @@ class NativePracticeTest {
    assertFalse(model.drill);assertEquals(2f,previous,.002f)
    screenshot("player-mode-original")
    rule.onNodeWithContentDescription("练习设置").performClick();repeat(70){frame()}
-   val row=rule.onNodeWithTag("setting-循环当前组",useUnmergedTree=true)
+   val row=rule.onNodeWithTag("loop-setting",useUnmergedTree=true)
    val before=row.captureToImage().toPixelMap()
    row.performTouchInput {down(androidx.compose.ui.geometry.Offset(10f,center.y))};repeat(15){frame()}
    val during=row.captureToImage().toPixelMap()
@@ -432,6 +471,8 @@ class NativePracticeTest {
    screenshot("settings-row-held")
    val wasChecked=model.loop
    row.performTouchInput {up()};repeat(30){frame()}
+   assertEquals(wasChecked,model.loop)
+   rule.onNodeWithTag("loop-"+if(wasChecked)"OFF" else "SENTENCE").performClick();repeat(30){frame()}
    assertEquals(!wasChecked,model.loop)
    rule.onNodeWithContentDescription("关闭设置").performClick();repeat(70){frame()}
    rule.runOnUiThread {model.back()};repeat(90){frame()}
