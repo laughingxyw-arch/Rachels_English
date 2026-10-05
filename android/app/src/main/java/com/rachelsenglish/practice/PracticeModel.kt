@@ -281,7 +281,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun previous(){start((playback.selected-1).coerceAtLeast(0))}
     fun next(){val last=opened?.lesson?.groups?.lastIndex?:return;start((playback.selected+1).coerceAtMost(last))}
     fun toggle(){when{!playback.running->start();playback.paused->{sampleStudy();studyMeter.reset(player.currentPosition);studyWaitRemaining=playback.waitSeconds;checkListening();ensurePlaybackService();playback=playback.copy(paused=false);if(playback.waiting)scheduleWait() else playAudio()};else->pause()}}
-    fun pause(){sampleStudy();flushStudy();audioStartToken++;if(playback.running&&!playback.paused){
+    fun pause(){sampleStudy();flushStudy();syncStudy();audioStartToken++;if(playback.running&&!playback.paused){
         val remaining=if(playback.waiting)waitClock.remaining(android.os.SystemClock.elapsedRealtime()) else playback.waitSeconds
         playback=playback.copy(paused=true,waitSeconds=remaining);releaseWaitLock();player.pause()
     }}
