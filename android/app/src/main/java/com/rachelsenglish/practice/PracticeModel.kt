@@ -98,6 +98,38 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     }
     private val feedback=ListeningFeedback()
     private var foreground=false
+    private val studyCloud=StudyCloud()
+    private val studyDevice=prefs.getString("study-device",null)?:java.util.UUID.randomUUID().toString().replace("-","").also {prefs.edit().putString("study-device",it).commit()}
+    private var studyKey=prefs.getString("study-key",null)?:studySecret().also {prefs.edit().putString("study-key",it).commit()}
+    val recoveryCode: String get()=studyKey.chunked(8).joinToString("-")
+    var studySyncing by mutableStateOf(false);private set
+    var studySyncStatus by mutableStateOf("待同步");private set
+    var studyRevision by mutableIntStateOf(0);private set
+    private var remoteStudy=emptyList<StudyContribution>()
+    private var studySyncJob: Job?=null
+    fun syncStudy(explicit: Boolean=false,restore: String?=null){
+        if(!studyReady||studySyncing)return
+        val key=restore?.lowercase()?.filterNot {it=='-'||it.isWhitespace()}?:studyKey
+        if(!key.matches(Regex("[a-f0-9]{64}"))){notify("恢复码格式不正确",true);return}
+        sampleStudy();flushStudy();val local=studyLedger.snapshot()
+        studySyncing=true;studySyncStatus="同步中"
+        studySyncJob=viewModelScope.launch {
+            try {
+                val rows=withContext(Dispatchers.IO){
+                    // Restoration must find an existing account before registering/uploading anything.
+                    if(restore!=null)studyCloud.download(key)
+                    studyStore.write(local)
+                    studyCloud.upload(key,studyDevice,local)
+                    studyCloud.download(key).also {studyStore.cacheRemote(key,it)}
+                }
+                if(restore!=null){withContext(Dispatchers.IO){check(prefs.edit().putString("study-key",key).commit())};studyKey=key}
+                remoteStudy=rows;studyRevision++;studySyncStatus=if(studyLedger.snapshot()==local)"已同步" else "待同步"
+                if(explicit)notify(if(restore!=null)"学习记录已恢复" else "学习记录已同步")
+            }catch(e: kotlinx.coroutines.CancellationException){throw e}
+            catch(e: Exception){studySyncStatus="待同步";if(explicit)notify(if(restore!=null)"恢复失败，请检查恢复码和网络" else "暂未同步，记录已保存在本机",true)}
+            finally{studySyncing=false}
+        }
+    }
     private val studyStore=StudyStore(application)
     private var studyLedger=StudyLedger()
     private var studyReady=false
@@ -129,18 +161,19 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             if(audio+follow>0){
                 // Anchor to monotonic elapsed time when the wall clock is adjusted.
                 val end=if(kotlin.math.abs(wall-previousWall-elapsed)<=2000)wall else previousWall+elapsed
-                studyLedger.credit(data.course.id,previousWall,end,audio,follow,java.time.ZoneId.systemDefault());studyDirty=true
+                studyLedger.credit(data.course.id,previousWall,end,audio,follow,java.time.ZoneId.systemDefault());studyDirty=true;if(!studySyncing&&studySyncStatus!="待同步")studySyncStatus="待同步"
             }
         }else{studyMeter.reset();studyWaitRemaining=null}
     }
     private fun flushStudy(){if(studyReady&&studyDirty){studyDirty=false;studyWrites.trySend(studyLedger.takeChanges())}}
-    fun studySnapshot(): List<StudyDay>{sampleStudy();flushStudy();return studyLedger.snapshot()}
+    fun studySnapshot(): List<StudyDay>{sampleStudy();flushStudy();return mergeStudy(studyDevice,studyLedger.snapshot(),remoteStudy)}
 
     init {
         viewModelScope.launch {
-            studyLedger=StudyLedger(withContext(Dispatchers.IO){studyStore.read()});studyReady=true
+            studyLedger=StudyLedger(withContext(Dispatchers.IO){studyStore.read()});remoteStudy=withContext(Dispatchers.IO){studyStore.readRemote(studyKey)};studyReady=true;studyRevision++;syncStudy()
             for(rows in studyWrites)withContext(Dispatchers.IO){studyStore.write(rows)}
         }
+        viewModelScope.launch {while(true){delay(60_000);syncStudy()}}
         viewModelScope.launch {var ticks=0;while(true){delay(500);sampleStudy();if(++ticks%20==0)flushStudy()}}
         player.addListener(object: Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {if(state==Player.STATE_ENDED&&playback.running&&!playback.waiting){if(continuousActive)finishContinuous() else enterWait()}}
@@ -165,7 +198,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         sync(false)
         viewModelScope.launch {while(true){delay(800);if(foreground&&opened!=null&&playback.running&&!playback.paused)checkListening()}}
     }
-    fun foreground(value: Boolean){foreground=value;if(!value){sampleStudy();flushStudy()}}
+    fun foreground(value: Boolean){foreground=value;if(!value){sampleStudy();flushStudy()};syncStudy()}
     private fun checkListening(){feedback.update(listening.environment(),android.os.SystemClock.elapsedRealtime())?.let {notify(it)}}
     fun notify(text: String,error: Boolean=false){messageIsError=error;message=text}
     fun consumeMessage(){message=null}
@@ -252,7 +285,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         val remaining=if(playback.waiting)waitClock.remaining(android.os.SystemClock.elapsedRealtime()) else playback.waitSeconds
         playback=playback.copy(paused=true,waitSeconds=remaining);releaseWaitLock();player.pause()
     }}
-    fun stop(){sampleStudy();flushStudy();studyMeter.reset();studyWaitRemaining=null;audioStartToken++;releaseWaitLock();playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0,taskProgress=null);player.stop()}
+    fun stop(){sampleStudy();flushStudy();syncStudy();studyMeter.reset();studyWaitRemaining=null;audioStartToken++;releaseWaitLock();playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0,taskProgress=null);player.stop()}
     fun seekMedia(positionMs: Long){
         if(queue.isEmpty()||opened==null||mediaTimeline.clipCount==0)return
         sampleStudy();studyMeter.reset();studyWaitRemaining=null

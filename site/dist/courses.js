@@ -9,7 +9,7 @@ window.COURSES = [
     "sourceSeconds": 17.33,
     "sourceStartSeconds": 7869.54,
     "groupCount": 7,
-    "drillSeconds": 107.26,
+    "drillSeconds": 121.37,
     "cover": "covers/hLgMIwFeE88-scene.webp"
   },
   {

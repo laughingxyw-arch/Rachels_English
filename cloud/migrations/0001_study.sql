@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS accounts (id TEXT PRIMARY KEY, created INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS study (
+ account TEXT NOT NULL REFERENCES accounts(id), device TEXT NOT NULL,
+ day TEXT NOT NULL, course TEXT NOT NULL, audio INTEGER NOT NULL, shadow INTEGER NOT NULL,
+ PRIMARY KEY(account,device,day,course)
+);

@@ -31,8 +31,10 @@ spec = [
      '我们不想让他们感到不安。', ['feel、-cure 较长，其余词轻快连接']),
     (15.405, 16.165, [(15.405, 16.165, 'Very thoughtful.')],
      '考虑得真周到。', ['thoughtful：th 清楚，末尾为 dark L']),
-    (16.255, 18.825, [(16.255, 18.825,
-        'Anyway, I need to go over the end-of-the-year budget numbers we have.')],
+    (16.255, 18.825, [
+        (16.255, 17.495, 'Anyway, I need to go over'),
+        (17.495, 18.825, 'the end-of-the-year budget numbers we have.')
+    ],
      '总之，我需要核对一下我们现有的年终预算数字。',
      ['need to：to 弱读', 'the end：the 连入元音；have 尾音变轻']),
     (18.845, 23.38, [

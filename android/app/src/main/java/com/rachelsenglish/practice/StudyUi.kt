@@ -35,7 +35,7 @@ val StudySelectedDayKey=SemanticsPropertyKey<String>("StudySelectedDay")
 /** A snapshot isolates the calendar from live audio ticks. Pager offsets use lazy placement. */
 @Composable internal fun UtilityPage(model: PracticeModel,back: ()->Unit,preferences: ()->Unit,open: (Course)->Unit) {
     val palette=LocalPracticePalette.current
-    val rows=remember(model){model.studySnapshot().filter {it.effectiveMs>0}}
+    val rows=remember(model,model.studyRevision){model.studySnapshot().filter {it.effectiveMs>0}}
     Column(Modifier.fillMaxSize().background(palette.background).pointerInput(Unit){detectTapGestures(onTap={})}.testTag("utility-records")) {
         Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically) {
             GlyphButton("返回课程","back",back)

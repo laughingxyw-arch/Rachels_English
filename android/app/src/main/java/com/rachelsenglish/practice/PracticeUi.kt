@@ -516,6 +516,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                     Setting("中文翻译",model.translation,model::updateTranslation)
                     Setting("发音提示",model.cues,model::updateCues)
                     AppearanceSetting(model,systemContrast)
+                    CloudStudySetting(model)
                 }
             }
         }

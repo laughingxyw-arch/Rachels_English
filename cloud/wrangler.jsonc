@@ -1,5 +1,13 @@
 {
   "name": "rachels-english",
   "compatibility_date": "2026-10-02",
-  "pages_build_output_dir": "./dist"
+  "pages_build_output_dir": "./dist",
+  "d1_databases": [
+    {
+      "binding": "STUDY_DB",
+      "database_name": "rachels-study",
+      "database_id": "bd105847-d726-4687-bb9b-5d3a2c97e799",
+      "migrations_dir": "migrations"
+    }
+  ]
 }
