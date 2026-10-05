@@ -260,13 +260,16 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val threshold=with(density){72.dp.toPx()}
     var refreshRequested by remember {mutableStateOf(false)}
     var refreshComplete by remember {mutableStateOf(false)}
+    var refreshRequestId by remember {mutableIntStateOf(0)}
     val refreshing=refreshRequested&&model.syncing
     val haptic=LocalHapticFeedback.current
-    val requestRefresh: ()->Unit={if(!model.syncing&&!refreshRequested){refreshRequested=true;refreshComplete=false;model.sync()}}
+    val requestRefresh: ()->Unit={if(!model.syncing&&!refreshRequested){refreshRequested=true;refreshComplete=false;refreshRequestId++;refreshState.settle(scope,1f,reduced);model.sync()}}
     val latestRequest by rememberUpdatedState(requestRefresh)
-    LaunchedEffect(refreshing){
-        if(refreshing)refreshState.settle(scope,1f,reduced)
-        else if(refreshRequested){
+    LaunchedEffect(refreshRequestId){
+        if(refreshRequestId>0){
+            // A request can start and finish between frames. Observe its completion,
+            // rather than relying on the UI having composed a refreshing=true frame.
+            snapshotFlow {model.syncing}.first {!it}
             refreshComplete=!model.messageIsError
             refreshRequested=false
             val gesture=refreshState.gestureVersion

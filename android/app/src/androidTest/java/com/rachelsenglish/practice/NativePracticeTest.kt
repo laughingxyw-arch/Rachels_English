@@ -190,7 +190,7 @@ class NativePracticeTest {
    assertEquals("已是最新",model.message)
    var settled=false
    for(i in 0 until 120){frame();if(root.fetchSemanticsNode().config[LibraryPullKey]<.01f){settled=true;break}}
-   assertTrue("Refresh completes its check and spring return within the bounded frame window",settled)
+   assertTrue("Refresh completes its check and spring return; fraction=${root.fetchSemanticsNode().config[LibraryPullKey]}",settled)
   } finally {rule.runOnUiThread {watch.cancel()};rule.mainClock.autoAdvance=true}
  }
  @Test fun effectiveStudyAccumulatesInBackgroundAndPersistsAcrossDatabaseReads(){
