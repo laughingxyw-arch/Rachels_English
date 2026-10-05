@@ -135,7 +135,8 @@ class NativePracticeTest {
    val firstDate=java.time.YearMonth.from(today).minusMonths(2).atDay(1)
    val monday=firstDate.minusDays((firstDate.dayOfWeek.value-1).toLong())
    val columns=(java.time.temporal.ChronoUnit.DAYS.between(monday,today)/7+1).toInt()
-   rule.onNodeWithTag("study-heatmap").performTouchInput {click(androidx.compose.ui.geometry.Offset(size.width.toFloat()/columns*.5f,size.height.toFloat()/7*(firstDate.dayOfWeek.value-.5f)))};repeat(100){frame()}
+   val heatBounds=rule.onNodeWithTag("study-heatmap").fetchSemanticsNode().boundsInRoot
+   rule.onNodeWithTag("study-heatmap").performTouchInput {click(androidx.compose.ui.geometry.Offset(heatBounds.width/columns*.5f,heatBounds.height/7*(firstDate.dayOfWeek.value-.5f)))};repeat(100){frame()}
    assertEquals(firstDate.toString(),rule.onNodeWithTag("study-days").fetchSemanticsNode().config[StudySelectedDayKey])
    rule.onNodeWithTag("study-days").performTouchInput {swipeRight(durationMillis=450)};repeat(100){frame()}
    assertEquals(firstDate.minusDays(1).toString(),rule.onNodeWithTag("study-days").fetchSemanticsNode().config[StudySelectedDayKey])
