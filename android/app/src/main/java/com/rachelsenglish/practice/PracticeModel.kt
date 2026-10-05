@@ -99,8 +99,8 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     private val feedback=ListeningFeedback()
     private var foreground=false
     private val studyCloud=StudyCloud()
-    private val studyDevice=prefs.getString("study-device",null)?:java.util.UUID.randomUUID().toString().replace("-","").also {prefs.edit().putString("study-device",it).commit()}
-    private var studyKey=prefs.getString("study-key",null)?:studySecret().also {prefs.edit().putString("study-key",it).commit()}
+    private val studyDevice=prefs.getString("study-device",null)?:java.util.UUID.randomUUID().toString().replace("-","").also {prefs.edit().putString("study-device",it).apply()}
+    private var studyKey=prefs.getString("study-key",null)?:studySecret().also {prefs.edit().putString("study-key",it).apply()}
     val recoveryCode: String get()=studyKey.chunked(8).joinToString("-")
     var studySyncing by mutableStateOf(false);private set
     var studySyncStatus by mutableStateOf("待同步");private set
@@ -170,7 +170,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            studyLedger=StudyLedger(withContext(Dispatchers.IO){studyStore.read()});remoteStudy=withContext(Dispatchers.IO){studyStore.readRemote(studyKey)};studyReady=true;studyRevision++;syncStudy()
+            studyLedger=StudyLedger(withContext(Dispatchers.IO){check(prefs.edit().putString("study-device",studyDevice).putString("study-key",studyKey).commit());studyStore.read()});remoteStudy=withContext(Dispatchers.IO){studyStore.readRemote(studyKey)};studyReady=true;studyRevision++;syncStudy()
             for(rows in studyWrites)withContext(Dispatchers.IO){studyStore.write(rows)}
         }
         viewModelScope.launch {while(true){delay(60_000);syncStudy()}}
