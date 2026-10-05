@@ -28,7 +28,7 @@ import java.time.format.DateTimeFormatter
     val rows=remember(model,page){model.studySnapshot().filter {it.effectiveMs>0}}
     Column(Modifier.fillMaxSize().background(palette.background).testTag("utility-$page")) {
         Row(Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically) {
-            GlyphButton("关闭设置","back",back)
+            GlyphButton(if(page=="records")"返回课程" else if(model.opened!=null)"返回练习" else "返回学习记录","back",back)
             Text(if(page=="records")"学习记录" else "设置",fontSize=19.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f))
             if(page=="records")GlyphButton("学习设置","more",preferences)
         }

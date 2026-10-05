@@ -91,7 +91,7 @@ class NativePracticeTest {
   screenshot("settings")
   rule.onNodeWithText("中文翻译").performClick()
   rule.runOnIdle {assertTrue(model.translation);model.updateTranslation(false)}
-  rule.onNodeWithContentDescription("关闭设置").performClick()
+  rule.onNodeWithContentDescription("返回练习").performClick()
   rule.waitForIdle()
   rule.runOnIdle {model.notify("媒体音量已静音")}
   rule.onNodeWithTag("notice").assertExists()
@@ -108,6 +108,37 @@ class NativePracticeTest {
   rule.onNodeWithContentDescription("返回课程").performClick()
   rule.waitUntil(5000){rule.onAllNodesWithTag("library").fetchSemanticsNodes().isNotEmpty()}
  }
+ @Test fun effectiveStudyAccumulatesInBackgroundAndPersistsAcrossDatabaseReads(){
+  val model=(rule.activity.application as PracticeApplication).model
+  val audio=rule.activity.getSystemService(android.media.AudioManager::class.java)
+  audio.setStreamVolume(android.media.AudioManager.STREAM_MUSIC,5,0)
+  rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+  rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
+  rule.mainClock.autoAdvance=false
+  val course=model.opened!!.course.id
+  var baseline=0L
+  rule.runOnUiThread {baseline=model.studySnapshot().filter {it.course==course}.sumOf {it.audioMs};model.updateLoopMode(PracticeLoop.SENTENCE);model.updateShadow(false);model.start(0);model.foreground(false)}
+  var measured=baseline
+  var nextSample=0L
+  rule.waitUntil(100000){
+   val now=android.os.SystemClock.elapsedRealtime()
+   if(now>=nextSample){nextSample=now+500
+   rule.runOnUiThread {measured=model.studySnapshot().filter {it.course==course}.sumOf {it.audioMs}}
+   }
+   measured>=baseline+61000
+  }
+  var captured=emptyList<StudyDay>()
+  rule.runOnUiThread {model.pause();captured=model.studySnapshot().filter {it.course==course};assertTrue(captured.any {it.effectiveMs>=60000});model.foreground(true)}
+  val store=StudyStore(rule.activity)
+  rule.waitUntil(5000){store.read().filter {it.course==course}==captured}
+  store.close()
+  rule.runOnUiThread {model.updateLoopMode(PracticeLoop.OFF);model.back()}
+  rule.mainClock.advanceTimeBy(32);rule.mainClock.autoAdvance=true
+  rule.onNodeWithContentDescription("学习记录").performClick()
+  rule.onNodeWithText("Tower Bridge").assertExists()
+  screenshot("study-records-effective")
+  rule.onNodeWithContentDescription("返回课程").performClick()
+ }
  @Test fun wholeLessonLoopAndLearningRecordsUseActualAudioOnly(){
   val model=(rule.activity.application as PracticeApplication).model
   val context=rule.activity
@@ -120,9 +151,9 @@ class NativePracticeTest {
   screenshot("study-records")
   rule.onNodeWithContentDescription("学习设置").performClick()
   rule.onNodeWithText("有效学习").assertExists()
-  rule.onNodeWithContentDescription("关闭设置").performClick()
+  rule.onNodeWithContentDescription("返回学习记录").performClick()
   rule.onNodeWithTag("utility-records").assertExists()
-  rule.onNodeWithContentDescription("关闭设置").performClick()
+  rule.onNodeWithContentDescription("返回课程").performClick()
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
   rule.mainClock.autoAdvance=false
