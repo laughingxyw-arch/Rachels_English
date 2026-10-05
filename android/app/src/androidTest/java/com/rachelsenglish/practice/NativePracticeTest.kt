@@ -114,7 +114,7 @@ class NativePracticeTest {
   val main=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
   val audio=context.getSystemService(android.media.AudioManager::class.java)
   audio.setStreamVolume(android.media.AudioManager.STREAM_MUSIC,5,0)
-  rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+  rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
   rule.mainClock.autoAdvance=false
   val course=model.opened!!.course.id
@@ -126,13 +126,14 @@ class NativePracticeTest {
    rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
    var measured=baseline
    var nextSample=0L
-   rule.waitUntil(100000){
+   try {rule.waitUntil(100000){
     val now=android.os.SystemClock.elapsedRealtime()
     if(now>=nextSample){nextSample=now+500
      main.runOnMainSync {measured=model.studySnapshot().filter {it.course==course}.sumOf {it.audioMs}}
     }
     measured>=baseline+61000
    }
+   } catch(error: androidx.compose.ui.test.ComposeTimeoutException) {throw AssertionError("Audible delta=${measured-baseline} ms; running=${model.playback.running}; paused=${model.playback.paused}; waiting=${model.playback.waiting}; progress=${model.playback.progress}",error)}
    var captured=emptyList<StudyDay>()
    main.runOnMainSync {model.pause();captured=model.studySnapshot().filter {it.course==course};assertTrue(captured.any {it.effectiveMs>=60000})}
    rule.waitUntil(5000){store.read().filter {it.course==course}==captured}
@@ -142,7 +143,7 @@ class NativePracticeTest {
    rule.mainClock.advanceTimeBy(32);rule.mainClock.autoAdvance=true
   }
   rule.onNodeWithContentDescription("学习记录").performClick()
-  rule.onNodeWithText("Tower Bridge").assertExists()
+  rule.onNodeWithText("Jaafar Jackson").assertExists()
   screenshot("study-records-effective")
   rule.onNodeWithContentDescription("返回课程").performClick()
  }
