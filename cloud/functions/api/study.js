@@ -20,7 +20,7 @@ export async function onRequest({request,env}) {
    if(Number(request.headers.get('Content-Length')||0)>65536)return reply({error:'Too large'},413);
    const raw=await request.text();if(raw.length>65536)return reply({error:'Too large'},413);
    let body;try{body=validate(JSON.parse(raw))}catch{return reply({error:'Invalid data'},400)}
-   const sql='INSERT INTO study(account,device,day,course,audio,shadow) VALUES(?,?,?,?,?,?) ON CONFLICT(account,device,day,course) DO UPDATE SET audio=MAX(audio,excluded.audio),shadow=MAX(shadow,excluded.shadow)';
+   const sql='INSERT INTO study(account,device,day,course,audio,shadow) VALUES(?,?,?,?,?,?) ON CONFLICT(account,device,day,course) DO UPDATE SET audio=MAX(audio,excluded.audio),shadow=MAX(shadow,excluded.shadow) WHERE excluded.audio>study.audio OR excluded.shadow>study.shadow';
    await env.STUDY_DB.batch([
     env.STUDY_DB.prepare('INSERT OR IGNORE INTO accounts(id,created) VALUES(?,?)').bind(account,Date.now()),
     ...body.rows.map(r=>env.STUDY_DB.prepare(sql).bind(account,body.device,r.day,r.course,r.audioMs,r.shadowMs))
