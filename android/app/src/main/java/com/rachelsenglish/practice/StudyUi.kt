@@ -5,6 +5,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.*
 import androidx.compose.material3.Text
@@ -17,6 +18,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
@@ -55,24 +58,38 @@ val StudySelectedDayKey=SemanticsPropertyKey<String>("StudySelectedDay")
     val months=rememberPagerState(initialPage=currentWindow){currentWindow+1}
     val days=rememberPagerState(initialPage=selected.toEpochDay().toInt()){today.toEpochDay().toInt()+1}
     val scope=rememberCoroutineScope()
+    var dayGesturePending by remember {mutableStateOf(false)}
     val totals=remember(rows){rows.groupBy {LocalDate.parse(it.day)}.mapValues {(_,r)->r.sumOf {it.effectiveMs}}}
     val courseMap=remember(courses){courses.associateBy {it.id}}
-    suspend fun selectDay(date: LocalDate){
+    suspend fun selectDay(date: LocalDate,showWindow: Boolean=true){
         selectedText=date.toString()
+        if(showWindow){
+            val distance=ChronoUnit.MONTHS.between(YearMonth.from(date),currentMonth).toInt().coerceAtLeast(0)
+            val target=(currentWindow-distance/3).coerceAtLeast(0)
+            if(target!=months.currentPage)scope.launch {if(reduced)months.scrollToPage(target) else months.animateScrollToPage(target)}
+        }
         if(reduced)days.scrollToPage(date.toEpochDay().toInt()) else days.animateScrollToPage(date.toEpochDay().toInt())
     }
-    LaunchedEffect(months){snapshotFlow {months.settledPage}.collect {page->
-        val month=currentMonth.minusMonths((currentWindow-page)*3L)
-        val end=if(page==currentWindow)today else month.atEndOfMonth()
-        val first=month.minusMonths(2).atDay(1)
-        val date=LocalDate.parse(selectedText)
-        if(date<first||date>end)selectDay(end)
+    LaunchedEffect(days){days.interactionSource.interactions.collect {if(it is DragInteraction.Start)dayGesturePending=true}}
+    LaunchedEffect(months){snapshotFlow {months.settledPage to months.isScrollInProgress}.collect {(page,moving)->
+        if(!moving){
+            val month=currentMonth.minusMonths((currentWindow-page)*3L)
+            val end=if(page==currentWindow)today else month.atEndOfMonth()
+            val first=month.minusMonths(2).atDay(1)
+            val date=LocalDate.parse(selectedText)
+            if(date<first||date>end)scope.launch {selectDay(end,showWindow=false)}
+        }
     }}
-    LaunchedEffect(days){snapshotFlow {days.settledPage}.collect {page->
-        val date=LocalDate.ofEpochDay(page.toLong());selectedText=date.toString()
-        val distance=ChronoUnit.MONTHS.between(YearMonth.from(date),currentMonth).toInt().coerceAtLeast(0)
-        val target=(currentWindow-distance/3).coerceAtLeast(0)
-        if(target!=months.currentPage){if(reduced)months.scrollToPage(target) else months.animateScrollToPage(target)}
+    LaunchedEffect(days){snapshotFlow {days.settledPage to days.isScrollInProgress}.collect {(page,moving)->
+        if(!moving){
+            val date=LocalDate.ofEpochDay(page.toLong());selectedText=date.toString()
+            if(dayGesturePending){
+                dayGesturePending=false
+                val distance=ChronoUnit.MONTHS.between(YearMonth.from(date),currentMonth).toInt().coerceAtLeast(0)
+                val target=(currentWindow-distance/3).coerceAtLeast(0)
+                if(target!=months.currentPage)scope.launch {if(reduced)months.scrollToPage(target) else months.animateScrollToPage(target)}
+            }
+        }
     }}
     val activeMonth=currentMonth.minusMonths((currentWindow-months.settledPage)*3L)
     val total=remember(rows,activeMonth){rows.filter {YearMonth.from(LocalDate.parse(it.day))==activeMonth}.sumOf {it.effectiveMs}}
@@ -117,7 +134,10 @@ val StudySelectedDayKey=SemanticsPropertyKey<String>("StudySelectedDay")
         }
     }
     val browseDay: (Int)->Boolean={delta->scope.launch {selectDay(selected.plusDays(delta.toLong()).coerceIn(LocalDate.of(1970,1,1),today))};true}
-    val detailHeight=remember(rows){maxOf(176,72+56*(rows.groupBy {it.day}.values.maxOfOrNull {it.size}?:0)).dp}
+    val density=LocalDensity.current
+    val rowHeight=with(density){maxOf(56.dp,44.sp.toDp()+12.dp)}
+    val headerHeight=with(density){maxOf(72.dp,42.sp.toDp()+30.dp)}
+    val detailHeight=remember(rows,rowHeight,headerHeight){maxOf(176.dp,headerHeight+rowHeight*(rows.groupBy {it.day}.values.maxOfOrNull {it.size}?:0))}
     HorizontalPager(days,flingBehavior=PagerDefaults.flingBehavior(days,snapAnimationSpec=if(reduced)snap() else spring(1f,600f)),beyondViewportPageCount=1,verticalAlignment=Alignment.Top,modifier=Modifier.fillMaxWidth().height(detailHeight+32.dp).padding(top=32.dp).testTag("study-days")
         .semantics {this[StudySelectedDayKey]=selectedText;customActions=listOf(CustomAccessibilityAction("前一天"){browseDay(-1)},CustomAccessibilityAction("后一天"){browseDay(1)})}) {page->
         val date=remember(page){LocalDate.ofEpochDay(page.toLong())}
@@ -127,8 +147,8 @@ val StudySelectedDayKey=SemanticsPropertyKey<String>("StudySelectedDay")
             Text(if(dayRows.isEmpty())"暂无练习" else "${dayRows.sumOf {it.effectiveMs}/60_000} 分钟",fontSize=13.sp,color=palette.muted,modifier=Modifier.padding(top=6.dp,bottom=12.dp).testTag(if(page==days.currentPage)"study-day-summary" else "study-adjacent-day-summary"))
             dayRows.forEach {row->
                 val course=courseMap[row.course]
-                Row(Modifier.fillMaxWidth().heightIn(min=56.dp).then(if(course!=null)Modifier.clickable(interactionSource=remember {MutableInteractionSource()},indication=null,onClick={open(course)}) else Modifier),verticalAlignment=Alignment.CenterVertically) {
-                    Text(course?.title?:"已移除的课程",fontSize=15.sp,modifier=Modifier.weight(1f))
+                Row(Modifier.fillMaxWidth().heightIn(min=rowHeight).then(if(course!=null)Modifier.clickable(interactionSource=remember {MutableInteractionSource()},indication=null,onClick={open(course)}) else Modifier),verticalAlignment=Alignment.CenterVertically) {
+                    Text(course?.title?:"已移除的课程",fontSize=15.sp,lineHeight=22.sp,maxLines=2,overflow=TextOverflow.Ellipsis,modifier=Modifier.weight(1f))
                     if(course!=null)Text("›",color=palette.muted)
                 }
             }

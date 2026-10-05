@@ -253,8 +253,8 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val haptic=LocalHapticFeedback.current
     LaunchedEffect(model.syncing){if(!model.syncing)refreshRequested=false}
     LaunchedEffect(refreshState){snapshotFlow {refreshState.distanceFraction>=1f}.collect {crossed->if(crossed&&!model.syncing)haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)}}
-    Box(Modifier.fillMaxSize().pullToRefresh(isRefreshing=refreshing,state=refreshState,enabled=!model.syncing,threshold=72.dp,onRefresh={refreshRequested=true;model.sync(false)})
-        .testTag("library-refresh").semantics {this[LibraryPullKey]=refreshState.distanceFraction;customActions=listOf(CustomAccessibilityAction("更新课程"){if(!model.syncing){refreshRequested=true;model.sync(false)};true})}) {
+    Box(Modifier.fillMaxSize().pullToRefresh(isRefreshing=refreshing,state=refreshState,enabled=!model.syncing,threshold=72.dp,onRefresh={refreshRequested=true;model.sync(quietSuccess=true)})
+        .testTag("library-refresh").semantics {this[LibraryPullKey]=refreshState.distanceFraction;customActions=listOf(CustomAccessibilityAction("更新课程"){if(!model.syncing){refreshRequested=true;model.sync(quietSuccess=true)};true})}) {
     LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,24.dp),
         horizontalArrangement=Arrangement.spacedBy(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.graphicsLayer {translationY=72.dp.toPx()*refreshState.distanceFraction.coerceAtMost(1.5f)}.testTag("library")) {
         item(span={GridItemSpan(maxLineSpan)}) {

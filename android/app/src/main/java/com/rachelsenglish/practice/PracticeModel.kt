@@ -163,8 +163,8 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     private fun checkListening(){feedback.update(listening.environment(),android.os.SystemClock.elapsedRealtime())?.let {notify(it)}}
     fun notify(text: String,error: Boolean=false){messageIsError=error;message=text}
     fun consumeMessage(){message=null}
-    fun sync(explicit: Boolean=true){if(syncing)return;syncing=true;viewModelScope.launch {
-        try {courses=repository.sync();if(explicit)notify("课程已更新")}catch(e: Exception){if(explicit)notify("同步失败，已缓存课程仍可使用。",true)}finally{syncing=false}
+    fun sync(explicit: Boolean=true,quietSuccess: Boolean=false){if(syncing)return;syncing=true;viewModelScope.launch {
+        try {courses=repository.sync();if(explicit&&!quietSuccess)notify("课程已更新")}catch(e: Exception){if(explicit)notify("同步失败，已缓存课程仍可使用。",true)}finally{syncing=false}
     }}
     fun open(course: Course){val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
         try {val result=repository.open(course);stop();queue=emptyList();index=0;refreshTimeline();opened=result;drill=false;feedback.reset()

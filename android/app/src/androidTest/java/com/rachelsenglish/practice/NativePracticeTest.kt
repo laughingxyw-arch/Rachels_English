@@ -129,6 +129,20 @@ class NativePracticeTest {
    assertEquals(java.time.YearMonth.from(today).minusMonths(3).toString(),rule.onNodeWithTag("study-window").fetchSemanticsNode().config[StudyWindowKey])
    rule.onNodeWithTag("study-window").performTouchInput {swipeLeft(durationMillis=450)};repeat(100){frame()}
    assertEquals(java.time.YearMonth.from(today).toString(),rule.onNodeWithTag("study-window").fetchSemanticsNode().config[StudyWindowKey])
+   rule.onNodeWithTag("study-window").performTouchInput {swipeRight(durationMillis=300)};repeat(8){frame()}
+   rule.onNodeWithTag("study-window").performTouchInput {swipeLeft(durationMillis=300)};repeat(100){frame()}
+   assertEquals(java.time.YearMonth.from(today).toString(),rule.onNodeWithTag("study-window").fetchSemanticsNode().config[StudyWindowKey])
+   val firstDate=java.time.YearMonth.from(today).minusMonths(2).atDay(1)
+   val monday=firstDate.minusDays((firstDate.dayOfWeek.value-1).toLong())
+   val columns=(java.time.temporal.ChronoUnit.DAYS.between(monday,today)/7+1).toInt()
+   rule.onNodeWithTag("study-heatmap").performTouchInput {click(androidx.compose.ui.geometry.Offset(size.width.toFloat()/columns*.5f,size.height.toFloat()/7*(firstDate.dayOfWeek.value-.5f)))};repeat(100){frame()}
+   assertEquals(firstDate.toString(),rule.onNodeWithTag("study-days").fetchSemanticsNode().config[StudySelectedDayKey])
+   rule.onNodeWithTag("study-days").performTouchInput {swipeRight(durationMillis=450)};repeat(100){frame()}
+   assertEquals(firstDate.minusDays(1).toString(),rule.onNodeWithTag("study-days").fetchSemanticsNode().config[StudySelectedDayKey])
+   assertEquals(java.time.YearMonth.from(today).minusMonths(3).toString(),rule.onNodeWithTag("study-window").fetchSemanticsNode().config[StudyWindowKey])
+   rule.onNodeWithTag("study-days").performTouchInput {swipeLeft(durationMillis=450)};repeat(100){frame()}
+   assertEquals(firstDate.toString(),rule.onNodeWithTag("study-days").fetchSemanticsNode().config[StudySelectedDayKey])
+   assertEquals(java.time.YearMonth.from(today).toString(),rule.onNodeWithTag("study-window").fetchSemanticsNode().config[StudyWindowKey])
    val back=rule.activity.onBackPressedDispatcher
    rule.runOnUiThread {back.dispatchOnBackStarted(androidx.activity.BackEventCompat(0f,200f,0f,androidx.activity.BackEventCompat.EDGE_LEFT));back.dispatchOnBackProgressed(androidx.activity.BackEventCompat(60f,200f,.45f,androidx.activity.BackEventCompat.EDGE_LEFT))}
    repeat(5){frame()}
