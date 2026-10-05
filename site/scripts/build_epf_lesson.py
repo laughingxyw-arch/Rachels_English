@@ -60,7 +60,8 @@ for i,(a,b,parts,cues) in enumerate(spec):
    if repeat:chunks.append(np.zeros((round(.7*rate),2),np.int16));cursor+=.7
    entry['plays'].append(dict(start_seconds=round(cursor,5),duration_seconds=pd));chunks.append(px);cursor+=pd
   entry['end_seconds']=round(cursor,5);B.append(entry)
-lesson=dict(groups=G,drill=B,cues=[s[3] for s in spec]);(OUT/'lessons'/f'{ID}.js').write_text('window.LESSON = '+json.dumps(lesson,ensure_ascii=False)+';\n')
+from export_continuous import export
+lesson=dict(groups=G,drill=B,cues=[s[3] for s in spec]);export(OUT,lesson,ID,D/(ID+'-opening.wav'));(OUT/'lessons'/f'{ID}.js').write_text('window.LESSON = '+json.dumps(lesson,ensure_ascii=False)+';\n')
 with wave.open(str(D/(ID+'-drill.wav')),'w') as w:w.setnchannels(2);w.setsampwidth(2);w.setframerate(rate);w.writeframes(np.concatenate(chunks).tobytes())
 subprocess.run(['ffmpeg','-v','error','-y','-i',str(D/(ID+'-drill.wav')),'-codec:a','libmp3lame','-q:a','2',str(D/(ID+'-listening-drill.mp3'))],check=True)
 (D/(ID+'-drill-plan.txt')).write_text('\n\n'.join(f'{n+1:02}. {e["text"]} × 3'+('（整句）' if e['whole'] else '') for n,e in enumerate(B)))

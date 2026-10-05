@@ -17,3 +17,7 @@ site/dist/clips/
 site/dist/data.js
 site/dist/covers/4dXbgvm4_7g.webp
 site/dist/covers/epfQlb_Tgco.webp
+
+# Python build caches
+__pycache__/
+*.pyc

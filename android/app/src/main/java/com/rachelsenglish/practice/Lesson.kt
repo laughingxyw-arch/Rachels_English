@@ -9,7 +9,8 @@ data class Sentence(val id: Int, val audioFile: String, val start: Double, val l
     val duration: Double, val phrases: List<Phrase>, val translation: String, val cues: List<String>)
 data class DrillBlock(val group: Int, val audioFile: String, val duration: Double, val sourceStart: Double,
     val lead: Double, val whole: Boolean, val repeats: Int)
-data class Lesson(val groups: List<Sentence>, val drill: List<DrillBlock>) {
+data class ContinuousAudio(val audioFile: String,val sourceStart: Double,val duration: Double)
+data class Lesson(val groups: List<Sentence>, val drill: List<DrillBlock>,val continuous: ContinuousAudio?=null) {
     companion object {
         fun parse(raw: String): Lesson {
             val json=JSONObject(raw);val groups=json.getJSONArray("groups");val cues=json.optJSONArray("cues")
@@ -26,7 +27,15 @@ data class Lesson(val groups: List<Sentence>, val drill: List<DrillBlock>) {
                 DrillBlock(b.getInt("group"),b.getString("audioFile"),b.getDouble("duration_seconds"),b.getDouble("sourceStart"),b.getDouble("lead"),b.getBoolean("whole"),b.getInt("repeats")) }
             sentences.forEach { require(safePath(it.audioFile)&&it.duration.isFinite()&&it.duration>0&&it.phrases.isNotEmpty()) }
             drill.forEach { require(it.group in sentences.indices&&safePath(it.audioFile)&&it.duration.isFinite()&&it.duration>0&&it.repeats in 1..20) }
-            return Lesson(sentences,drill)
+            val continuous=json.optJSONObject("continuous")?.let { c ->
+                ContinuousAudio(c.getString("audioFile"),c.getDouble("sourceStart"),c.getDouble("duration")).also {
+                    require(safePath(it.audioFile)&&it.duration.isFinite()&&it.duration>0&&it.sourceStart.isFinite())
+                    require(kotlin.math.abs(sentences.first().start-it.sourceStart)<.001)
+                    require(sentences.zipWithNext().all { (a,b)->a.start<b.start })
+                    require(sentences.last().start<it.sourceStart+it.duration)
+                }
+            }
+            return Lesson(sentences,drill,continuous)
         }
     }
 }
@@ -47,4 +56,19 @@ fun nextClipIndex(queue: List<Clip>,index: Int,mode: PracticeLoop): Int =when(mo
     PracticeLoop.OFF->index+1
     PracticeLoop.SENTENCE->nextClipIndex(queue,index,true)
     PracticeLoop.LESSON->if(index==queue.lastIndex)0 else index+1
+}
+
+/** Virtual boundaries only: playback continues through the same PCM file. */
+fun continuousQueue(lesson: Lesson,selected: Int): List<Clip> {
+    val audio=lesson.continuous?:return emptyList()
+    return lesson.groups.drop(selected).map { sentence ->
+        val end=lesson.groups.getOrNull(sentence.id+1)?.start?:audio.sourceStart+audio.duration
+        Clip(sentence.id,audio.audioFile,end-sentence.start,sentence.start,0.0,true)
+    }
+}
+fun continuousClipIndex(queue: List<Clip>,source: Double): Int {
+    if(queue.isEmpty())return 0
+    var low=0;var high=queue.lastIndex
+    while(low<high){val mid=(low+high+1)/2;if(queue[mid].sourceStart<=source)low=mid else high=mid-1}
+    return low
 }

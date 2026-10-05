@@ -85,6 +85,10 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     private val player=ExoPlayer.Builder(application).build().apply {
         setAudioAttributes(AudioAttributes.DEFAULT,true);setHandleAudioBecomingNoisy(true);setWakeMode(androidx.media3.common.C.WAKE_MODE_LOCAL)
     }
+    private var continuousActive=false
+    internal var audioLoadCount=0;private set
+    internal val usesContinuousAudio: Boolean get()=continuousActive
+    private fun makeQueue(lesson: Lesson,start: Int)=if(continuousActive)continuousQueue(lesson,start) else practiceQueue(lesson,start,drill,playAll,repeatCount)
     private var queue=emptyList<Clip>();private var index=0;private var playAll=true;private var openJob: Job?=null;private var openToken=0
     private var taskStart=0
     private var timeline=TaskTimeline(emptyList(),false,false,1f)
@@ -117,7 +121,8 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             }else{
                 studyWaitRemaining=null
                 if(player.isPlaying||player.playbackState==Player.STATE_ENDED){
-                    val measured=studyMeter.advance(player.currentPosition,elapsed,(clip.lead*1000).toLong(),((clip.duration-.12)*1000).toLong().coerceAtLeast((clip.lead*1000).toLong()))
+                    val measured=if(continuousActive)studyMeter.advance(player.currentPosition,elapsed,0,((data.lesson.continuous?.duration?:0.0)*1000).toLong())
+                        else studyMeter.advance(player.currentPosition,elapsed,(clip.lead*1000).toLong(),((clip.duration-.12)*1000).toLong().coerceAtLeast((clip.lead*1000).toLong()))
                     if(volumeBand(listening.environment())!=VolumeBand.MUTED)audio=measured
                 }else studyMeter.reset(player.currentPosition)
             }
@@ -138,7 +143,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         }
         viewModelScope.launch {var ticks=0;while(true){delay(500);sampleStudy();if(++ticks%20==0)flushStudy()}}
         player.addListener(object: Player.Listener {
-            override fun onPlaybackStateChanged(state: Int) {if(state==Player.STATE_ENDED&&playback.running&&!playback.waiting)enterWait()}
+            override fun onPlaybackStateChanged(state: Int) {if(state==Player.STATE_ENDED&&playback.running&&!playback.waiting){if(continuousActive)finishContinuous() else enterWait()}}
             override fun onPlayerError(error: PlaybackException) {stop();notify("音频播放失败，请重新打开课程。",true)}
             override fun onPlayWhenReadyChanged(ready: Boolean,reason: Int) {
                 if(!ready&&(reason==Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS||reason==Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY)&&playback.running)pause()
@@ -149,6 +154,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
                 val state=playback
                 if(state.running&&!state.paused){
                     if(state.waiting){val left=waitClock.remaining(now);if(left<=0)advance() else playback=state.copy(waitSeconds=left,taskProgress=taskProgress(1f,left))}
+                    else if(player.isPlaying&&continuousActive)updateContinuousPosition(player.currentPosition)
                     else if(player.isPlaying){queue.getOrNull(index)?.let { clip ->
                         val elapsed=player.currentPosition/1000.0
                         playback=state.copy(progress=(elapsed/clip.duration).toFloat().coerceIn(0f,1f),source=clip.sourceStart+elapsed-clip.lead,taskProgress=taskProgress((elapsed/clip.duration).toFloat()))
@@ -164,7 +170,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun notify(text: String,error: Boolean=false){messageIsError=error;message=text}
     fun consumeMessage(){message=null}
     fun sync(explicit: Boolean=true,quietSuccess: Boolean=false){if(syncing)return;syncing=true;viewModelScope.launch {
-        try {courses=repository.sync();if(explicit&&!quietSuccess)notify("课程已更新")}catch(e: Exception){if(explicit)notify("同步失败，已缓存课程仍可使用。",true)}finally{syncing=false}
+        try {val previous=courses;val next=repository.sync();courses=next;if(explicit&&!quietSuccess)notify(if(next==previous)"已是最新" else "已更新课程")}catch(e: Exception){if(explicit)notify("同步失败，已缓存课程仍可使用。",true)}finally{syncing=false}
     }}
     fun open(course: Course){val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
         try {val result=repository.open(course);stop();queue=emptyList();index=0;refreshTimeline();opened=result;drill=false;feedback.reset()
@@ -198,18 +204,47 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun updateLoop(v: Boolean)=updateLoopMode(if(v)PracticeLoop.SENTENCE else PracticeLoop.OFF)
     fun updateLoopMode(mode: PracticeLoop){
         if(mode==loopMode)return
+        val wasContinuous=continuousActive
+        val source=currentSource();val paused=playback.paused
         sampleStudy();loopMode=mode;prefs.edit().putString("loop-mode",mode.name).apply()
+        val shouldContinuous=canUseContinuous()
+        if(playback.running&&wasContinuous!=shouldContinuous){restartAtSource(source,paused);return}
         if(mode==PracticeLoop.LESSON&&playAll&&opened!=null&&queue.isNotEmpty()){
             val current=queue.getOrNull(index);val ended=index>=queue.size
-            val updated=practiceQueue(opened!!.lesson,0,drill,true,repeatCount)
-            index=if(ended)updated.size else updated.indexOfFirst {it.file==current?.file&&it.repeat==current?.repeat}.coerceAtLeast(0)
+            val updated=makeQueue(opened!!.lesson,0)
+            index=if(ended)updated.size else updated.indexOfFirst {it.group==current?.group&&it.repeat==current?.repeat&&it.file==current?.file}.coerceAtLeast(0)
             queue=updated;taskStart=0
         }
         refreshTimeline()
     }
-    fun updateShadow(v: Boolean){sampleStudy();shadow=v;prefs.edit().putBoolean("shadow",v).apply();refreshTimeline()}
+    private fun canUseContinuous()=!drill&&!shadow&&playAll&&loopMode!=PracticeLoop.SENTENCE&&opened?.lesson?.continuous!=null
+    private fun currentSource(): Double {
+        if(continuousActive)return (opened?.lesson?.continuous?.sourceStart?:0.0)+player.currentPosition/1000.0
+        val clip=queue.getOrNull(index)?:return playback.source
+        return clip.sourceStart+player.currentPosition/1000.0-clip.lead
+    }
+    private fun restartAtSource(source: Double,paused: Boolean){
+        val selected=playback.selected;val all=playAll
+        start(selected,all)
+        val clip=queue.getOrNull(index)?:return
+        if(continuousActive){
+            val offset=((source-opened!!.lesson.continuous!!.sourceStart)*1000).toLong().coerceAtLeast(0)
+            player.seekTo(offset);studyMeter.reset(offset);updateContinuousPosition(offset)
+        }else{
+            val offset=((source-clip.sourceStart+clip.lead)*1000).toLong().coerceIn(0,(clip.duration*1000).toLong())
+            player.seekTo(offset);studyMeter.reset(offset)
+            playback=playback.copy(progress=(offset/1000.0/clip.duration).toFloat(),source=source)
+        }
+        if(paused)pause()
+    }
+    fun updateShadow(v: Boolean){
+        if(shadow==v)return
+        val source=currentSource();val paused=playback.paused
+        sampleStudy();shadow=v;prefs.edit().putBoolean("shadow",v).apply()
+        if(playback.running&&continuousActive!=canUseContinuous())restartAtSource(source,paused) else refreshTimeline()
+    }
     fun updateGap(v: Float){sampleStudy();gap=v;prefs.edit().putFloat("gap",v).apply();refreshTimeline()}
-    fun start(selected: Int=playback.selected,all: Boolean=true){val data=opened?:return;stop();mediaTaskId++;playAll=all;taskStart=if(loopMode==PracticeLoop.LESSON&&all)0 else selected;queue=practiceQueue(data.lesson,taskStart,drill,all,repeatCount);index=queue.indexOfFirst {it.group==selected}.coerceAtLeast(0);refreshTimeline();if(queue.isNotEmpty()){ensurePlaybackService();checkListening();begin()}}
+    fun start(selected: Int=playback.selected,all: Boolean=true){val data=opened?:return;stop();mediaTaskId++;playAll=all;taskStart=if(loopMode==PracticeLoop.LESSON&&all)0 else selected;continuousActive=canUseContinuous();queue=makeQueue(data.lesson,taskStart);index=queue.indexOfFirst {it.group==selected}.coerceAtLeast(0);refreshTimeline();if(queue.isNotEmpty()){ensurePlaybackService();checkListening();begin()}}
     fun previous(){start((playback.selected-1).coerceAtLeast(0))}
     fun next(){val last=opened?.lesson?.groups?.lastIndex?:return;start((playback.selected+1).coerceAtMost(last))}
     fun toggle(){when{!playback.running->start();playback.paused->{sampleStudy();studyMeter.reset(player.currentPosition);studyWaitRemaining=playback.waitSeconds;checkListening();ensurePlaybackService();playback=playback.copy(paused=false);if(playback.waiting)scheduleWait() else playAudio()};else->pause()}}
@@ -221,6 +256,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun seekMedia(positionMs: Long){
         if(queue.isEmpty()||opened==null||mediaTimeline.clipCount==0)return
         sampleStudy();studyMeter.reset();studyWaitRemaining=null
+        if(continuousActive){seekContinuous(positionMs);return}
         val paused=!playback.running||playback.paused
         // The system exposes integer milliseconds; its displayed endpoint can
         // round down from the precise audio timeline by less than one millisecond.
@@ -249,7 +285,44 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     private fun begin(){studyMeter.reset(0);studyWaitRemaining=null;releaseWaitLock();val data=opened?:return;val clip=queue.getOrNull(index)?:return
         playback=Playback(clip.group,true,false,0f,-1.0,if(drill)clip.repeat else 0,clip.total,whole=clip.whole,taskProgress=taskProgress(0f))
         prefs.edit().putInt("position.${data.course.id}",clip.group).apply()
-        player.setMediaItem(MediaItem.fromUri(repository.audio(data,clip.file)));player.prepare();playAudio()
+        if(continuousActive){
+            val audio=data.lesson.continuous!!;val position=((clip.sourceStart-audio.sourceStart)*1000).toLong()
+            val id="continuous-${data.course.id}-${data.course.version}"
+            if(player.currentMediaItem?.mediaId==id&&player.playbackState!=Player.STATE_IDLE)player.seekTo(position)
+            else {audioLoadCount++;player.setMediaItem(MediaItem.Builder().setMediaId(id).setUri(repository.audio(data,audio.audioFile)).build(),position);player.prepare()}
+            studyMeter.reset(position);updateContinuousPosition(position)
+        }else {audioLoadCount++;player.setMediaItem(MediaItem.fromUri(repository.audio(data,clip.file)));player.prepare()}
+        playAudio()
+    }
+    private fun updateContinuousPosition(positionMs: Long){
+        val audio=opened?.lesson?.continuous?:return
+        val source=audio.sourceStart+positionMs/1000.0
+        index=continuousClipIndex(queue,source)
+        val clip=queue.getOrNull(index)?:return
+        val progress=((source-clip.sourceStart)/clip.duration).toFloat().coerceIn(0f,1f)
+        if(playback.selected!=clip.group)prefs.edit().putInt("position.${opened!!.course.id}",clip.group).apply()
+        playback=playback.copy(selected=clip.group,progress=progress,source=source,waiting=false,waitSeconds=0f,taskProgress=taskProgress(progress))
+    }
+    private fun finishContinuous(){
+        sampleStudy()
+        if(loopMode==PracticeLoop.LESSON){mediaDiscontinuity++;index=0;begin()}
+        else {index=queue.size;stop();playback=playback.copy(selected=queue.last().group,progress=1f,taskProgress=if(timeline.spansSentences)1f else null)}
+    }
+    private fun seekContinuous(positionMs: Long){
+        val paused=!playback.running||playback.paused
+        if(positionMs>=mediaDurationMs){
+            if(loopMode==PracticeLoop.LESSON){seekContinuous(0);return}
+            finishContinuous();return
+        }
+        val audio=opened!!.lesson.continuous!!
+        val absolute=((queue.first().sourceStart-audio.sourceStart)*1000).toLong()+positionMs.coerceAtLeast(0)
+        audioStartToken++;releaseWaitLock();player.pause()
+        // Re-prepare only after an explicit stop or after completing the task.
+        if(player.playbackState==Player.STATE_IDLE){index=continuousClipIndex(queue,audio.sourceStart+absolute/1000.0);begin()}
+        player.seekTo(absolute);studyMeter.reset(absolute)
+        playback=playback.copy(running=true,paused=paused)
+        updateContinuousPosition(absolute)
+        if(!paused){ensurePlaybackService();playAudio()}
     }
     private fun enterWait(){sampleStudy();studyMeter.reset();val clip=queue.getOrNull(index)?:return
         if(index==queue.lastIndex&&!shadow&&!anyLoop){advance();return}
@@ -269,7 +342,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             if(waitLeft==null)0.0 else (waitTotal-waitLeft).coerceAtLeast(0f).toDouble())
     }
     private fun refreshTimeline(){
-        timeline=TaskTimeline(queue,drill,shadow,gap,loopMode==PracticeLoop.LESSON)
+        timeline=TaskTimeline(queue,drill,shadow,gap,!continuousActive&&loopMode==PracticeLoop.LESSON)
         val group=queue.getOrNull(index)?.group?:queue.lastOrNull()?.group
         mediaOffset=if(loop)queue.indexOfFirst {it.group==group}.coerceAtLeast(0) else 0
         mediaTimeline=if(loop)TaskTimeline(queue.filter {it.group==group},drill,shadow,gap,true) else timeline

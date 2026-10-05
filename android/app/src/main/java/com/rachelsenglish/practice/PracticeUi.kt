@@ -19,7 +19,12 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.*
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.runtime.*
@@ -248,14 +253,45 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 }
 @Composable private fun Library(model: PracticeModel,shared: SharedTransitionScope,visibility: AnimatedVisibilityScope,list: LazyGridState,query: String,changeQuery: (String)->Unit,records: ()->Unit) {
     val courses=model.courses.filter { "${it.title} ${it.label}".contains(query,true) }
-    val refreshState=rememberPullToRefreshState()
+    val refreshState=remember {RefreshMotion()}
+    val scope=rememberCoroutineScope()
+    val reduced=LocalReduced.current
+    val density=LocalDensity.current
+    val threshold=with(density){72.dp.toPx()}
     var refreshRequested by remember {mutableStateOf(false)}
+    var refreshComplete by remember {mutableStateOf(false)}
     val refreshing=refreshRequested&&model.syncing
     val haptic=LocalHapticFeedback.current
-    LaunchedEffect(model.syncing){if(!model.syncing)refreshRequested=false}
-    LaunchedEffect(refreshState){snapshotFlow {refreshState.distanceFraction>=1f}.collect {crossed->if(crossed&&!model.syncing)haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)}}
-    Box(Modifier.fillMaxSize().pullToRefresh(isRefreshing=refreshing,state=refreshState,enabled=!model.syncing,threshold=72.dp,onRefresh={refreshRequested=true;model.sync(quietSuccess=true)})
-        .testTag("library-refresh").semantics {this[LibraryPullKey]=refreshState.distanceFraction;customActions=listOf(CustomAccessibilityAction("更新课程"){if(!model.syncing){refreshRequested=true;model.sync(quietSuccess=true)};true})}) {
+    val requestRefresh: ()->Unit={if(!model.syncing&&!refreshRequested){refreshRequested=true;refreshComplete=false;model.sync()}}
+    val latestRequest by rememberUpdatedState(requestRefresh)
+    LaunchedEffect(refreshing){
+        if(refreshing)refreshState.settle(scope,1f,reduced)
+        else if(refreshRequested){
+            refreshComplete=!model.messageIsError
+            delay(if(reduced)0 else 280)
+            refreshRequested=false;refreshState.settle(scope,0f,reduced)
+        }
+    }
+    LaunchedEffect(refreshState){snapshotFlow {refreshState.distanceFraction>=1f}.collect {crossed->if(crossed&&!model.syncing&&!refreshRequested)haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)}}
+    val connection=remember(refreshState,threshold,reduced) {object: NestedScrollConnection {
+        override fun onPreScroll(available: Offset,source: NestedScrollSource): Offset {
+            if(source!=NestedScrollSource.UserInput||model.syncing||refreshRequested||available.y>=0||refreshState.distanceFraction<=0)return Offset.Zero
+            return Offset(0f,refreshState.drag(available.y,threshold))
+        }
+        override fun onPostScroll(consumed: Offset,available: Offset,source: NestedScrollSource): Offset {
+            if(source!=NestedScrollSource.UserInput||model.syncing||refreshRequested||available.y<=0)return Offset.Zero
+            refreshComplete=false
+            return Offset(0f,refreshState.drag(available.y,threshold))
+        }
+        override suspend fun onPreFling(available: Velocity): Velocity {
+            if(refreshState.distanceFraction<=0||model.syncing||refreshRequested)return Velocity.Zero
+            if(refreshState.distanceFraction>=1f){latestRequest();refreshState.settle(scope,1f,reduced,available.y/threshold/2f)}
+            else refreshState.settle(scope,0f,reduced,available.y/threshold/2f)
+            return Velocity(0f,available.y)
+        }
+    }}
+    Box(Modifier.fillMaxSize().nestedScroll(connection)
+        .testTag("library-refresh").semantics {this[LibraryPullKey]=refreshState.distanceFraction;customActions=listOf(CustomAccessibilityAction("更新课程"){latestRequest();true})}) {
     LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,24.dp),
         horizontalArrangement=Arrangement.spacedBy(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.graphicsLayer {translationY=72.dp.toPx()*refreshState.distanceFraction.coerceAtMost(1.5f)}.testTag("library")) {
         item(span={GridItemSpan(maxLineSpan)}) {
@@ -289,9 +325,37 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
         if(courses.isEmpty())item(span={GridItemSpan(maxLineSpan)}){Text("没有找到这门课程。",color=Muted)}
     }
-    PullToRefreshDefaults.Indicator(state=refreshState,isRefreshing=refreshing,modifier=Modifier.align(Alignment.TopCenter),containerColor=Surface,color=Accent)
+    RefreshIndicator(refreshState,refreshing,refreshComplete,Modifier.align(Alignment.TopCenter))
     }
 
+}
+@Composable private fun RefreshIndicator(motion: RefreshMotion,refreshing: Boolean,complete: Boolean,modifier: Modifier) {
+    val reduced=LocalReduced.current
+    val accent=Accent;val track=LocalPracticePalette.current.track
+    var spin by remember {mutableFloatStateOf(0f)}
+    LaunchedEffect(refreshing,reduced){
+        if(refreshing&&!reduced){
+            var last=0L
+            while(true)withFrameNanos {now->if(last!=0L)spin=(spin+(now-last)/1_000_000_000f*240f)%360f;last=now}
+        }
+    }
+    Canvas(modifier.padding(top=18.dp).size(24.dp).graphicsLayer {
+        val amount=motion.distanceFraction.coerceIn(0f,1f)
+        alpha=amount;translationY=motion.distanceFraction*12.dp.toPx()
+        scaleX=.8f+.2f*amount;scaleY=scaleX
+    }.semantics {if(refreshing)contentDescription="正在更新课程"}) {
+        val inset=3.dp.toPx();val diameter=size.width-inset*2
+        if(complete){
+            drawLine(accent,Offset(size.width*.24f,size.height*.52f),Offset(size.width*.44f,size.height*.7f),2.dp.toPx(),StrokeCap.Round)
+            drawLine(accent,Offset(size.width*.44f,size.height*.7f),Offset(size.width*.78f,size.height*.3f),2.dp.toPx(),StrokeCap.Round)
+        }else {
+            drawCircle(track,radius=diameter/2,style=Stroke(1.5.dp.toPx()))
+            rotate(if(refreshing)spin else motion.distanceFraction*100f){
+                drawArc(accent,-90f,if(refreshing)100f else 290f*motion.distanceFraction.coerceIn(0f,1f),false,
+                    topLeft=Offset(inset,inset),size=Size(diameter,diameter),style=Stroke(1.8.dp.toPx(),cap=StrokeCap.Round))
+            }
+        }
+    }
 }
 @Composable private fun LessonScreen(model: PracticeModel,open: OpenLesson,shared: SharedTransitionScope,visibility: AnimatedVisibilityScope) {
     val selected by remember(model){derivedStateOf {model.playback.selected}}
@@ -300,6 +364,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val list=androidx.compose.foundation.lazy.rememberLazyListState(initialFirstVisibleItemIndex=if(entrySelected==0)0 else entrySelected+1)
     var followedSelected by remember(open.course.id){mutableIntStateOf(entrySelected)}
     val coverEnd=with(LocalDensity.current){110.dp.roundToPx()}
+    val followInset=with(LocalDensity.current){104.dp.roundToPx()}
     val headerVisible by remember(list,coverEnd){derivedStateOf {list.firstVisibleItemIndex==0&&list.firstVisibleItemScrollOffset<coverEnd}}
     val reduced=LocalReduced.current
     LaunchedEffect(selected) {
@@ -307,10 +372,20 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         if(selected==followedSelected)return@LaunchedEffect
         followedSelected=selected
         snapshotFlow {list.layoutInfo.totalItemsCount}.first {it>0}
-        val visible=list.layoutInfo.visibleItemsInfo
-        val item=visible.firstOrNull {it.index==selected+1}
-        if(item==null||item.offset<list.layoutInfo.viewportStartOffset||item.offset+item.size>list.layoutInfo.viewportEndOffset-96) {
+        // Never compete with a user's drag or fling. The next sentence change can follow again.
+        if(list.isScrollInProgress)return@LaunchedEffect
+        val layout=list.layoutInfo
+        val item=layout.visibleItemsInfo.firstOrNull {it.index==selected+1}
+        if(item==null){
             if(reduced)list.scrollToItem(selected+1) else list.animateScrollToItem(selected+1)
+        }else{
+            val bottom=layout.viewportEndOffset-followInset
+            val delta=when {
+                item.offset<layout.viewportStartOffset->(item.offset-layout.viewportStartOffset).toFloat()
+                item.offset+item.size>bottom->(item.offset+item.size-bottom).toFloat()
+                else->0f
+            }
+            if(delta!=0f){if(reduced)list.scroll {scrollBy(delta)} else list.animateScrollBy(delta,spring(1f,280f))}
         }
     }
     val seeking=LocalSeeking.current
@@ -334,8 +409,8 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
             }
             items(open.lesson.groups,key={it.id}) {sentence ->
                 val active=sentence.id==selected
-                val background=key(LocalPracticePalette.current){animateColorAsState(if(active)Tint else Surface,if(reduced)snap() else tween(160),label="sentence-focus").value}
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(background)
+                val background=key(LocalPracticePalette.current){animateColorAsState(if(active)Tint else Surface,if(reduced)snap() else tween(220),label="sentence-focus")}
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).drawBehind {drawRect(background.value)}
                     .clickable(role=Role.Button,onClick={model.start(sentence.id)}).semantics {contentDescription="第 ${sentence.id+1} 句";stateDescription=if(active&&model.playback.running&&!model.playback.paused)"正在播放" else if(active)"当前句" else ""}
                     .testTag("sentence-${sentence.id}").padding(16.dp,18.dp)) {
                     Row(horizontalArrangement=Arrangement.spacedBy(14.dp)) {
@@ -343,7 +418,11 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                         Column(Modifier.weight(1f)) {
                             ReadingText(sentence,active,if(active)model.playback.source else -1.0,reduced)
                             if(model.translation&&sentence.translation.isNotEmpty())Text(sentence.translation,fontSize=13.sp,lineHeight=21.sp,color=Muted,modifier=Modifier.padding(top=10.dp))
-                            if(active&&model.cues&&sentence.cues.isNotEmpty())Text(sentence.cues.joinToString(" · "),fontSize=11.sp,lineHeight=18.sp,color=Accent,modifier=Modifier.padding(top=10.dp))
+                            if(model.cues&&sentence.cues.isNotEmpty()){
+                                val cueAlpha=animateFloatAsState(if(active)1f else 0f,if(reduced)snap() else tween(200),label="cue-focus")
+                                Text(sentence.cues.joinToString(" · "),fontSize=11.sp,lineHeight=18.sp,color=Accent,
+                                    modifier=Modifier.padding(top=10.dp).graphicsLayer {alpha=cueAlpha.value}.then(if(active)Modifier else Modifier.clearAndSetSemantics {}))
+                            }
                         }
                     }
                 }

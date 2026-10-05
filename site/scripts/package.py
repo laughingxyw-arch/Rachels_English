@@ -6,6 +6,7 @@ assets=set()
 for file in (dist/'lessons').glob('*.js'):
  data=json.loads(file.read_text().split('=',1)[1].strip().rstrip(';'))
  assets.update(item['audioFile'] for item in data['groups']+data['drill'])
+ if data.get('continuous'):assets.add(data['continuous']['audioFile'])
 assets.update(p.relative_to(dist).as_posix() for p in dist.glob('*.html'))
 courses=json.loads((dist/'courses.js').read_text().split('=',1)[1].strip().rstrip(';'))
 assets.update(c['cover'] for c in courses)

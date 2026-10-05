@@ -74,7 +74,7 @@ class CourseRepository(private val context: Context) {
                     }
                 }
                 val lesson=Lesson.parse(File(stage,"lesson.json").readText())
-                (lesson.groups.map { it.audioFile }+lesson.drill.map { it.audioFile }).forEach { require(File(stage,it).isFile) }
+                (lesson.groups.map { it.audioFile }+lesson.drill.map { it.audioFile }+listOfNotNull(lesson.continuous?.audioFile)).forEach { require(File(stage,it).isFile) }
                 val destination=File(parent,course.version);destination.deleteRecursively();check(stage.renameTo(destination))
                 prefs.edit().putString("installed.${course.id}",course.version).apply()
                 OpenLesson(course,lesson,destination)

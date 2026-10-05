@@ -266,6 +266,54 @@ class NativePracticeTest {
   rule.runOnUiThread {model.stop();model.updateLoopMode(PracticeLoop.OFF);model.updateRepeatCount(3)}
   rule.mainClock.advanceTimeBy(32);rule.mainClock.autoAdvance=true
  }
+ @Test fun continuousOriginalCrossesBoundariesWithoutReloadingOrChangingCardHeight(){
+  val model=(rule.activity.application as PracticeApplication).model
+  rule.runOnIdle {model.updateLoopMode(PracticeLoop.OFF);model.updateShadow(false);model.updateCues(true);model.updateTranslation(false)}
+  rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+  rule.waitUntil(20000){model.opened!=null}
+  rule.mainClock.autoAdvance=false
+  try {
+   rule.runOnUiThread {model.start(0)}
+   rule.waitUntil(10000){model.playback.progress>.05f}
+   rule.runOnUiThread {model.pause()}
+   repeat(25){rule.mainClock.advanceTimeByFrame()}
+   assertTrue(model.usesContinuousAudio)
+   val load=model.audioLoadCount
+   val lesson=model.opened!!.lesson
+   val duration=lesson.continuous!!.duration
+   assertEquals((duration*1000).toLong(),model.mediaDurationMs)
+   val firstHeight=rule.onNodeWithTag("sentence-0").fetchSemanticsNode().boundsInRoot.height
+   val secondHeight=rule.onNodeWithTag("sentence-1").fetchSemanticsNode().boundsInRoot.height
+   val boundary=((lesson.groups[1].start-lesson.continuous!!.sourceStart)*1000).toLong()
+   rule.runOnUiThread {model.seekMedia(boundary-120);model.toggle()}
+   rule.waitUntil(5000){model.playback.selected==1}
+   rule.runOnUiThread {model.pause()}
+   repeat(30){rule.mainClock.advanceTimeByFrame()}
+   assertFalse(model.playback.waiting)
+   assertEquals("Crossing a sentence must not prepare a new audio file",load,model.audioLoadCount)
+   assertEquals(firstHeight,rule.onNodeWithTag("sentence-0").fetchSemanticsNode().boundsInRoot.height,.5f)
+   assertEquals(secondHeight,rule.onNodeWithTag("sentence-1").fetchSemanticsNode().boundsInRoot.height,.5f)
+   val target=model.mediaDurationMs/2
+   rule.runOnUiThread {model.seekMedia(target)}
+   rule.waitUntil(5000){model.playback.paused&&kotlin.math.abs(model.mediaPositionMs-target)<50}
+   assertEquals(load,model.audioLoadCount)
+   rule.runOnUiThread {model.updateShadow(true)}
+   assertFalse(model.usesContinuousAudio);assertTrue(model.playback.paused)
+   rule.runOnUiThread {model.updateShadow(false)}
+   assertTrue(model.usesContinuousAudio);assertTrue(model.playback.paused)
+   val last=lesson.groups.lastIndex
+   rule.runOnUiThread {model.updateLoopMode(PracticeLoop.LESSON);model.start(last)}
+   rule.waitUntil(5000){model.playback.selected==last&&model.playback.progress>.05f}
+   val cycleLoad=model.audioLoadCount
+   rule.waitUntil(5000){model.playback.selected==0&&model.playback.running}
+   assertEquals("A continuous episode loop reuses its prepared stream",cycleLoad,model.audioLoadCount)
+   assertFalse(model.playback.waiting)
+   rule.runOnUiThread {model.pause()}
+  }finally {
+   rule.runOnUiThread {model.stop();model.updateLoopMode(PracticeLoop.OFF);model.updateShadow(false)}
+   rule.mainClock.autoAdvance=true
+  }
+ }
  @Test fun originalLoopsCurrentSentenceThenContinuesToTheEnd(){
   val model=(rule.activity.application as PracticeApplication).model
   rule.runOnIdle {model.updateShadow(false);model.updateLoop(true)}

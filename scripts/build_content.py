@@ -12,7 +12,7 @@ bases=[OUT,APP] if args.bundle_android else [OUT]
 courses=data(SITE/'courses.js')
 used={'index.html','lesson.html','app.js','style.css','courses.js','home.js','lesson-loader.js','motion.css','motion.js','reading-trace.js','icon.svg'}
 for c in courses:
- lesson=data(SITE/'lessons'/f'{c["id"]}.js');files={g['audioFile'] for g in lesson['groups']+lesson['drill']};used.update(files);used.add(c['cover']);used.add('lessons/'+c['id']+'.js')
+ lesson=data(SITE/'lessons'/f'{c["id"]}.js');files={g['audioFile'] for g in lesson['groups']+lesson['drill']};files.update([lesson['continuous']['audioFile']] if lesson.get('continuous') else []);used.update(files);used.add(c['cover']);used.add('lessons/'+c['id']+'.js')
  buf=ROOT/'cloud'/f'{c["id"]}.zip'
  with zipfile.ZipFile(buf,'w',zipfile.ZIP_DEFLATED) as z:
   def add(name,bytes):

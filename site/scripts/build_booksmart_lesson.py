@@ -98,6 +98,8 @@ for i, (a, b, parts, zh, cues) in enumerate(spec):
         drill.append(block)
 
 lesson = dict(groups=groups, drill=drill, cues=[row[4] for row in spec])
+from export_continuous import export
+export(DIST,lesson,ID,ROOT/'downloads'/f'{ID}-booksmart-opening-long.wav',ORIGIN)
 (DIST / 'lessons' / f'{ID}.js').write_text(
     'window.LESSON = ' + json.dumps(lesson, ensure_ascii=False) + ';\n')
 catalog_file = DIST / 'courses.js'

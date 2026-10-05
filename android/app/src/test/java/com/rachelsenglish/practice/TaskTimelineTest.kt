@@ -3,13 +3,13 @@ import org.junit.Assert.*
 import org.junit.Test
 class TaskTimelineTest {
  private fun clip(group: Int,duration: Double,repeat: Int=1)=Clip(group,"g$group.wav",duration,0.0,0.0,true,repeat,3)
- @Test fun originalUsesDurationOfTheRemainingTaskAndIncludesItsGap(){
+ @Test fun originalUsesRemainingDurationWithoutAnArtificialGap(){
   val t=TaskTimeline(listOf(clip(2,2.0),clip(3,8.0)),false,false,1.5f)
-  assertEquals(10.5,t.totalSeconds,.0001)
+  assertEquals(10.0,t.totalSeconds,.0001)
   assertTrue(t.spansSentences)
-  assertEquals(1f/10.5f,t.progress(0,1.0),.0001f)
-  assertEquals(2.5f/10.5f,t.progress(0,2.0,.5),.0001f)
-  assertEquals(t.progress(0,2.0,.5),t.progress(1,0.0),.0001f)
+  assertEquals(1f/10.0f,t.progress(0,1.0),.0001f)
+  assertEquals(2f/10f,t.progress(0,2.0),.0001f)
+  assertEquals(t.progress(0,2.0),t.progress(1,0.0),.0001f)
   assertEquals(1f,t.progress(1,8.0),.0001f)
  }
  @Test fun drillAccumulatesRepeatsAndDoesNotResetAtClipBoundaries(){
@@ -33,9 +33,9 @@ class TaskTimelineTest {
  @Test fun seekingDistinguishesAudioAndIntentionalSilence(){
   val t=TaskTimeline(listOf(clip(0,2.0),clip(1,4.0)),false,false,1f)
   assertEquals(TaskPoint(0,1.0,0.0,false),t.locate(1.0))
-  assertEquals(TaskPoint(0,2.0,.25,true),t.locate(2.25))
-  assertEquals(TaskPoint(1,0.0,0.0,false),t.locate(2.5))
-  assertEquals(TaskPoint(1,1.0,0.0,false),t.locate(3.5))
+  assertEquals(TaskPoint(1,.25,0.0,false),t.locate(2.25))
+  assertEquals(TaskPoint(1,0.0,0.0,false),t.locate(2.0))
+  assertEquals(TaskPoint(1,1.0,0.0,false),t.locate(3.0))
   assertEquals(TaskPoint(2,0.0,0.0,false),t.locate(100.0))
  }
  @Test fun seekPositionRoundTripsAcrossEveryDrillRepeatAndGap(){

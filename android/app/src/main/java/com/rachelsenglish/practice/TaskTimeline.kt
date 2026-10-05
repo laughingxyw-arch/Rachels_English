@@ -36,5 +36,5 @@ fun clipWaitSeconds(queue: List<Clip>,index: Int,drill: Boolean,shadow: Boolean,
     val next=queue.getOrNull(index+1)
     return if(shadow)maxOf(.8,(clip.duration-.2)*gap)
         else if(drill){if(next?.group==clip.group&&next.repeat>1).7 else 1.2}
-        else .5
+        else if(loop).5 else 0.0
 }
