@@ -1,5 +1,18 @@
 window.COURSES = [
   {
+    "id": "robx0RPxyd4",
+    "title": "Friends · 募捐",
+    "label": "剧集对白",
+    "videoTitle": "Fast English: The TV Show Friends Can Help!",
+    "excerpt": "Thank you! Happy holidays!",
+    "added": "2026-10-05",
+    "sourceSeconds": 16.85,
+    "sourceStartSeconds": 12.52,
+    "groupCount": 13,
+    "drillSeconds": 96.444,
+    "cover": "covers/robx0RPxyd4-scene.webp"
+  },
+  {
     "id": "hLgMIwFeE88",
     "title": "Booksmart",
     "label": "电影对白",
