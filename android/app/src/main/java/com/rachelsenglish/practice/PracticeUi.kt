@@ -143,7 +143,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                     val offset=if(settings&&sheetHeight>0f&&settingsSheet.hasExpandedState)settingsSheet.requireOffset() else Float.NaN
                     val scale=sheetBackgroundScale(offset,sceneSize.height.toFloat(),sheetHeight,reduced)
                     scaleX=scale;scaleY=scale
-                }.testTag("reading-space").semantics {this[ReadingSceneActiveKey]=transition.currentState!=null||transition.targetState!=null}.captureBackdrop(backdrop)) {
+                }.testTag("reading-space").semantics {this[ReadingSceneActiveKey]=transition.currentState!=null||transition.targetState!=null}.then(if(utilityPage!=null)Modifier.clearAndSetSemantics {} else Modifier).captureBackdrop(backdrop)) {
                     val shared=this
                     transition.AnimatedContent(contentKey={it?.course?.id?:"home"},
                         transitionSpec={(if(targetState==null)homeTransform else lessonTransform).using(null)}) {open ->
@@ -151,7 +151,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                         else LessonScreen(model,open,shared,this)
                     }
                 }
-                AnimatedVisibility(model.opened!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp).graphicsLayer {alpha=if(seeking||model.opened==null)(1f-gesture.value).coerceIn(0f,1f) else 1f},
+                AnimatedVisibility(model.opened!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp).then(if(utilityPage!=null)Modifier.clearAndSetSemantics {} else Modifier).graphicsLayer {alpha=if(seeking||model.opened==null)(1f-gesture.value).coerceIn(0f,1f) else 1f},
                     enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(1f,600f)){it/3},
                     exit=if(reduced)ExitTransition.None else fadeOut(tween(100))) {
                     Transport(model,{settings=true},Modifier.padding(horizontal=28.dp))

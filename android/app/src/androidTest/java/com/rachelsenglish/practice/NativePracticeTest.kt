@@ -156,6 +156,9 @@ class NativePracticeTest {
   rule.onNodeWithContentDescription("学习记录").performClick()
   rule.onNodeWithTag("utility-records").assertExists()
   rule.onNodeWithTag("study-heatmap").assertExists()
+  rule.onAllNodesWithTag("course-4dXbgvm4_7g").assertCountEquals(0)
+  rule.onNodeWithTag("utility-records").performTouchInput {click(androidx.compose.ui.geometry.Offset(center.x,100f))}
+  rule.runOnIdle {assertNull(model.opened)}
   screenshot("study-records")
   rule.onNodeWithContentDescription("学习设置").performClick()
   rule.onNodeWithText("有效学习").assertExists()
