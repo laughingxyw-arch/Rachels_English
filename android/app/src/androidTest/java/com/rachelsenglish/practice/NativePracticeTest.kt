@@ -110,30 +110,37 @@ class NativePracticeTest {
  }
  @Test fun effectiveStudyAccumulatesInBackgroundAndPersistsAcrossDatabaseReads(){
   val model=(rule.activity.application as PracticeApplication).model
-  val audio=rule.activity.getSystemService(android.media.AudioManager::class.java)
+  val context=rule.activity.applicationContext
+  val main=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+  val audio=context.getSystemService(android.media.AudioManager::class.java)
   audio.setStreamVolume(android.media.AudioManager.STREAM_MUSIC,5,0)
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
   rule.mainClock.autoAdvance=false
   val course=model.opened!!.course.id
   var baseline=0L
-  rule.runOnUiThread {baseline=model.studySnapshot().filter {it.course==course}.sumOf {it.audioMs};model.updateLoopMode(PracticeLoop.SENTENCE);model.updateShadow(false);model.start(0);model.foreground(false)}
-  var measured=baseline
-  var nextSample=0L
-  rule.waitUntil(100000){
-   val now=android.os.SystemClock.elapsedRealtime()
-   if(now>=nextSample){nextSample=now+500
-   rule.runOnUiThread {measured=model.studySnapshot().filter {it.course==course}.sumOf {it.audioMs}}
+  rule.runOnUiThread {baseline=model.studySnapshot().filter {it.course==course}.sumOf {it.audioMs};model.updateLoopMode(PracticeLoop.SENTENCE);model.updateShadow(false);model.start(0)}
+  rule.waitUntil(10000){model.playback.progress>.05f}
+  val store=StudyStore(context)
+  try {
+   rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+   var measured=baseline
+   var nextSample=0L
+   rule.waitUntil(100000){
+    val now=android.os.SystemClock.elapsedRealtime()
+    if(now>=nextSample){nextSample=now+500
+     main.runOnMainSync {measured=model.studySnapshot().filter {it.course==course}.sumOf {it.audioMs}}
+    }
+    measured>=baseline+61000
    }
-   measured>=baseline+61000
+   var captured=emptyList<StudyDay>()
+   main.runOnMainSync {model.pause();captured=model.studySnapshot().filter {it.course==course};assertTrue(captured.any {it.effectiveMs>=60000})}
+   rule.waitUntil(5000){store.read().filter {it.course==course}==captured}
+  } finally {
+   store.close();rule.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+   rule.runOnUiThread {model.updateLoopMode(PracticeLoop.OFF);model.back()}
+   rule.mainClock.advanceTimeBy(32);rule.mainClock.autoAdvance=true
   }
-  var captured=emptyList<StudyDay>()
-  rule.runOnUiThread {model.pause();captured=model.studySnapshot().filter {it.course==course};assertTrue(captured.any {it.effectiveMs>=60000});model.foreground(true)}
-  val store=StudyStore(rule.activity)
-  rule.waitUntil(5000){store.read().filter {it.course==course}==captured}
-  store.close()
-  rule.runOnUiThread {model.updateLoopMode(PracticeLoop.OFF);model.back()}
-  rule.mainClock.advanceTimeBy(32);rule.mainClock.autoAdvance=true
   rule.onNodeWithContentDescription("学习记录").performClick()
   rule.onNodeWithText("Tower Bridge").assertExists()
   screenshot("study-records-effective")
