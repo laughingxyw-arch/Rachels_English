@@ -11,9 +11,10 @@ import kotlinx.coroutines.launch
 @Stable
 internal class RefreshMotion {
     var distanceFraction by mutableFloatStateOf(0f);private set
+    var gestureVersion=0;private set
     private var settling: Job?=null
     fun drag(pixels: Float,threshold: Float): Float {
-        settling?.cancel();settling=null
+        settling?.cancel();settling=null;gestureVersion++
         val before=distanceFraction
         val resistance=if(pixels>0)2f*(1f+(before-1f).coerceAtLeast(0f)*1.5f) else 2f
         distanceFraction=(before+pixels/threshold/resistance).coerceIn(0f,1.65f)

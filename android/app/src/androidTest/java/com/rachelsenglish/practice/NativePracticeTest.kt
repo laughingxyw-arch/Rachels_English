@@ -175,14 +175,22 @@ class NativePracticeTest {
    root.performTouchInput {down(androidx.compose.ui.geometry.Offset(center.x,20*density));moveTo(androidx.compose.ui.geometry.Offset(center.x,50*density),delayMillis=64)}
    repeat(5){frame()}
    assertFalse(model.syncing);assertTrue(root.fetchSemanticsNode().config[LibraryPullKey]<1f)
-   root.performTouchInput {up()};repeat(40){frame()};assertFalse(sawSync)
+   root.performTouchInput {up()};repeat(8){frame()}
+   val rebound=root.fetchSemanticsNode().config[LibraryPullKey]
+   root.performTouchInput {down(androidx.compose.ui.geometry.Offset(center.x,20*density));moveTo(androidx.compose.ui.geometry.Offset(center.x,50*density),delayMillis=64)}
+   repeat(3){frame()}
+   assertTrue("A new drag interrupts rebound from its current position",root.fetchSemanticsNode().config[LibraryPullKey]>rebound)
+   root.performTouchInput {up()};repeat(60){frame()};assertFalse(sawSync)
    root.performTouchInput {down(androidx.compose.ui.geometry.Offset(center.x,20*density));moveTo(androidx.compose.ui.geometry.Offset(center.x,340*density),delayMillis=200)}
    repeat(5){frame()}
    assertTrue(root.fetchSemanticsNode().config[LibraryPullKey]>=1f);assertFalse(model.syncing)
    root.performTouchInput {up()}
    rule.waitUntil(5000){sawSync}
-   rule.waitUntil(20000){!model.syncing};repeat(50){frame()}
-   assertTrue(root.fetchSemanticsNode().config[LibraryPullKey]<.01f)
+   rule.waitUntil(20000){!model.syncing}
+   assertEquals("已是最新",model.message)
+   var settled=false
+   for(i in 0 until 120){frame();if(root.fetchSemanticsNode().config[LibraryPullKey]<.01f){settled=true;break}}
+   assertTrue("Refresh completes its check and spring return within the bounded frame window",settled)
   } finally {rule.runOnUiThread {watch.cancel()};rule.mainClock.autoAdvance=true}
  }
  @Test fun effectiveStudyAccumulatesInBackgroundAndPersistsAcrossDatabaseReads(){

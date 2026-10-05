@@ -12,6 +12,7 @@ for c in catalog['courses']:
   for block in lesson['drill']:
    assert block['audioFile'] in names and len(block['plays'])==block['repeats']
   continuous=lesson.get('continuous')
+  assert continuous is not None, 'New publications require a continuous dialogue master'
   if continuous:
    audio=z.read(continuous['audioFile']);assert hashlib.sha256(audio).hexdigest()==continuous['sha256']
    with wave.open(io.BytesIO(audio)) as w:

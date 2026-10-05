@@ -268,14 +268,18 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         if(refreshing)refreshState.settle(scope,1f,reduced)
         else if(refreshRequested){
             refreshComplete=!model.messageIsError
+            refreshRequested=false
+            val gesture=refreshState.gestureVersion
             delay(if(reduced)0 else 280)
-            refreshRequested=false;refreshState.settle(scope,0f,reduced)
+            // A new pull takes ownership immediately, even during the completion check.
+            if(gesture==refreshState.gestureVersion&&!model.syncing)refreshState.settle(scope,0f,reduced)
         }
     }
     LaunchedEffect(refreshState){snapshotFlow {refreshState.distanceFraction>=1f}.collect {crossed->if(crossed&&!model.syncing&&!refreshRequested)haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)}}
     val connection=remember(refreshState,threshold,reduced) {object: NestedScrollConnection {
         override fun onPreScroll(available: Offset,source: NestedScrollSource): Offset {
             if(source!=NestedScrollSource.UserInput||model.syncing||refreshRequested||available.y>=0||refreshState.distanceFraction<=0)return Offset.Zero
+            refreshComplete=false
             return Offset(0f,refreshState.drag(available.y,threshold))
         }
         override fun onPostScroll(consumed: Offset,available: Offset,source: NestedScrollSource): Offset {
@@ -293,7 +297,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     Box(Modifier.fillMaxSize().nestedScroll(connection)
         .testTag("library-refresh").semantics {this[LibraryPullKey]=refreshState.distanceFraction;customActions=listOf(CustomAccessibilityAction("更新课程"){latestRequest();true})}) {
     LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,24.dp),
-        horizontalArrangement=Arrangement.spacedBy(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.graphicsLayer {translationY=72.dp.toPx()*refreshState.distanceFraction.coerceAtMost(1.5f)}.testTag("library")) {
+        horizontalArrangement=Arrangement.spacedBy(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.graphicsLayer {translationY=72.dp.toPx()*refreshState.distanceFraction}.testTag("library")) {
         item(span={GridItemSpan(maxLineSpan)}) {
             Column {
                 Text("RACHEL’S ENGLISH",fontSize=10.sp,letterSpacing=2.sp,color=Muted)
