@@ -19,6 +19,9 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.*
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
@@ -58,8 +61,10 @@ private val Accent: Color @Composable get()=LocalPracticePalette.current.accent
 private val Backdrop: Color @Composable get()=LocalPracticePalette.current.background
 private val Tint: Color @Composable get()=LocalPracticePalette.current.selected
 private val Surface: Color @Composable get()=LocalPracticePalette.current.surface
+val LibraryPullKey=SemanticsPropertyKey<Float>("LibraryPullFraction")
+val RecordsProgressKey=SemanticsPropertyKey<Float>("RecordsProgress")
 val DarkThemeKey=SemanticsPropertyKey<Boolean>("DarkTheme")
-private val LocalReduced=staticCompositionLocalOf {false}
+internal val LocalReduced=staticCompositionLocalOf {false}
 private val LocalSeeking=staticCompositionLocalOf {false}
 val CoverBadgeOpacityKey=SemanticsPropertyKey<Float>("CoverBadgeOpacity")
 val ModeRollPositionKey=SemanticsPropertyKey<Float>("ModeRollPosition")
@@ -77,7 +82,10 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val backdrop=rememberBackdropSource()
     val libraryState=rememberLazyGridState()
     var utilityPage by rememberSaveable {mutableStateOf<String?>(null)}
-    var preferencesOrigin by rememberSaveable {mutableStateOf<String?>(null)}
+    val recordsProgress=remember {Animatable(if(utilityPage!=null)1f else 0f)}
+    var recordsSeeking by remember {mutableStateOf(false)}
+    var recordsToken by remember {mutableIntStateOf(0)}
+    var recordsJob by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
     var query by rememberSaveable {mutableStateOf("")}
     var settings by rememberSaveable(model.opened?.course?.id) {mutableStateOf(false)}
     val settingsSheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
@@ -99,6 +107,26 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     // Keep all shared geometry on one linear timeline. Apply physics to its progress,
     // rather than mixing bounds springs of different durations with a seekable gesture.
     LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(model.opened!=null)gesture.snapTo(0f);if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened,animationSpec=progressSpring)}}
+    LaunchedEffect(utilityPage,reduced,recordsSeeking) {
+        if(utilityPage!=null&&!recordsSeeking){if(reduced)recordsProgress.snapTo(1f) else recordsProgress.animateTo(1f,progressSpring)}
+    }
+    val closeRecords: ()->Unit={
+        val token=++recordsToken;recordsJob?.cancel();recordsSeeking=true
+        recordsJob=gestureScope.launch {
+            if(reduced)recordsProgress.snapTo(0f) else recordsProgress.animateTo(0f,progressSpring)
+            if(token==recordsToken){utilityPage=null;recordsSeeking=false}
+        }
+    }
+    PredictiveBackHandler(enabled=utilityPage!=null&&!settings) {events->
+        val token=++recordsToken;recordsJob?.cancel();recordsSeeking=true
+        val initial=recordsProgress.value;val velocity=GestureVelocity()
+        try {
+            events.collect {velocity.add(it.progress,android.os.SystemClock.uptimeMillis());if(!reduced)recordsProgress.snapTo(initial*(1f-it.progress))}
+            if(reduced)recordsProgress.snapTo(0f) else recordsProgress.animateTo(0f,progressSpring,initialVelocity=-initial*velocity.velocity)
+            if(token==recordsToken)utilityPage=null
+        } catch(_: CancellationException){withContext(NonCancellable){if(token==recordsToken){if(reduced)recordsProgress.snapTo(1f) else recordsProgress.animateTo(1f,progressSpring,initialVelocity=-initial*velocity.velocity)}}}
+        finally {if(token==recordsToken)recordsSeeking=false}
+    }
     PredictiveBackHandler(enabled=model.opened!=null&&!settings&&utilityPage==null) {events ->
         val origin=model.opened
         val token=++gestureToken
@@ -143,6 +171,8 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                     val offset=if(settings&&sheetHeight>0f&&settingsSheet.hasExpandedState)settingsSheet.requireOffset() else Float.NaN
                     val scale=sheetBackgroundScale(offset,sceneSize.height.toFloat(),sheetHeight,reduced)
                     scaleX=scale;scaleY=scale
+                    translationX=-size.width*.22f*recordsProgress.value
+                    alpha=(1f-recordsProgress.value).coerceIn(0f,1f)
                 }.testTag("reading-space").semantics {this[ReadingSceneActiveKey]=transition.currentState!=null||transition.targetState!=null}.then(if(utilityPage!=null)Modifier.clearAndSetSemantics {} else Modifier).captureBackdrop(backdrop)) {
                     val shared=this
                     transition.AnimatedContent(contentKey={it?.course?.id?:"home"},
@@ -157,13 +187,18 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                     Transport(model,{settings=true},Modifier.padding(horizontal=28.dp))
                 }
                 if(utilityPage!=null) {
-                    val close: ()->Unit={utilityPage=if(utilityPage=="preferences")preferencesOrigin else null}
-                    androidx.activity.compose.BackHandler(onBack=close)
-                    UtilityPage(model,utilityPage!!,environment.highContrast,close,{preferencesOrigin="records";utilityPage="preferences"},{course->utilityPage=null;model.open(course)})
+                    Box(Modifier.fillMaxSize().graphicsLayer {
+                        translationX=size.width*(1f-recordsProgress.value)
+                        val offset=if(settings&&sheetHeight>0f&&settingsSheet.hasExpandedState)settingsSheet.requireOffset() else Float.NaN
+                        val scale=sheetBackgroundScale(offset,sceneSize.height.toFloat(),sheetHeight,reduced)
+                        scaleX=scale;scaleY=scale
+                    }.testTag("records-space").semantics {this[RecordsProgressKey]=recordsProgress.value}.captureBackdrop(backdrop)) {
+                        UtilityPage(model,closeRecords,{settings=true},{course->closeRecords();model.open(course)})
+                    }
                 }
                 NoticePill(model,Modifier.align(Alignment.BottomCenter).padding(horizontal=24.dp).padding(bottom=if(model.opened!=null)88.dp else 24.dp))
             }
-            if(settings&&model.opened!=null)SettingsSheet(model,settingsSheet,{sheetHeight=it},{settings=false},{settings=false;preferencesOrigin=null;utilityPage="preferences"})
+            if(settings&&(model.opened!=null||utilityPage!=null))SettingsSheet(model,environment.highContrast,settingsSheet,{sheetHeight=it},{settings=false},generalOnly=utilityPage!=null)
         }
     }
 }
@@ -212,8 +247,16 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 }
 @Composable private fun Library(model: PracticeModel,shared: SharedTransitionScope,visibility: AnimatedVisibilityScope,list: LazyGridState,query: String,changeQuery: (String)->Unit,records: ()->Unit) {
     val courses=model.courses.filter { "${it.title} ${it.label}".contains(query,true) }
+    val refreshState=rememberPullToRefreshState()
+    var refreshRequested by remember {mutableStateOf(false)}
+    val refreshing=refreshRequested&&model.syncing
+    val haptic=LocalHapticFeedback.current
+    LaunchedEffect(model.syncing){if(!model.syncing)refreshRequested=false}
+    LaunchedEffect(refreshState){snapshotFlow {refreshState.distanceFraction>=1f}.collect {crossed->if(crossed&&!model.syncing)haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)}}
+    Box(Modifier.fillMaxSize().pullToRefresh(isRefreshing=refreshing,state=refreshState,enabled=!model.syncing,threshold=72.dp,onRefresh={refreshRequested=true;model.sync(false)})
+        .testTag("library-refresh").semantics {this[LibraryPullKey]=refreshState.distanceFraction;customActions=listOf(CustomAccessibilityAction("更新课程"){if(!model.syncing){refreshRequested=true;model.sync(false)};true})}) {
     LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,24.dp),
-        horizontalArrangement=Arrangement.spacedBy(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.testTag("library")) {
+        horizontalArrangement=Arrangement.spacedBy(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.graphicsLayer {translationY=72.dp.toPx()*refreshState.distanceFraction.coerceAtMost(1.5f)}.testTag("library")) {
         item(span={GridItemSpan(maxLineSpan)}) {
             Column {
                 Text("RACHEL’S ENGLISH",fontSize=10.sp,letterSpacing=2.sp,color=Muted)
@@ -221,7 +264,6 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                     Text("原声练习",fontSize=28.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f))
                     Text("${model.courses.size} 门课程",fontSize=12.sp,color=Muted)
                     GlyphButton("学习记录","history",records)
-                    GlyphButton("更新课程","refresh",{model.sync()},enabled=!model.syncing)
                 }
                 if(model.courses.size>=6) OutlinedTextField(query,changeQuery,singleLine=true,placeholder={Text("查找课程")},modifier=Modifier.fillMaxWidth().padding(top=20.dp),shape=RoundedCornerShape(16.dp))
             }
@@ -246,6 +288,9 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
         if(courses.isEmpty())item(span={GridItemSpan(maxLineSpan)}){Text("没有找到这门课程。",color=Muted)}
     }
+    PullToRefreshDefaults.Indicator(state=refreshState,isRefreshing=refreshing,modifier=Modifier.align(Alignment.TopCenter),containerColor=Surface,color=Accent)
+    }
+
 }
 @Composable private fun LessonScreen(model: PracticeModel,open: OpenLesson,shared: SharedTransitionScope,visibility: AnimatedVisibilityScope) {
     val selected by remember(model){derivedStateOf {model.playback.selected}}
@@ -357,14 +402,17 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         if(p.running&&p.waiting&&model.shadow)Text("跟读 · %.1f 秒".format(p.waitSeconds),fontSize=11.sp,color=Muted,modifier=Modifier.padding(top=5.dp))
     }
 }
-@Composable private fun SettingsSheet(model: PracticeModel,sheet: SheetState,measure: (Float)->Unit,dismiss: ()->Unit,preferences: ()->Unit) {
+@Composable private fun SettingsSheet(model: PracticeModel,systemContrast: Boolean,sheet: SheetState,measure: (Float)->Unit,dismiss: ()->Unit,generalOnly: Boolean=false) {
     val scope=rememberCoroutineScope()
     val close: ()->Unit={scope.launch {sheet.hide();dismiss()};Unit}
+    var moreExpanded by rememberSaveable {mutableStateOf(false)}
+    val moreRotation=animateFloatAsState(if(moreExpanded)90f else 0f,if(LocalReduced.current)snap() else spring(1f,600f),label="more-settings-chevron")
     ModalBottomSheet(onDismissRequest=dismiss,modifier=Modifier.onSizeChanged {measure(it.height.toFloat())}.testTag("settings-sheet"),containerColor=Color.Transparent,scrimColor=if(LocalPracticePalette.current.dark)Color.Black.copy(alpha=.4f) else Color(0xff172539).copy(alpha=.16f),dragHandle=null,sheetState=sheet) {
         FrostedSurface(Modifier.fillMaxWidth(),radius=28.dp,weight=SurfaceWeight.Panel) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=28.dp).padding(top=12.dp,bottom=24.dp)) {
             Box(Modifier.align(Alignment.CenterHorizontally).padding(bottom=14.dp).size(28.dp,3.dp).clip(RoundedCornerShape(2.dp)).background(Muted.copy(alpha=.3f)))
-            Row(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalAlignment=Alignment.CenterVertically){Text("练习设置",fontSize=17.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f));GlyphButton("关闭设置","close",close)}
+            Row(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalAlignment=Alignment.CenterVertically){Text(if(generalOnly)"设置" else "练习设置",fontSize=17.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f));GlyphButton("关闭设置","close",close)}
+            if(!generalOnly) {
             if(model.drill) RepeatSetting(model)
             LoopSetting(model)
             Setting("留白跟读",model.shadow,model::updateShadow)
@@ -372,8 +420,16 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 listOf(1f,1.5f,2f).forEach {factor->Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(if(model.gap==factor)Tint else Color.Transparent)
                     .selectable(model.gap==factor,interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.RadioButton,onClick={model.updateGap(factor)}).heightIn(min=48.dp).padding(12.dp),contentAlignment=Alignment.Center){Text("${factor}×",fontSize=13.sp,color=if(model.gap==factor)Accent else Muted)}
             }}}
-            Row(Modifier.fillMaxWidth().heightIn(min=56.dp).clickable(interactionSource=remember {MutableInteractionSource()},indication=null,onClick={scope.launch {sheet.hide();preferences()}}).testTag("more-settings"),verticalAlignment=Alignment.CenterVertically) {
-                Text("更多设置",fontSize=15.sp,modifier=Modifier.weight(1f));Text("›",color=Muted)
+            Row(Modifier.fillMaxWidth().heightIn(min=56.dp).clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={moreExpanded=!moreExpanded}).testTag("more-settings").semantics {stateDescription=if(moreExpanded)"已展开" else "已收起"},verticalAlignment=Alignment.CenterVertically) {
+                Text("更多设置",fontSize=15.sp,modifier=Modifier.weight(1f));Text("›",color=Muted,modifier=Modifier.graphicsLayer {rotationZ=moreRotation.value})
+            }
+            }
+            AnimatedVisibility(generalOnly||moreExpanded,enter=if(LocalReduced.current)EnterTransition.None else expandVertically(spring(1f,600f))+fadeIn(tween(120)),exit=if(LocalReduced.current)ExitTransition.None else shrinkVertically(tween(160))+fadeOut(tween(100))) {
+                Column(Modifier.testTag("inline-preferences")) {
+                    Setting("中文翻译",model.translation,model::updateTranslation)
+                    Setting("发音提示",model.cues,model::updateCues)
+                    AppearanceSetting(model,systemContrast)
+                }
             }
         }
         }

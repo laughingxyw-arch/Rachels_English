@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import kotlinx.coroutines.launch
 class NativePracticeTest {
  private fun screenshot(name: String){
   rule.waitForIdle()
@@ -78,7 +79,7 @@ class NativePracticeTest {
   rule.onNodeWithTag("repeat-5").performClick()
   rule.runOnIdle {assertEquals(5,model.repeatCount);assertEquals(5,model.playback.total);assertTrue(model.playback.paused);assertEquals(retainedProgress,model.playback.progress,.0001f);model.updateRepeatCount(3)}
   rule.onNodeWithTag("more-settings").performScrollTo().performClick()
-  rule.onNodeWithTag("utility-preferences").assertExists()
+  rule.onNodeWithTag("inline-preferences").assertExists()
   rule.onNodeWithTag("appearance-setting").performScrollTo().performClick()
   rule.onNodeWithText("减少透明效果").performScrollTo().performClick()
   rule.runOnIdle {assertTrue(model.reduceTransparency)}
@@ -89,9 +90,9 @@ class NativePracticeTest {
   rule.runOnIdle {assertFalse(model.reduceTransparency);assertFalse(model.enhanceContrast)}
   rule.onNodeWithTag("appearance-setting").performScrollTo().performClick()
   screenshot("settings")
-  rule.onNodeWithText("中文翻译").performClick()
+  rule.onNodeWithText("中文翻译").performScrollTo().performClick()
   rule.runOnIdle {assertTrue(model.translation);model.updateTranslation(false)}
-  rule.onNodeWithContentDescription("返回练习").performClick()
+  rule.onNodeWithContentDescription("关闭设置").performClick()
   rule.waitForIdle()
   rule.runOnIdle {model.notify("媒体音量已静音")}
   rule.onNodeWithTag("notice").assertExists()
@@ -107,6 +108,67 @@ class NativePracticeTest {
   rule.runOnIdle {assertNotNull(model.opened)}
   rule.onNodeWithContentDescription("返回课程").performClick()
   rule.waitUntil(5000){rule.onAllNodesWithTag("library").fetchSemanticsNodes().isNotEmpty()}
+ }
+ @Test fun recordsSwipeAndPredictiveBackFollowTheGestureWithoutExtraControls(){
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  fun scale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+  fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(12)}
+  try {
+   scale("1");rule.activityRule.scenario.recreate();rule.mainClock.autoAdvance=false
+   rule.onNodeWithContentDescription("更新课程").assertDoesNotExist()
+   rule.onNodeWithContentDescription("学习记录").performClick()
+   val positions=mutableListOf<Float>()
+   repeat(85){frame();positions.add(rule.onNodeWithTag("records-space",useUnmergedTree=true).fetchSemanticsNode().config[RecordsProgressKey])}
+   assertTrue(positions.any {it>.05f&&it<.95f});assertEquals(1f,positions.last(),.001f)
+   listOf("更早三个月","更近三个月","前一天","后一天").forEach {rule.onNodeWithContentDescription(it).assertDoesNotExist()}
+   rule.onNodeWithText("少").assertDoesNotExist();rule.onNodeWithText("多").assertDoesNotExist()
+   val today=java.time.LocalDate.now()
+   rule.onNodeWithTag("study-days").performTouchInput {swipeRight(durationMillis=450)};repeat(85){frame()}
+   assertEquals(today.minusDays(1).toString(),rule.onNodeWithTag("study-days").fetchSemanticsNode().config[StudySelectedDayKey])
+   rule.onNodeWithTag("study-window").performTouchInput {swipeRight(durationMillis=450)};repeat(100){frame()}
+   assertEquals(java.time.YearMonth.from(today).minusMonths(3).toString(),rule.onNodeWithTag("study-window").fetchSemanticsNode().config[StudyWindowKey])
+   rule.onNodeWithTag("study-window").performTouchInput {swipeLeft(durationMillis=450)};repeat(100){frame()}
+   assertEquals(java.time.YearMonth.from(today).toString(),rule.onNodeWithTag("study-window").fetchSemanticsNode().config[StudyWindowKey])
+   val back=rule.activity.onBackPressedDispatcher
+   rule.runOnUiThread {back.dispatchOnBackStarted(androidx.activity.BackEventCompat(0f,200f,0f,androidx.activity.BackEventCompat.EDGE_LEFT));back.dispatchOnBackProgressed(androidx.activity.BackEventCompat(60f,200f,.45f,androidx.activity.BackEventCompat.EDGE_LEFT))}
+   repeat(5){frame()}
+   val dragged=rule.onNodeWithTag("records-space",useUnmergedTree=true).fetchSemanticsNode().config[RecordsProgressKey]
+   assertTrue(dragged>.4f&&dragged<.7f)
+   rule.runOnUiThread {back.dispatchOnBackCancelled()};repeat(85){frame()}
+   assertEquals(1f,rule.onNodeWithTag("records-space",useUnmergedTree=true).fetchSemanticsNode().config[RecordsProgressKey],.001f)
+   screenshot("study-records-minimal")
+   rule.onNodeWithContentDescription("返回课程").performClick()
+   var landed=false
+   repeat(100){if(!landed){frame();landed=rule.onAllNodesWithTag("utility-records").fetchSemanticsNodes().isEmpty()}}
+   assertTrue(landed)
+   rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
+   repeat(100){frame()}
+   rule.onNodeWithTag("lesson").assertExists()
+  } finally {rule.mainClock.autoAdvance=true;scale("0")}
+ }
+ @Test fun pullRefreshRequiresReleasePastTheThreshold(){
+  val model=(rule.activity.application as PracticeApplication).model
+  rule.waitUntil(20000){!model.syncing}
+  rule.mainClock.autoAdvance=false
+  val root=rule.onNodeWithTag("library-refresh")
+  val density=rule.activity.resources.displayMetrics.density
+  var sawSync=false
+  lateinit var watch: kotlinx.coroutines.Job
+  rule.runOnUiThread {watch=kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {androidx.compose.runtime.snapshotFlow {model.syncing}.collect {if(it)sawSync=true}}}
+  fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(12)}
+  try {
+   root.performTouchInput {down(androidx.compose.ui.geometry.Offset(center.x,20*density));moveTo(androidx.compose.ui.geometry.Offset(center.x,50*density),delayMillis=64)}
+   repeat(5){frame()}
+   assertFalse(model.syncing);assertTrue(root.fetchSemanticsNode().config[LibraryPullKey]<1f)
+   root.performTouchInput {up()};repeat(40){frame()};assertFalse(sawSync)
+   root.performTouchInput {down(androidx.compose.ui.geometry.Offset(center.x,20*density));moveTo(androidx.compose.ui.geometry.Offset(center.x,340*density),delayMillis=200)}
+   repeat(5){frame()}
+   assertTrue(root.fetchSemanticsNode().config[LibraryPullKey]>=1f);assertFalse(model.syncing)
+   root.performTouchInput {up()}
+   rule.waitUntil(5000){sawSync}
+   rule.waitUntil(20000){!model.syncing};repeat(50){frame()}
+   assertTrue(root.fetchSemanticsNode().config[LibraryPullKey]<.01f)
+  } finally {rule.runOnUiThread {watch.cancel()};rule.mainClock.autoAdvance=true}
  }
  @Test fun effectiveStudyAccumulatesInBackgroundAndPersistsAcrossDatabaseReads(){
   val model=(rule.activity.application as PracticeApplication).model
@@ -161,10 +223,12 @@ class NativePracticeTest {
   rule.runOnIdle {assertNull(model.opened)}
   screenshot("study-records")
   rule.onNodeWithContentDescription("学习设置").performClick()
-  rule.onNodeWithText("有效学习").assertExists()
-  rule.onNodeWithContentDescription("返回学习记录").performClick()
+  rule.onNodeWithTag("inline-preferences").assertExists()
+  rule.onNodeWithText("有效学习").assertDoesNotExist()
+  rule.onNodeWithContentDescription("关闭设置").performClick()
   rule.onNodeWithTag("utility-records").assertExists()
   rule.onNodeWithContentDescription("返回课程").performClick()
+  rule.waitUntil(5000){rule.onAllNodesWithTag("utility-records").fetchSemanticsNodes().isEmpty()}
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
   rule.mainClock.autoAdvance=false
