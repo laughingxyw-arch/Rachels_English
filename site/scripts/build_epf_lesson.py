@@ -66,5 +66,5 @@ with wave.open(str(D/(ID+'-drill.wav')),'w') as w:w.setnchannels(2);w.setsampwid
 subprocess.run(['ffmpeg','-v','error','-y','-i',str(D/(ID+'-drill.wav')),'-codec:a','libmp3lame','-q:a','2',str(D/(ID+'-listening-drill.mp3'))],check=True)
 (D/(ID+'-drill-plan.txt')).write_text('\n\n'.join(f'{n+1:02}. {e["text"]} × 3'+('（整句）' if e['whole'] else '') for n,e in enumerate(B)))
 (D/(ID+'-drill.json')).write_text(json.dumps(lesson,ensure_ascii=False,indent=2))
-p=OUT/'courses.js';courses=json.loads(p.read_text().split('=',1)[1].strip().rstrip(';'));courses[0].update(sourceSeconds=round(spec[-1][1]-spec[0][0],2),drillSeconds=round(cursor,3));p.write_text('window.COURSES = '+json.dumps(courses,ensure_ascii=False,indent=2)+';\n')
+p=OUT/'courses.js';courses=json.loads(p.read_text().split('=',1)[1].strip().rstrip(';'));next(c for c in courses if c['id']==ID).update(sourceSeconds=round(spec[-1][1]-spec[0][0],2),drillSeconds=round(cursor,3));p.write_text('window.COURSES = '+json.dumps(courses,ensure_ascii=False,indent=2)+';\n')
 print(json.dumps(dict(groups=len(G),blocks=len(B),plays=len(B)*3,seconds=round(cursor,3))))

@@ -25,7 +25,7 @@ APK 使用固定的私有签名密钥，密钥和密码通过 GitHub Secrets 注
 2026-10-04 新增 Booksmart：来自 `hLgMIwFeE88` 的 02:11:08 章节，约 17 秒原对白、7 句；默认 Drill 约 1 分 47 秒。课程通过云端目录同步，应用版本保持 2.1.11。[整理与验证记录](docs/booksmart-content.md)。
 
 1. 将课程 JS、干净音频和原对白封面加入 `site/dist`，更新 `courses.js`。
-2. `python3 scripts/build_content.py` 生成课程包与 JSON 目录。只有需要更新 APK 内置课程时才加 `--bundle-android`。包名含校验值，内容相同生成相同版本。
+2. 从完整对白母 WAV 导出连续音源，再生成单句与 Drill 切片；生成器复用 [连续音源制作流程](docs/continuous-audio.md)，不拼接切片还原原音。`python3 scripts/build_content.py` 生成课程包与 JSON 目录，`python3 scripts/check_content.py` 校验连续音源、时间轴与课程包。只有需要更新 APK 内置课程时才加 `--bundle-android`。包名含校验值，内容相同生成相同版本。
 3. `wrangler pages deploy cloud/dist --project-name rachels-english --branch main` 发布免费静态课程服务。
 4. 手机检查新课后下载；无须重新安装 APK。日常课程发布不会改动内置安卓资源，也不会触发安卓编译。
 
@@ -51,6 +51,6 @@ Cloudflare 使用 Pages 静态资源；不使用 R2、数据库或付费 Worker�
 
 Android 使用 Kotlin、Jetpack Compose 与 Media3，不再通过 WebView 展示界面。课程模型、下载校验和本地缓存独立于 UI；Cloudflare 内容格式保持兼容。界面使用 Compose 共享元素转场、弹簧反馈、可拖动设置面板及跟随进度的返回手势。
 
-`python3 scripts/build_content.py --bundle-android` 生成内置 JSON、封面与音频；Android 不打包 HTML/JavaScript 界面。普通内容更新继续只需运行不带该选项的构建与部署。
+`python3 scripts/build_content.py --bundle-android` 会生成全部当前课程的内置 JSON、封面与音频，只有少量离线示例才适合内置；课程增加时保持按需下载，并核对 APK 大小预算。Android 不打包 HTML/JavaScript 界面。普通内容更新继续只需运行不带该选项的构建与部署。
 
 GitHub 构建还运行复读队列测试及 Android 云端模拟器测试，检查课程打开、实际音频进度、模式、翻译开关和返回操作。开发电脑无需安装 Android SDK。

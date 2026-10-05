@@ -277,6 +277,8 @@ class NativePracticeTest {
  @Test fun continuousOriginalCrossesBoundariesWithoutReloadingOrChangingCardHeight(){
   val model=(rule.activity.application as PracticeApplication).model
   rule.runOnIdle {model.updateLoopMode(PracticeLoop.OFF);model.updateShadow(false);model.updateCues(true);model.updateTranslation(false)}
+  rule.waitUntil(20000){!model.syncing}
+  // Updated dialogue is downloaded as a course, rather than inflating the APK.
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(20000){model.opened!=null}
   rule.mainClock.autoAdvance=false
