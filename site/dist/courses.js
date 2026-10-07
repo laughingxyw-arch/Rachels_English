@@ -1,5 +1,18 @@
 window.COURSES = [
   {
+    "id": "kwz6Z1rsX9A",
+    "title": "Friends · 秘密",
+    "label": "剧集对白",
+    "videoTitle": "THIS IS WHY IT’S SO DIFFICULT: How to Speak American English | Learn English with FRIENDS",
+    "excerpt": "You cannot tell anyone.",
+    "added": "2026-10-07",
+    "sourceSeconds": 19.66,
+    "sourceStartSeconds": 53.16,
+    "groupCount": 10,
+    "drillSeconds": 111.145,
+    "cover": "covers/kwz6Z1rsX9A-scene.webp"
+  },
+  {
     "id": "robx0RPxyd4",
     "title": "Friends · 募捐",
     "label": "剧集对白",
