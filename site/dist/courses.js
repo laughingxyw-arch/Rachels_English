@@ -1,5 +1,18 @@
 window.COURSES = [
   {
+    "id": "2JnnSu53QS0",
+    "title": "Cha Cha Real Smooth",
+    "label": "电影对白",
+    "videoTitle": "Learn English with Movies! | Free Lesson on Speaking English with an American Accent",
+    "excerpt": "Why do you want this job?",
+    "added": "2026-10-21",
+    "sourceSeconds": 32.22,
+    "sourceStartSeconds": 60.6,
+    "groupCount": 9,
+    "drillSeconds": 189.435,
+    "cover": "covers/2JnnSu53QS0-scene.webp"
+  },
+  {
     "id": "kwz6Z1rsX9A",
     "title": "Friends · 秘密",
     "label": "剧集对白",
