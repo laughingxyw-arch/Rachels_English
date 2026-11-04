@@ -1175,7 +1175,20 @@
           ]
         }
       ],
-      "duration": 211.20000000000005
+      "duration": 211.20000000000005,
+      "artwork": {
+        "sourcePage": "https://www.tvline.com/gallery/how-i-met-your-mother-pilot-best-worst-moments/",
+        "sourceImage": "https://www.tvline.com/tvline/gallery/how-i-met-your-mother-pilot-best-worst-moments/himym-pilot-13.png.jpg",
+        "episode": "S01E01",
+        "scene": "Ted and Robin at the restaurant with the blue French horn",
+        "crop": [
+          0,
+          20,
+          780,
+          508
+        ],
+        "sha256": "5179e9b709bbc5470037e3a34398fd9fd4425b0da3750e1d90b11792b8453b7c"
+      }
     },
     {
       "id": "HIMYM010103",
@@ -2289,7 +2302,20 @@
           ]
         }
       ],
-      "duration": 214.10000000000002
+      "duration": 214.10000000000002,
+      "artwork": {
+        "sourcePage": "https://www.tvline.com/gallery/how-i-met-your-mother-pilot-best-worst-moments/",
+        "sourceImage": "https://www.tvline.com/tvline/gallery/how-i-met-your-mother-pilot-best-worst-moments/himym-pilot-16.png.jpg",
+        "episode": "S01E01",
+        "scene": "Ted, Lily, Barney and Marshall discussing the date at MacLaren’s",
+        "crop": [
+          0,
+          0,
+          780,
+          488
+        ],
+        "sha256": "4735e4ae71a3305586b4554bc3566efc4d49b0ad13bc3864bbe9d4f0064c177e"
+      }
     }
   ]
 }

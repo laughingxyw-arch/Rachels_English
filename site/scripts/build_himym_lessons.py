@@ -56,6 +56,7 @@ for c in spec['courses']:
     block['plays'].append(dict(start_seconds=round(cursor,5),duration_seconds=pd));cursor+=pd
    block['end_seconds']=round(cursor,5);blocks.append(block)
  lesson=dict(groups=groups,drill=blocks,cues=[r['cues'] for r in c['rows']],continuous=dict(audioFile=f'audio/{ID}/continuous.m4a',sourceStart=0,duration=cd,sha256=hashlib.sha256(continuous.read_bytes()).hexdigest()))
+ if c.get('artwork'):lesson['artwork']=c['artwork']
  (DIST/'lessons'/f'{ID}.js').write_text('window.LESSON = '+json.dumps(lesson,ensure_ascii=False)+';\n')
  srt='\n\n'.join(f"{i+1}\n{subtitle_time(g['start'])} --> {subtitle_time(g['end'])}\n"+' '.join(p['text'] for p in g['phrases']) for i,g in enumerate(groups))+'\n';(RAW/'review'/f'{ID}.en.srt').write_text(srt)
  new.append(dict(id=ID,title=c['title'],label='S01E01 · 剧集对白',videoTitle='How I Met Your Mother · S01E01 · Pilot',excerpt=' '.join(c['rows'][0]['parts']),added='2026-11-04',sourceSeconds=cd,sourceStartSeconds=c['start'],sourceUrl=c['sourceUrl'],groupCount=len(groups),drillSeconds=round(cursor,3),cover=f'covers/{ID}-scene.webp'))
