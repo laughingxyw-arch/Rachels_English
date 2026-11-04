@@ -14,7 +14,14 @@ import kotlinx.coroutines.launch
 class NativePracticeTest {
  private fun showCourse(id: String) {
   if(runCatching {rule.onNodeWithTag("course-$id").assertIsDisplayed()}.isFailure) {
-   rule.onNodeWithTag("library").performScrollToNode(hasTestTag("course-$id"))
+   // Scrolling is fixture setup, before the measured interaction. Frozen
+   // animation-clock tests still need a layout pass to reveal a lazy item.
+   val automatic=rule.mainClock.autoAdvance
+   try {
+    rule.mainClock.autoAdvance=true
+    rule.onNodeWithTag("library").performScrollToNode(hasTestTag("course-$id"))
+    rule.waitForIdle()
+   } finally {rule.mainClock.autoAdvance=automatic}
   }
  }
 
