@@ -1,5 +1,33 @@
 window.COURSES = [
   {
+    "id": "HIMYM010201",
+    "title": "寻妈记 · 自然邀约",
+    "label": "S01E02 · 剧集对白",
+    "videoTitle": "How I Met Your Mother · S01E02 · Purple Giraffe",
+    "excerpt": "So, what do we think of Ted?",
+    "added": "2026-11-04",
+    "sourceSeconds": 250.404,
+    "sourceStartSeconds": 1447.35,
+    "sourceUrl": "https://www.bilibili.com/video/BV1PeWczpEUC/?t=1447",
+    "groupCount": 65,
+    "drillSeconds": 1164.756,
+    "cover": "covers/HIMYM010201-scene.webp"
+  },
+  {
+    "id": "HIMYM010202",
+    "title": "寻妈记 · 派对寒暄",
+    "label": "S01E02 · 剧集对白",
+    "videoTitle": "How I Met Your Mother · S01E02 · Purple Giraffe",
+    "excerpt": "So, Gatsby, what are you gonna do when Robin shows up?",
+    "added": "2026-11-04",
+    "sourceSeconds": 224.516,
+    "sourceStartSeconds": 1703.65,
+    "sourceUrl": "https://www.bilibili.com/video/BV1PeWczpEUC/?t=1703",
+    "groupCount": 63,
+    "drillSeconds": 1008.79,
+    "cover": "covers/HIMYM010202-scene.webp"
+  },
+  {
     "id": "HIMYM010102",
     "title": "寻妈记 · 初次约会",
     "label": "S01E01 · 剧集对白",

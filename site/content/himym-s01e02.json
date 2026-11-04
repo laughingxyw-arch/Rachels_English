@@ -1,0 +1,2296 @@
+{
+  "source": "User-provided local audio; approved S01E02 review selections 1 and 2",
+  "episode": "S01E02",
+  "videoTitle": "How I Met Your Mother · S01E02 · Purple Giraffe",
+  "added": "2026-11-04",
+  "courses": [
+    {
+      "id": "HIMYM010201",
+      "number": 1,
+      "title": "寻妈记 · 自然邀约",
+      "start": 108.35,
+      "end": 358.75,
+      "originalStart": 1447.35,
+      "sourceFile": "01-casual-invitation.m4a",
+      "sourceSha256": "73a249cbe027d5eaac47b827d3622b23f96ab44b641b9e500afb9911d02ba29f",
+      "sourceUrl": "https://www.bilibili.com/video/BV1PeWczpEUC/?t=1447",
+      "rows": [
+        {
+          "parts": [
+            "So, what do we think of Ted?"
+          ],
+          "zh": "那么，你觉得泰德怎么样？",
+          "cues": [],
+          "start": 0.0,
+          "end": 2.075,
+          "phrases": [
+            {
+              "text": "So, what do we think of Ted?",
+              "start": 0.0,
+              "end": 2.075
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Ted's something else."
+          ],
+          "zh": "泰德挺不一般的。",
+          "cues": [],
+          "start": 4.095,
+          "end": 5.3673,
+          "phrases": [
+            {
+              "text": "Ted's something else.",
+              "start": 4.095,
+              "end": 5.3673
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Huh. I'm gonna spin that as good.",
+            "Lots of guys are something. I'm something else."
+          ],
+          "zh": "嗯，我就当这是夸我了。很多男人还不错，我是与众不同。",
+          "cues": [],
+          "start": 5.8876,
+          "end": 11.135,
+          "phrases": [
+            {
+              "text": "Huh. I'm gonna spin that as good.",
+              "start": 5.8876,
+              "end": 8.4037
+            },
+            {
+              "text": "Lots of guys are something. I'm something else.",
+              "start": 8.4037,
+              "end": 11.135
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Comes on a little strong."
+          ],
+          "zh": "他有点太热情、太主动了。",
+          "cues": [],
+          "start": 11.41,
+          "end": 12.5305,
+          "phrases": [
+            {
+              "text": "Comes on a little strong.",
+              "start": 11.41,
+              "end": 12.5305
+            }
+          ]
+        },
+        {
+          "parts": [
+            "But that's part of my charm."
+          ],
+          "zh": "但这正是我的魅力之一。",
+          "cues": [],
+          "start": 12.9507,
+          "end": 15.2117,
+          "phrases": [
+            {
+              "text": "But that's part of my charm.",
+              "start": 12.9507,
+              "end": 15.2117
+            }
+          ]
+        },
+        {
+          "parts": [
+            "But that's part of his charm."
+          ],
+          "zh": "但这正是他的魅力之一。",
+          "cues": [],
+          "start": 15.455,
+          "end": 17.0725,
+          "phrases": [
+            {
+              "text": "But that's part of his charm.",
+              "start": 15.455,
+              "end": 17.0725
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Oh, totally. I mean, he's sweet, he's charming.",
+            "He's just looking for something a little bit more serious than I am."
+          ],
+          "zh": "当然，他很体贴，也很有魅力。只是他想要的关系比我现在想要的更认真一点。",
+          "cues": [],
+          "start": 17.255,
+          "end": 22.575,
+          "phrases": [
+            {
+              "text": "Oh, totally. I mean, he's sweet, he's charming.",
+              "start": 17.255,
+              "end": 19.7187
+            },
+            {
+              "text": "He's just looking for something a little bit more serious than I am.",
+              "start": 19.7187,
+              "end": 22.575
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I mean, the most I can handle right now is something casual."
+          ],
+          "zh": "我现在最多只能接受轻松、不太认真的交往。",
+          "cues": [],
+          "start": 22.875,
+          "end": 25.366,
+          "phrases": [
+            {
+              "text": "I mean, the most I can handle right now is something casual.",
+              "start": 22.875,
+              "end": 25.366
+            }
+          ]
+        },
+        {
+          "parts": [
+            "This just stays between us, right?"
+          ],
+          "zh": "这话只在我们之间说，对吧？",
+          "cues": [],
+          "start": 26.155,
+          "end": 27.907,
+          "phrases": [
+            {
+              "text": "This just stays between us, right?",
+              "start": 26.155,
+              "end": 27.907
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Are you kidding? This flapper? Fort Knox."
+          ],
+          "zh": "开什么玩笑？我这张嘴，跟诺克斯堡金库一样严。",
+          "cues": [],
+          "start": 28.075,
+          "end": 31.455,
+          "phrases": [
+            {
+              "text": "Are you kidding? This flapper? Fort Knox.",
+              "start": 28.075,
+              "end": 31.455
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Oops."
+          ],
+          "zh": "哎呀。",
+          "cues": [],
+          "start": 32.3487,
+          "end": 33.089,
+          "phrases": [
+            {
+              "text": "Oops.",
+              "start": 32.3487,
+              "end": 33.089
+            }
+          ]
+        },
+        {
+          "parts": [
+            "She wants casual. Okay, I'll be casual."
+          ],
+          "zh": "她想轻松点，好，那我就轻松点。",
+          "cues": [],
+          "start": 34.075,
+          "end": 38.0108,
+          "phrases": [
+            {
+              "text": "She wants casual. Okay, I'll be casual.",
+              "start": 34.075,
+              "end": 38.0108
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I'm gonna be a mushroom cloud of casual.",
+            "You know why? Because it's a game."
+          ],
+          "zh": "我要把轻松随意发挥到极致。知道为什么吗？因为这就是一场游戏。",
+          "cues": [],
+          "start": 38.235,
+          "end": 43.2929,
+          "phrases": [
+            {
+              "text": "I'm gonna be a mushroom cloud of casual.",
+              "start": 38.235,
+              "end": 41.03705
+            },
+            {
+              "text": "You know why? Because it's a game.",
+              "start": 41.03705,
+              "end": 43.2929
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I wanted to skip to the end and do the whole happily-ever-after thing.",
+            "But you don't get there unless you play the game."
+          ],
+          "zh": "我本想直接跳到结局，从此幸福地生活在一起。但不先玩这场游戏，就到不了那一步。",
+          "cues": [],
+          "start": 43.655,
+          "end": 48.5349,
+          "phrases": [
+            {
+              "text": "I wanted to skip to the end and do the whole happily-ever-after thing.",
+              "start": 43.655,
+              "end": 46.30905
+            },
+            {
+              "text": "But you don't get there unless you play the game.",
+              "start": 46.30905,
+              "end": 48.5349
+            }
+          ]
+        },
+        {
+          "parts": [
+            "So, are you gonna ask her out?"
+          ],
+          "zh": "所以，你要约她出去吗？",
+          "cues": [],
+          "start": 48.9451,
+          "end": 50.1055,
+          "phrases": [
+            {
+              "text": "So, are you gonna ask her out?",
+              "start": 48.9451,
+              "end": 50.1055
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Yeah. No! I can't ask her out,",
+            "because if I ask her out, I'm asking her out."
+          ],
+          "zh": "要。不行！我不能直接约她，因为一开口约她，就成正式约会了。",
+          "cues": [],
+          "start": 50.395,
+          "end": 55.2074,
+          "phrases": [
+            {
+              "text": "Yeah. No! I can't ask her out,",
+              "start": 50.395,
+              "end": 52.8115
+            },
+            {
+              "text": "because if I ask her out, I'm asking her out.",
+              "start": 52.8115,
+              "end": 55.2074
+            }
+          ]
+        },
+        {
+          "parts": [
+            "So how do I ask her out without asking her out?"
+          ],
+          "zh": "那怎么才能不显得在约她，又把她约出来呢？",
+          "cues": [],
+          "start": 55.615,
+          "end": 59.0689,
+          "phrases": [
+            {
+              "text": "So how do I ask her out without asking her out?",
+              "start": 55.615,
+              "end": 59.0689
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Did you guys get high?"
+          ],
+          "zh": "你们是嗑药了吗？",
+          "cues": [],
+          "start": 63.095,
+          "end": 64.531,
+          "phrases": [
+            {
+              "text": "Did you guys get high?",
+              "start": 63.095,
+              "end": 64.531
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I got it. I don't ask her out.",
+            "I invite her to our party next Friday."
+          ],
+          "zh": "有了，我不约她出去，我请她参加我们下周五的派对。",
+          "cues": [],
+          "start": 65.455,
+          "end": 71.1135,
+          "phrases": [
+            {
+              "text": "I got it. I don't ask her out.",
+              "start": 65.455,
+              "end": 67.8573
+            },
+            {
+              "text": "I invite her to our party next Friday.",
+              "start": 67.8573,
+              "end": 71.1135
+            }
+          ]
+        },
+        {
+          "parts": [
+            "We're having a party next Friday?"
+          ],
+          "zh": "我们下周五要办派对？",
+          "cues": [],
+          "start": 71.3336,
+          "end": 72.8096,
+          "phrases": [
+            {
+              "text": "We're having a party next Friday?",
+              "start": 71.3336,
+              "end": 72.8096
+            }
+          ]
+        },
+        {
+          "parts": [
+            "We are now. Casual."
+          ],
+          "zh": "现在要办了。很随意。",
+          "cues": [],
+          "start": 72.8096,
+          "end": 74.7349,
+          "phrases": [
+            {
+              "text": "We are now. Casual.",
+              "start": 72.8096,
+              "end": 74.7349
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Yeah, 'cause nothing says casual",
+            "like inviting a hundred people over just to mack on one girl."
+          ],
+          "zh": "是啊，为了勾搭一个姑娘，把一百个人请来，多随意啊。",
+          "cues": [],
+          "start": 75.375,
+          "end": 79.415,
+          "phrases": [
+            {
+              "text": "Yeah, 'cause nothing says casual",
+              "start": 75.375,
+              "end": 76.6706
+            },
+            {
+              "text": "like inviting a hundred people over just to mack on one girl.",
+              "start": 76.6706,
+              "end": 79.415
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Oh, and Lily, that's my leg."
+          ],
+          "zh": "哦，还有，莉莉，你摸的是我的腿。",
+          "cues": [],
+          "start": 79.495,
+          "end": 81.675,
+          "phrases": [
+            {
+              "text": "Oh, and Lily, that's my leg.",
+              "start": 79.495,
+              "end": 81.675
+            }
+          ]
+        },
+        {
+          "parts": [
+            "You waited five minutes to tell me that?"
+          ],
+          "zh": "你等了五分钟才告诉我？",
+          "cues": [],
+          "start": 83.035,
+          "end": 85.5493,
+          "phrases": [
+            {
+              "text": "You waited five minutes to tell me that?",
+              "start": 83.035,
+              "end": 85.5493
+            }
+          ]
+        },
+        {
+          "parts": [
+            "All right, so call her up."
+          ],
+          "zh": "那好，给她打电话吧。",
+          "cues": [],
+          "start": 86.435,
+          "end": 88.315,
+          "phrases": [
+            {
+              "text": "All right, so call her up.",
+              "start": 86.435,
+              "end": 88.315
+            }
+          ]
+        },
+        {
+          "parts": [
+            "No, calling's not casual. I just gotta bump into her somewhere."
+          ],
+          "zh": "不，打电话就不随意了，我得在什么地方碰巧遇见她。",
+          "cues": [],
+          "start": 88.5106,
+          "end": 91.8119,
+          "phrases": [
+            {
+              "text": "No, calling's not casual. I just gotta bump into her somewhere.",
+              "start": 88.5106,
+              "end": 91.8119
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Now, if only I knew her schedule,",
+            "I could arrange a chance encounter."
+          ],
+          "zh": "要是知道她的日程，我就能安排一次偶遇了。",
+          "cues": [],
+          "start": 92.195,
+          "end": 95.1132,
+          "phrases": [
+            {
+              "text": "Now, if only I knew her schedule,",
+              "start": 92.195,
+              "end": 93.5076
+            },
+            {
+              "text": "I could arrange a chance encounter.",
+              "start": 93.5076,
+              "end": 95.1132
+            }
+          ]
+        },
+        {
+          "parts": [
+            "That's great, Ted. You'll be the most casual stalker ever."
+          ],
+          "zh": "太好了，泰德，你会成为史上最随意的跟踪狂。",
+          "cues": [],
+          "start": 95.515,
+          "end": 98.6547,
+          "phrases": [
+            {
+              "text": "That's great, Ted. You'll be the most casual stalker ever.",
+              "start": 95.515,
+              "end": 98.6547
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Now, ever since Marshall put that ring on her finger,",
+            "Lily had been, well, extra affectionate."
+          ],
+          "zh": "自从马修把戒指戴到她手上，莉莉就变得格外黏人。",
+          "cues": [],
+          "start": 101.595,
+          "end": 108.375,
+          "phrases": [
+            {
+              "text": "Now, ever since Marshall put that ring on her finger,",
+              "start": 101.595,
+              "end": 104.44075
+            },
+            {
+              "text": "Lily had been, well, extra affectionate.",
+              "start": 104.44075,
+              "end": 108.375
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Baby, no. I have a twenty-five-page paper on constitutional law",
+            "due Monday. I barely started."
+          ],
+          "zh": "宝贝，不行，我周一要交一篇二十五页的宪法论文，才刚开了个头。",
+          "cues": [],
+          "start": 108.775,
+          "end": 115.0684,
+          "phrases": [
+            {
+              "text": "Baby, no. I have a twenty-five-page paper on constitutional law",
+              "start": 108.775,
+              "end": 113.56305
+            },
+            {
+              "text": "due Monday. I barely started.",
+              "start": 113.56305,
+              "end": 115.0684
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Hey, I'm just sitting here wearing my ring. My beautiful ring."
+          ],
+          "zh": "我只是坐在这里，戴着戒指，我漂亮的戒指。",
+          "cues": [],
+          "start": 115.525,
+          "end": 121.575,
+          "phrases": [
+            {
+              "text": "Hey, I'm just sitting here wearing my ring. My beautiful ring.",
+              "start": 115.525,
+              "end": 121.575
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Kind of makes wearing other stuff seem wrong. Like my shirt."
+          ],
+          "zh": "感觉再穿别的东西就不太对了，比如这件上衣。",
+          "cues": [],
+          "start": 122.9565,
+          "end": 127.5715,
+          "phrases": [
+            {
+              "text": "Kind of makes wearing other stuff seem wrong. Like my shirt.",
+              "start": 122.9565,
+              "end": 127.5715
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Kind of don't wanna wear my shirt anymore. Or my underwear."
+          ],
+          "zh": "有点不想穿上衣了，还有内裤。",
+          "cues": [],
+          "start": 128.5755,
+          "end": 134.0532,
+          "phrases": [
+            {
+              "text": "Kind of don't wanna wear my shirt anymore. Or my underwear.",
+              "start": 128.5755,
+              "end": 134.0532
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Oh, that's right. I'm not wearing any."
+          ],
+          "zh": "哦，对了，我本来就没穿。",
+          "cues": [],
+          "start": 134.895,
+          "end": 137.055,
+          "phrases": [
+            {
+              "text": "Oh, that's right. I'm not wearing any.",
+              "start": 134.895,
+              "end": 137.055
+            }
+          ]
+        },
+        {
+          "parts": [
+            "No underwear?"
+          ],
+          "zh": "没穿内裤？",
+          "cues": [],
+          "start": 140.095,
+          "end": 141.295,
+          "phrases": [
+            {
+              "text": "No underwear?",
+              "start": 140.095,
+              "end": 141.295
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Not even slightly."
+          ],
+          "zh": "一点都没穿。",
+          "cues": [],
+          "start": 141.495,
+          "end": 143.3663,
+          "phrases": [
+            {
+              "text": "Not even slightly.",
+              "start": 141.495,
+              "end": 143.3663
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Guys. Boundaries."
+          ],
+          "zh": "两位，注意分寸。",
+          "cues": [],
+          "start": 143.555,
+          "end": 147.0886,
+          "phrases": [
+            {
+              "text": "Guys. Boundaries.",
+              "start": 143.555,
+              "end": 147.0886
+            }
+          ]
+        },
+        {
+          "parts": [
+            "There she is!"
+          ],
+          "zh": "她在那儿！",
+          "cues": [],
+          "start": 149.345,
+          "end": 149.985,
+          "phrases": [
+            {
+              "text": "There she is!",
+              "start": 149.345,
+              "end": 149.985
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Thanks, Bill. I'm reporting from the Razzle Dazzle Supermarket",
+            "on Seventy-fifth and Columbus."
+          ],
+          "zh": "谢谢，比尔。我正在第七十五街和哥伦布大道交口的 Razzle Dazzle 超市报道。",
+          "cues": [],
+          "start": 150.165,
+          "end": 155.474,
+          "phrases": [
+            {
+              "text": "Thanks, Bill. I'm reporting from the Razzle Dazzle Supermarket",
+              "start": 150.165,
+              "end": 153.91805
+            },
+            {
+              "text": "on Seventy-fifth and Columbus.",
+              "start": 153.91805,
+              "end": 155.474
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Seventy-fifth and Columbus. Game on!"
+          ],
+          "zh": "第七十五街和哥伦布大道，行动开始！",
+          "cues": [],
+          "start": 156.005,
+          "end": 159.6566,
+          "phrases": [
+            {
+              "text": "Seventy-fifth and Columbus. Game on!",
+              "start": 156.005,
+              "end": 159.6566
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Where four-year-old Leroy Ellenberg",
+            "has climbed inside a grab-a-prize machine and gotten stuck."
+          ],
+          "zh": "四岁的勒罗伊·埃伦伯格爬进了一台抓娃娃机，结果卡在里面了。",
+          "cues": [],
+          "start": 160.4172,
+          "end": 165.5404,
+          "phrases": [
+            {
+              "text": "Where four-year-old Leroy Ellenberg",
+              "start": 160.4172,
+              "end": 162.26335
+            },
+            {
+              "text": "has climbed inside a grab-a-prize machine and gotten stuck.",
+              "start": 162.26335,
+              "end": 165.5404
+            }
+          ]
+        },
+        {
+          "parts": [
+            "And all in the pursuit of a stuffed purple giraffe."
+          ],
+          "zh": "而这一切，都是为了一个紫色长颈鹿毛绒玩具。",
+          "cues": [],
+          "start": 169.545,
+          "end": 172.4047,
+          "phrases": [
+            {
+              "text": "And all in the pursuit of a stuffed purple giraffe.",
+              "start": 169.545,
+              "end": 172.4047
+            }
+          ]
+        },
+        {
+          "parts": [
+            "For Metro News One, I'm Robin Scherbatsky."
+          ],
+          "zh": "都市新闻一台，我是罗宾·舍巴茨基。",
+          "cues": [],
+          "start": 173.145,
+          "end": 175.5582,
+          "phrases": [
+            {
+              "text": "For Metro News One, I'm Robin Scherbatsky.",
+              "start": 173.145,
+              "end": 175.5582
+            }
+          ]
+        },
+        {
+          "parts": [
+            "We're clear."
+          ],
+          "zh": "拍摄结束。",
+          "cues": [],
+          "start": 176.295,
+          "end": 176.825,
+          "phrases": [
+            {
+              "text": "We're clear.",
+              "start": 176.295,
+              "end": 176.825
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Thanks, Don."
+          ],
+          "zh": "谢谢，唐。",
+          "cues": [],
+          "start": 177.445,
+          "end": 178.385,
+          "phrases": [
+            {
+              "text": "Thanks, Don.",
+              "start": 177.445,
+              "end": 178.385
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Ted?"
+          ],
+          "zh": "泰德？",
+          "cues": [],
+          "start": 179.7377,
+          "end": 180.3243,
+          "phrases": [
+            {
+              "text": "Ted?",
+              "start": 179.7377,
+              "end": 180.3243
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Robin! Wow, what are the odds?"
+          ],
+          "zh": "罗宾！哇，这也太巧了吧？",
+          "cues": [],
+          "start": 181.3927,
+          "end": 184.1291,
+          "phrases": [
+            {
+              "text": "Robin! Wow, what are the odds?",
+              "start": 181.3927,
+              "end": 184.1291
+            }
+          ]
+        },
+        {
+          "parts": [
+            "What are you doing here?"
+          ],
+          "zh": "你怎么在这里？",
+          "cues": [],
+          "start": 184.215,
+          "end": 185.115,
+          "phrases": [
+            {
+              "text": "What are you doing here?",
+              "start": 184.215,
+              "end": 185.115
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Oh, you know, just, uh, shopping for, uh, dip."
+          ],
+          "zh": "哦，你知道，就是来买点蘸酱。",
+          "cues": [],
+          "start": 185.275,
+          "end": 188.5747,
+          "phrases": [
+            {
+              "text": "Oh, you know, just, uh, shopping for, uh, dip.",
+              "start": 185.275,
+              "end": 188.5747
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I love dip. I mean, I don't love dip.",
+            "I like dip, as a friend, you know."
+          ],
+          "zh": "我爱蘸酱。不是那种爱，是喜欢，当朋友那种，你懂的。",
+          "cues": [],
+          "start": 188.975,
+          "end": 193.2268,
+          "phrases": [
+            {
+              "text": "I love dip. I mean, I don't love dip.",
+              "start": 188.975,
+              "end": 191.211
+            },
+            {
+              "text": "I like dip, as a friend, you know.",
+              "start": 191.211,
+              "end": 193.2268
+            }
+          ]
+        },
+        {
+          "parts": [
+            "So, uh, hey, you, uh, reporting a news story or something?"
+          ],
+          "zh": "所以，你是在报道什么新闻吗？",
+          "cues": [],
+          "start": 194.055,
+          "end": 196.7683,
+          "phrases": [
+            {
+              "text": "So, uh, hey, you, uh, reporting a news story or something?",
+              "start": 194.055,
+              "end": 196.7683
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Yeah, kid stuck in a crane machine. How sweet of you to call it news."
+          ],
+          "zh": "对，小孩卡在抓娃娃机里。你还肯管这叫新闻，真体贴。",
+          "cues": [],
+          "start": 196.855,
+          "end": 200.5499,
+          "phrases": [
+            {
+              "text": "Yeah, kid stuck in a crane machine. How sweet of you to call it news.",
+              "start": 196.855,
+              "end": 200.5499
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Wow, kid in a crane machine.",
+            "You just had to have that toy, didn't you?"
+          ],
+          "zh": "哇，小孩钻进抓娃娃机里。你非要拿到那个玩具，是不是？",
+          "cues": [],
+          "start": 200.935,
+          "end": 205.315,
+          "phrases": [
+            {
+              "text": "Wow, kid in a crane machine.",
+              "start": 200.935,
+              "end": 203.27605
+            },
+            {
+              "text": "You just had to have that toy, didn't you?",
+              "start": 203.27605,
+              "end": 205.315
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Couldn't play the game like everyone else."
+          ],
+          "zh": "就不能像大家一样按规矩玩。",
+          "cues": [],
+          "start": 205.432,
+          "end": 206.9725,
+          "phrases": [
+            {
+              "text": "Couldn't play the game like everyone else.",
+              "start": 205.432,
+              "end": 206.9725
+            }
+          ]
+        },
+        {
+          "parts": [
+            "You're all sweaty."
+          ],
+          "zh": "你满头都是汗。",
+          "cues": [],
+          "start": 207.135,
+          "end": 208.2731,
+          "phrases": [
+            {
+              "text": "You're all sweaty.",
+              "start": 207.135,
+              "end": 208.2731
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Cute kid. Um, you know, it's so funny I should run into you."
+          ],
+          "zh": "真可爱的小孩。嗯，能在这里碰到你，真巧啊。",
+          "cues": [],
+          "start": 209.2813,
+          "end": 212.746,
+          "phrases": [
+            {
+              "text": "Cute kid. Um, you know, it's so funny I should run into you.",
+              "start": 209.2813,
+              "end": 212.746
+            }
+          ]
+        },
+        {
+          "parts": [
+            "We're, uh, we're having a party next Friday,",
+            "if you feel like swinging by. But, you know, whatever."
+          ],
+          "zh": "我们下周五有个派对，你要是愿意可以过来坐坐。不过，随意啦。",
+          "cues": [],
+          "start": 212.746,
+          "end": 217.4483,
+          "phrases": [
+            {
+              "text": "We're, uh, we're having a party next Friday,",
+              "start": 212.746,
+              "end": 214.1924
+            },
+            {
+              "text": "if you feel like swinging by. But, you know, whatever.",
+              "start": 214.1924,
+              "end": 217.4483
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Oh, I'm going back home next weekend. It's too bad it's not tonight."
+          ],
+          "zh": "哦，我下周末要回家。可惜不是今晚。",
+          "cues": [],
+          "start": 217.675,
+          "end": 221.4094,
+          "phrases": [
+            {
+              "text": "Oh, I'm going back home next weekend. It's too bad it's not tonight.",
+              "start": 217.675,
+              "end": 221.4094
+            }
+          ]
+        },
+        {
+          "parts": [
+            "It is. It's tonight. This Friday. Did I say next Friday?"
+          ],
+          "zh": "就是今晚，这周五。我刚说成下周五了？",
+          "cues": [],
+          "start": 222.075,
+          "end": 225.1505,
+          "phrases": [
+            {
+              "text": "It is. It's tonight. This Friday. Did I say next Friday?",
+              "start": 222.075,
+              "end": 225.1505
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Yeah, sorry, I guess I've been saying next Friday all week."
+          ],
+          "zh": "抱歉，我大概这星期一直在说下周五，顺嘴了。",
+          "cues": [],
+          "start": 225.3706,
+          "end": 227.9963,
+          "phrases": [
+            {
+              "text": "Yeah, sorry, I guess I've been saying next Friday all week.",
+              "start": 225.3706,
+              "end": 227.9963
+            }
+          ]
+        },
+        {
+          "parts": [
+            "But, yeah, it's tonight. The, uh, the party's tonight.",
+            "But, you know, whatever."
+          ],
+          "zh": "对，就是今晚，派对在今晚。不过，随意啦。",
+          "cues": [],
+          "start": 227.9963,
+          "end": 232.1325,
+          "phrases": [
+            {
+              "text": "But, yeah, it's tonight. The, uh, the party's tonight.",
+              "start": 227.9963,
+              "end": 230.12695
+            },
+            {
+              "text": "But, you know, whatever.",
+              "start": 230.12695,
+              "end": 232.1325
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Hello?"
+          ],
+          "zh": "喂？",
+          "cues": [],
+          "start": 238.225,
+          "end": 238.8344,
+          "phrases": [
+            {
+              "text": "Hello?",
+              "start": 238.225,
+              "end": 238.8344
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Hey, am I interrupting anything?"
+          ],
+          "zh": "嘿，我打扰到你了吗？",
+          "cues": [],
+          "start": 239.105,
+          "end": 240.7749,
+          "phrases": [
+            {
+              "text": "Hey, am I interrupting anything?",
+              "start": 239.105,
+              "end": 240.7749
+            }
+          ]
+        },
+        {
+          "parts": [
+            "No, no, I'm just writing my paper. Hitting the books."
+          ],
+          "zh": "没有，我只是在写论文，埋头苦读。",
+          "cues": [],
+          "start": 241.185,
+          "end": 244.145,
+          "phrases": [
+            {
+              "text": "No, no, I'm just writing my paper. Hitting the books.",
+              "start": 241.185,
+              "end": 244.145
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Yeah, well, you and Lily might wanna put some clothes on.",
+            "We're throwing a party in two hours. Okay, bye."
+          ],
+          "zh": "那你和莉莉最好穿上衣服，我们两小时后要办派对。好了，拜拜。",
+          "cues": [],
+          "start": 244.705,
+          "end": 250.4,
+          "phrases": [
+            {
+              "text": "Yeah, well, you and Lily might wanna put some clothes on.",
+              "start": 244.705,
+              "end": 247.73715
+            },
+            {
+              "text": "We're throwing a party in two hours. Okay, bye.",
+              "start": 247.73715,
+              "end": 250.4
+            }
+          ]
+        }
+      ],
+      "artwork": {
+        "sourcePage": "https://tv.apple.com/ca/episode/purple-giraffe/umc.cmc.6igeypwuvbkw8n2yl78zcdqoj",
+        "sourceImage": "https://is4-ssl.mzstatic.com/image/thumb/yEcjiP2f-A_IDJzDT3hfgw/1200x675.jpg",
+        "episode": "S01E02",
+        "scene": "Robin reporting next to the claw machine at the supermarket",
+        "crop": [
+          60,
+          0,
+          1140,
+          675
+        ],
+        "sha256": "fa1e029dca858dcf6e308fb7c5ce5c6249b25910449ce121ab80ae73f5fe36b2"
+      },
+      "duration": 250.4
+    },
+    {
+      "id": "HIMYM010202",
+      "number": 2,
+      "title": "寻妈记 · 派对寒暄",
+      "start": 364.65,
+      "end": 589.15,
+      "originalStart": 1703.65,
+      "sourceFile": "02-party-and-another-invitation.m4a",
+      "sourceSha256": "947159a758764fbea64c808103a98fd5b0556f9fe7bc7a022f20fe07099b58be",
+      "sourceUrl": "https://www.bilibili.com/video/BV1PeWczpEUC/?t=1703",
+      "rows": [
+        {
+          "parts": [
+            "So, Gatsby, what are you gonna do when Robin shows up?"
+          ],
+          "zh": "那么，盖茨比，罗宾来了之后你打算怎么办？",
+          "cues": [],
+          "start": 0.0,
+          "end": 2.725,
+          "phrases": [
+            {
+              "text": "So, Gatsby, what are you gonna do when Robin shows up?",
+              "start": 0.0,
+              "end": 2.725
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Okay, I got it all planned out."
+          ],
+          "zh": "我都计划好了。",
+          "cues": [],
+          "start": 2.8459,
+          "end": 5.0665,
+          "phrases": [
+            {
+              "text": "Okay, I got it all planned out.",
+              "start": 2.8459,
+              "end": 5.0665
+            }
+          ]
+        },
+        {
+          "parts": [
+            "She steps through the door, and where's Ted?",
+            "Not eagerly waiting by the door."
+          ],
+          "zh": "她一进门，泰德在哪儿？可不会急切地守在门口。",
+          "cues": [],
+          "start": 6.325,
+          "end": 10.965,
+          "phrases": [
+            {
+              "text": "She steps through the door, and where's Ted?",
+              "start": 6.325,
+              "end": 9.0527
+            },
+            {
+              "text": "Not eagerly waiting by the door.",
+              "start": 9.0527,
+              "end": 10.965
+            }
+          ]
+        },
+        {
+          "parts": [
+            "No, I'm across the room at my drafting table,",
+            "showing some foxy young thing all my cool architecture stuff."
+          ],
+          "zh": "我在房间另一头的绘图桌旁，向某个漂亮姑娘展示我的建筑设计作品。",
+          "cues": [],
+          "start": 11.705,
+          "end": 17.2701,
+          "phrases": [
+            {
+              "text": "No, I'm across the room at my drafting table,",
+              "start": 11.705,
+              "end": 13.83415
+            },
+            {
+              "text": "showing some foxy young thing all my cool architecture stuff.",
+              "start": 13.83415,
+              "end": 17.2701
+            }
+          ]
+        },
+        {
+          "parts": [
+            "So Robin strolls over,",
+            "and I casually give her one of these: Hey, what's up?"
+          ],
+          "zh": "罗宾走过来，我随意地招呼一句：嗨，怎么样？",
+          "cues": [],
+          "start": 17.745,
+          "end": 23.265,
+          "phrases": [
+            {
+              "text": "So Robin strolls over,",
+              "start": 17.745,
+              "end": 19.3658
+            },
+            {
+              "text": "and I casually give her one of these: Hey, what's up?",
+              "start": 19.3658,
+              "end": 23.265
+            }
+          ]
+        },
+        {
+          "parts": [
+            "She says, hey, nice place, et cetera, et cetera."
+          ],
+          "zh": "她说，嗨，这地方不错，诸如此类的。",
+          "cues": [],
+          "start": 23.865,
+          "end": 27.525,
+          "phrases": [
+            {
+              "text": "She says, hey, nice place, et cetera, et cetera.",
+              "start": 23.865,
+              "end": 27.525
+            }
+          ]
+        },
+        {
+          "parts": [
+            "And then I say, well, make yourself at home,",
+            "and I casually return to my conversation."
+          ],
+          "zh": "然后我说，别客气，就当自己家，再随意地接着跟别人聊天。",
+          "cues": [],
+          "start": 27.655,
+          "end": 33.595,
+          "phrases": [
+            {
+              "text": "And then I say, well, make yourself at home,",
+              "start": 27.655,
+              "end": 31.05925
+            },
+            {
+              "text": "and I casually return to my conversation.",
+              "start": 31.05925,
+              "end": 33.595
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Then, an hour later, oh, you're still here?",
+            "I say like I don't really care, but it's a nice surprise."
+          ],
+          "zh": "过一个小时，我说，哦，你还在啊？装作不太在意，但又有点惊喜。",
+          "cues": [],
+          "start": 33.975,
+          "end": 43.1153,
+          "phrases": [
+            {
+              "text": "Then, an hour later, oh, you're still here?",
+              "start": 33.975,
+              "end": 39.63735
+            },
+            {
+              "text": "I say like I don't really care, but it's a nice surprise.",
+              "start": 39.63735,
+              "end": 43.1153
+            }
+          ]
+        },
+        {
+          "parts": [
+            "And then, very casually: Wanna see the roof?"
+          ],
+          "zh": "然后特别随意地问，要去屋顶看看吗？",
+          "cues": [],
+          "start": 43.375,
+          "end": 47.335,
+          "phrases": [
+            {
+              "text": "And then, very casually: Wanna see the roof?",
+              "start": 43.375,
+              "end": 47.335
+            }
+          ]
+        },
+        {
+          "parts": [
+            "The roof!"
+          ],
+          "zh": "屋顶！",
+          "cues": [],
+          "start": 48.945,
+          "end": 50.135,
+          "phrases": [
+            {
+              "text": "The roof!",
+              "start": 48.945,
+              "end": 50.135
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Get her up to the roof, and the roof takes care of the rest."
+          ],
+          "zh": "把她带上屋顶，剩下的交给屋顶就好了。",
+          "cues": [],
+          "start": 50.235,
+          "end": 52.9295,
+          "phrases": [
+            {
+              "text": "Get her up to the roof, and the roof takes care of the rest.",
+              "start": 50.235,
+              "end": 52.9295
+            }
+          ]
+        },
+        {
+          "parts": [
+            "What's so special about the roof?"
+          ],
+          "zh": "屋顶有什么特别的？",
+          "cues": [],
+          "start": 52.9295,
+          "end": 54.44,
+          "phrases": [
+            {
+              "text": "What's so special about the roof?",
+              "start": 52.9295,
+              "end": 54.44
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Oh, the moon, the stars, the shimmering skyline."
+          ],
+          "zh": "月亮、星星，还有闪烁的城市天际线。",
+          "cues": [],
+          "start": 54.44,
+          "end": 57.9883,
+          "phrases": [
+            {
+              "text": "Oh, the moon, the stars, the shimmering skyline.",
+              "start": 54.44,
+              "end": 57.9883
+            }
+          ]
+        },
+        {
+          "parts": [
+            "You can't not fall in love on that roof."
+          ],
+          "zh": "在那个屋顶上，想不坠入爱河都难。",
+          "cues": [],
+          "start": 58.445,
+          "end": 60.495,
+          "phrases": [
+            {
+              "text": "You can't not fall in love on that roof.",
+              "start": 58.445,
+              "end": 60.495
+            }
+          ]
+        },
+        {
+          "parts": [
+            "We do it up there sometimes."
+          ],
+          "zh": "我们有时也在上面做。",
+          "cues": [],
+          "start": 62.065,
+          "end": 63.7368,
+          "phrases": [
+            {
+              "text": "We do it up there sometimes.",
+              "start": 62.065,
+              "end": 63.7368
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Solid plan, my little friend."
+          ],
+          "zh": "好计划，我的小个子朋友。",
+          "cues": [],
+          "start": 64.565,
+          "end": 66.4067,
+          "phrases": [
+            {
+              "text": "Solid plan, my little friend.",
+              "start": 64.565,
+              "end": 66.4067
+            }
+          ]
+        },
+        {
+          "parts": [
+            "We're the same height."
+          ],
+          "zh": "我们一样高。",
+          "cues": [],
+          "start": 66.4067,
+          "end": 67.3406,
+          "phrases": [
+            {
+              "text": "We're the same height.",
+              "start": 66.4067,
+              "end": 67.3406
+            }
+          ]
+        },
+        {
+          "parts": [
+            "But may I suggest one little modification?"
+          ],
+          "zh": "不过，我能提一点小小的修改建议吗？",
+          "cues": [],
+          "start": 67.445,
+          "end": 70.4037,
+          "phrases": [
+            {
+              "text": "But may I suggest one little modification?",
+              "start": 67.445,
+              "end": 70.4037
+            }
+          ]
+        },
+        {
+          "parts": [
+            "That foxy young thing you were chatting up,",
+            "take her up to the roof and have sex with her.",
+            "Crazy monkey style. That's not the plan."
+          ],
+          "zh": "把你搭讪的那个漂亮姑娘带上屋顶，跟她来场狂野的性爱。这可不是我的计划。",
+          "cues": [],
+          "start": 71.465,
+          "end": 76.7503,
+          "phrases": [
+            {
+              "text": "That foxy young thing you were chatting up,",
+              "start": 71.465,
+              "end": 73.0816
+            },
+            {
+              "text": "take her up to the roof and have sex with her.",
+              "start": 73.0816,
+              "end": 74.92355
+            },
+            {
+              "text": "Crazy monkey style. That's not the plan.",
+              "start": 74.92355,
+              "end": 76.7503
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Well, it should be the plan.",
+            "I mean, look at her. Ted, look at her. She's smoking!"
+          ],
+          "zh": "那就该改成这个计划。看看她啊，泰德，她多性感！",
+          "cues": [],
+          "start": 76.8305,
+          "end": 81.0948,
+          "phrases": [
+            {
+              "text": "Well, it should be the plan.",
+              "start": 76.8305,
+              "end": 78.13685
+            },
+            {
+              "text": "I mean, look at her. Ted, look at her. She's smoking!",
+              "start": 78.13685,
+              "end": 81.0948
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Thank you. Yeah, but she's not Robin."
+          ],
+          "zh": "谢谢。不过，她又不是罗宾。",
+          "cues": [],
+          "start": 81.525,
+          "end": 84.8579,
+          "phrases": [
+            {
+              "text": "Thank you. Yeah, but she's not Robin.",
+              "start": 81.525,
+              "end": 84.8579
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Exactly! Ted, let's rap."
+          ],
+          "zh": "正是如此。泰德，咱们聊聊。",
+          "cues": [],
+          "start": 85.0983,
+          "end": 87.3801,
+          "phrases": [
+            {
+              "text": "Exactly! Ted, let's rap.",
+              "start": 85.0983,
+              "end": 87.3801
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Statistic: At every New York party,",
+            "there's always a girl who has no idea whose party she's at."
+          ],
+          "zh": "有条规律：纽约的每场派对上，总有个姑娘根本不知道是谁办的派对。",
+          "cues": [],
+          "start": 88.1809,
+          "end": 92.485,
+          "phrases": [
+            {
+              "text": "Statistic: At every New York party,",
+              "start": 88.1809,
+              "end": 89.8873
+            },
+            {
+              "text": "there's always a girl who has no idea whose party she's at.",
+              "start": 89.8873,
+              "end": 92.485
+            }
+          ]
+        },
+        {
+          "parts": [
+            "She knows no one you know, and you will never see her again."
+          ],
+          "zh": "她不认识你的任何熟人，而你之后也不会再见到她。",
+          "cues": [],
+          "start": 92.645,
+          "end": 95.3669,
+          "phrases": [
+            {
+              "text": "She knows no one you know, and you will never see her again.",
+              "start": 92.645,
+              "end": 95.3669
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Do you see where I'm going with this?"
+          ],
+          "zh": "你明白我的意思了吧？",
+          "cues": [],
+          "start": 95.865,
+          "end": 100.045,
+          "phrases": [
+            {
+              "text": "Do you see where I'm going with this?",
+              "start": 95.865,
+              "end": 100.045
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Barney, I don't think so. Scoping. Scoping."
+          ],
+          "zh": "巴尼，我觉得还是算了吧。搜索中，搜索中。",
+          "cues": [],
+          "start": 100.305,
+          "end": 104.4147,
+          "phrases": [
+            {
+              "text": "Barney, I don't think so. Scoping. Scoping.",
+              "start": 100.305,
+              "end": 104.4147
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Man, you're a dork."
+          ],
+          "zh": "天哪，你真够傻的。",
+          "cues": [],
+          "start": 105.145,
+          "end": 106.545,
+          "phrases": [
+            {
+              "text": "Man, you're a dork.",
+              "start": 105.145,
+              "end": 106.545
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Target acquired! And now it's time we play a little game",
+            "I like to call: Have you met Ted?"
+          ],
+          "zh": "锁定目标！现在该玩我所谓的那个小游戏了：你认识泰德吗？",
+          "cues": [],
+          "start": 107.7982,
+          "end": 112.9795,
+          "phrases": [
+            {
+              "text": "Target acquired! And now it's time we play a little game",
+              "start": 107.7982,
+              "end": 111.0568
+            },
+            {
+              "text": "I like to call: Have you met Ted?",
+              "start": 111.0568,
+              "end": 112.9795
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Oh, come on, not this. Hi, have you met Ted?"
+          ],
+          "zh": "别了，又来这套。嗨，你认识泰德吗？",
+          "cues": [],
+          "start": 112.9795,
+          "end": 115.4666,
+          "phrases": [
+            {
+              "text": "Oh, come on, not this. Hi, have you met Ted?",
+              "start": 112.9795,
+              "end": 115.4666
+            }
+          ]
+        },
+        {
+          "parts": [
+            "No. Hi. Hi."
+          ],
+          "zh": "不认识。嗨。嗨。",
+          "cues": [],
+          "start": 115.685,
+          "end": 117.345,
+          "phrases": [
+            {
+              "text": "No. Hi. Hi.",
+              "start": 115.685,
+              "end": 117.345
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Do you know Marshall? Lily? No."
+          ],
+          "zh": "你认识马修吗？莉莉呢？不认识。",
+          "cues": [],
+          "start": 117.509,
+          "end": 119.085,
+          "phrases": [
+            {
+              "text": "Do you know Marshall? Lily? No.",
+              "start": 117.509,
+              "end": 119.085
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Do you know anyone at this party?"
+          ],
+          "zh": "这派对上你有认识的人吗？",
+          "cues": [],
+          "start": 119.365,
+          "end": 120.9928,
+          "phrases": [
+            {
+              "text": "Do you know anyone at this party?",
+              "start": 119.365,
+              "end": 120.9928
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I work with Carlos."
+          ],
+          "zh": "我跟卡洛斯一起工作。",
+          "cues": [],
+          "start": 121.445,
+          "end": 122.7347,
+          "phrases": [
+            {
+              "text": "I work with Carlos.",
+              "start": 121.445,
+              "end": 122.7347
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Excuse me. Anyone know a Carlos?"
+          ],
+          "zh": "打扰一下，有谁认识卡洛斯吗？",
+          "cues": [],
+          "start": 123.4153,
+          "end": 125.5374,
+          "phrases": [
+            {
+              "text": "Excuse me. Anyone know a Carlos?",
+              "start": 123.4153,
+              "end": 125.5374
+            }
+          ]
+        },
+        {
+          "parts": [
+            "No. No. On a silver platter. Bon appétit."
+          ],
+          "zh": "不认识，不认识。简直送上门了，请享用。",
+          "cues": [],
+          "start": 126.265,
+          "end": 130.5828,
+          "phrases": [
+            {
+              "text": "No. No. On a silver platter. Bon appétit.",
+              "start": 126.265,
+              "end": 130.5828
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I don't think so."
+          ],
+          "zh": "我还是算了吧。",
+          "cues": [],
+          "start": 130.985,
+          "end": 132.225,
+          "phrases": [
+            {
+              "text": "I don't think so.",
+              "start": 130.985,
+              "end": 132.225
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Your loss, her gain."
+          ],
+          "zh": "你亏了，她赚了。",
+          "cues": [],
+          "start": 132.945,
+          "end": 134.1667,
+          "phrases": [
+            {
+              "text": "Your loss, her gain.",
+              "start": 132.945,
+              "end": 134.1667
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Excuse me. Can I show you the roof? It's magical up there."
+          ],
+          "zh": "打扰一下，我带你去看看屋顶？上面可神奇了。",
+          "cues": [],
+          "start": 134.6674,
+          "end": 138.0709,
+          "phrases": [
+            {
+              "text": "Excuse me. Can I show you the roof? It's magical up there.",
+              "start": 134.6674,
+              "end": 138.0709
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Sure. Wait, wait. Hey, hey, I got that roof reserved."
+          ],
+          "zh": "好啊。等等，那屋顶我已经预订了。",
+          "cues": [],
+          "start": 138.2913,
+          "end": 140.49925,
+          "phrases": [
+            {
+              "text": "Sure. Wait, wait. Hey, hey, I got that roof reserved.",
+              "start": 138.2913,
+              "end": 140.49925
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Dude, Robin's not coming."
+          ],
+          "zh": "兄弟，罗宾不会来了。",
+          "cues": [],
+          "start": 140.49925,
+          "end": 141.7548,
+          "phrases": [
+            {
+              "text": "Dude, Robin's not coming.",
+              "start": 140.49925,
+              "end": 141.7548
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Hey, she's gonna show up. She'll show up."
+          ],
+          "zh": "她会来的，她会来的。",
+          "cues": [],
+          "start": 142.005,
+          "end": 148.175,
+          "phrases": [
+            {
+              "text": "Hey, she's gonna show up. She'll show up.",
+              "start": 142.005,
+              "end": 148.175
+            }
+          ]
+        },
+        {
+          "parts": [
+            "She didn't show up."
+          ],
+          "zh": "她没来。",
+          "cues": [],
+          "start": 148.915,
+          "end": 149.995,
+          "phrases": [
+            {
+              "text": "She didn't show up.",
+              "start": 148.915,
+              "end": 149.995
+            }
+          ]
+        },
+        {
+          "parts": [
+            "At least it was a great party."
+          ],
+          "zh": "至少派对还挺成功的。",
+          "cues": [],
+          "start": 151.295,
+          "end": 153.3193,
+          "phrases": [
+            {
+              "text": "At least it was a great party.",
+              "start": 151.295,
+              "end": 153.3193
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I ate, like, four whole cans of dip."
+          ],
+          "zh": "我吃了大概整整四罐蘸酱。",
+          "cues": [],
+          "start": 153.995,
+          "end": 155.9003,
+          "phrases": [
+            {
+              "text": "I ate, like, four whole cans of dip.",
+              "start": 153.995,
+              "end": 155.9003
+            }
+          ]
+        },
+        {
+          "parts": [
+            "You always know what to say, old friend."
+          ],
+          "zh": "老朋友，你总知道说什么来安慰我。",
+          "cues": [],
+          "start": 157.115,
+          "end": 158.7814,
+          "phrases": [
+            {
+              "text": "You always know what to say, old friend.",
+              "start": 157.115,
+              "end": 158.7814
+            }
+          ]
+        },
+        {
+          "parts": [
+            "It's Robin. Answer it!"
+          ],
+          "zh": "是罗宾。接啊！",
+          "cues": [],
+          "start": 163.625,
+          "end": 165.82,
+          "phrases": [
+            {
+              "text": "It's Robin. Answer it!",
+              "start": 163.625,
+              "end": 165.82
+            }
+          ]
+        },
+        {
+          "parts": [
+            "No, no, no, not right away. Gotta seem casual."
+          ],
+          "zh": "不，不能马上接，得显得随意点。",
+          "cues": [],
+          "start": 165.82,
+          "end": 167.8448,
+          "phrases": [
+            {
+              "text": "No, no, no, not right away. Gotta seem casual.",
+              "start": 165.82,
+              "end": 167.8448
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Hello?"
+          ],
+          "zh": "喂？",
+          "cues": [],
+          "start": 170.2733,
+          "end": 170.724,
+          "phrases": [
+            {
+              "text": "Hello?",
+              "start": 170.2733,
+              "end": 170.724
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I'm so sorry I missed your party."
+          ],
+          "zh": "真抱歉，没能参加你的派对。",
+          "cues": [],
+          "start": 170.885,
+          "end": 172.7266,
+          "phrases": [
+            {
+              "text": "I'm so sorry I missed your party.",
+              "start": 170.885,
+              "end": 172.7266
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Who is this? Meredith?"
+          ],
+          "zh": "哪位？梅雷迪思？",
+          "cues": [],
+          "start": 173.165,
+          "end": 174.3287,
+          "phrases": [
+            {
+              "text": "Who is this? Meredith?",
+              "start": 173.165,
+              "end": 174.3287
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Robin."
+          ],
+          "zh": "罗宾。",
+          "cues": [],
+          "start": 175.185,
+          "end": 175.8506,
+          "phrases": [
+            {
+              "text": "Robin.",
+              "start": 175.185,
+              "end": 175.8506
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Oh, Robin! Hey, yeah, I, uh, guess you never showed up, did you?"
+          ],
+          "zh": "哦，罗宾！对，你昨天好像没来，是吧？",
+          "cues": [],
+          "start": 176.545,
+          "end": 181.105,
+          "phrases": [
+            {
+              "text": "Oh, Robin! Hey, yeah, I, uh, guess you never showed up, did you?",
+              "start": 176.545,
+              "end": 181.105
+            }
+          ]
+        },
+        {
+          "parts": [
+            "No, I got stuck at work.",
+            "But they finally got that kid out of the crane machine."
+          ],
+          "zh": "对，我工作脱不开身。不过，他们总算把那小孩从抓娃娃机里弄出来了。",
+          "cues": [],
+          "start": 181.365,
+          "end": 185.1627,
+          "phrases": [
+            {
+              "text": "No, I got stuck at work.",
+              "start": 181.365,
+              "end": 182.65455
+            },
+            {
+              "text": "But they finally got that kid out of the crane machine.",
+              "start": 182.65455,
+              "end": 185.1627
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Did he get to keep the purple giraffe?"
+          ],
+          "zh": "那个紫色长颈鹿最后归他了吗？",
+          "cues": [],
+          "start": 185.185,
+          "end": 186.8849,
+          "phrases": [
+            {
+              "text": "Did he get to keep the purple giraffe?",
+              "start": 185.185,
+              "end": 186.8849
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Yeah, they let him keep all the toys.",
+            "He was in there a long time,",
+            "and little kids have small bladders."
+          ],
+          "zh": "对，他们让他把所有玩具都带走了。他在里面待太久，小孩子又憋不住尿。",
+          "cues": [],
+          "start": 186.985,
+          "end": 192.4584,
+          "phrases": [
+            {
+              "text": "Yeah, they let him keep all the toys.",
+              "start": 186.985,
+              "end": 189.32255
+            },
+            {
+              "text": "He was in there a long time,",
+              "start": 189.32255,
+              "end": 190.963
+            },
+            {
+              "text": "and little kids have small bladders.",
+              "start": 190.963,
+              "end": 192.4584
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I wish your party was tonight."
+          ],
+          "zh": "要是你的派对在今晚就好了。",
+          "cues": [],
+          "start": 193.805,
+          "end": 195.4191,
+          "phrases": [
+            {
+              "text": "I wish your party was tonight.",
+              "start": 193.805,
+              "end": 195.4191
+            }
+          ]
+        },
+        {
+          "parts": [
+            "It is. The party's tonight."
+          ],
+          "zh": "就是今晚，派对就在今晚。",
+          "cues": [],
+          "start": 197.775,
+          "end": 199.0201,
+          "phrases": [
+            {
+              "text": "It is. The party's tonight.",
+              "start": 197.775,
+              "end": 199.0201
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Yeah, uh, it's a two-day party, 'cause that's just how we roll."
+          ],
+          "zh": "对，这是个连办两天的派对，我们一向就这么玩。",
+          "cues": [],
+          "start": 200.395,
+          "end": 203.6013,
+          "phrases": [
+            {
+              "text": "Yeah, uh, it's a two-day party, 'cause that's just how we roll.",
+              "start": 200.395,
+              "end": 203.6013
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Uh, so if you wanna swing by, you know, it's casual. See ya."
+          ],
+          "zh": "所以你要是想过来，随意就好。回见。",
+          "cues": [],
+          "start": 205.315,
+          "end": 209.695,
+          "phrases": [
+            {
+              "text": "Uh, so if you wanna swing by, you know, it's casual. See ya.",
+              "start": 205.315,
+              "end": 209.695
+            }
+          ]
+        },
+        {
+          "parts": [
+            "So that was Robin."
+          ],
+          "zh": "刚才是罗宾。",
+          "cues": [],
+          "start": 214.215,
+          "end": 215.0993,
+          "phrases": [
+            {
+              "text": "So that was Robin.",
+              "start": 214.215,
+              "end": 215.0993
+            }
+          ]
+        },
+        {
+          "parts": [
+            "What are you doing to me, man?",
+            "I got a paper to write! I know. I'm sorry. It's terrible."
+          ],
+          "zh": "兄弟，你这是要整死我吗？我还得写论文呢！我知道，对不起，太糟糕了。",
+          "cues": [],
+          "start": 215.0993,
+          "end": 218.8182,
+          "phrases": [
+            {
+              "text": "What are you doing to me, man?",
+              "start": 215.0993,
+              "end": 216.5297
+            },
+            {
+              "text": "I got a paper to write! I know. I'm sorry. It's terrible.",
+              "start": 216.5297,
+              "end": 218.8182
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I'll buy more dip! Ted! Ted, wait!"
+          ],
+          "zh": "我再去买点蘸酱！泰德，等等！",
+          "cues": [],
+          "start": 219.1388,
+          "end": 221.7417,
+          "phrases": [
+            {
+              "text": "I'll buy more dip! Ted! Ted, wait!",
+              "start": 219.1388,
+              "end": 221.7417
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Get French onion!"
+          ],
+          "zh": "买法式洋葱味的！",
+          "cues": [],
+          "start": 223.2436,
+          "end": 224.5,
+          "phrases": [
+            {
+              "text": "Get French onion!",
+              "start": 223.2436,
+              "end": 224.5
+            }
+          ]
+        }
+      ],
+      "artwork": {
+        "sourcePage": "https://www.businessinsider.com/how-i-met-your-mother-details-you-missed-season-one",
+        "sourceImage": "https://i.insider.com/633359ff488b340019dec320?auto=webp&format=jpeg&width=1200",
+        "episode": "S01E02",
+        "scene": "Marshall and Ted discussing the plan at the first party",
+        "crop": [
+          180,
+          140,
+          1140,
+          740
+        ],
+        "sha256": "21f10250090d291c8166df8df915b19dd51130a0f2a85a2de43a8ebe5a2afacc"
+      },
+      "duration": 224.5
+    }
+  ]
+}

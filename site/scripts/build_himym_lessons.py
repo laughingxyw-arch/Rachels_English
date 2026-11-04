@@ -1,4 +1,4 @@
-"""Build the two approved S01E01 selections from user-provided local audio.
+"""Build approved HIMYM selections from user-provided local audio.
 
 Dialogue, meaning groups and aligned bounds are reviewable in site/content.
 Continuous AAC is copied unchanged. Independent practice cuts use AAC 128 kb/s
@@ -10,7 +10,12 @@ import json,wave,hashlib,subprocess,shutil,tempfile
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 ROOT=Path(__file__).resolve().parents[2];DIST=ROOT/'site/dist';RAW=ROOT/'downloads/himym-local';RATE=48000
-spec=json.loads((ROOT/'site/content/himym-s01e01.json').read_text())
+import argparse
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--spec',default='site/content/himym-s01e01.json')
+parser.add_argument('--raw',default='downloads/himym-local')
+args=parser.parse_args();RAW=ROOT/args.raw
+spec=json.loads((ROOT/args.spec).read_text())
 def duration(path):return float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',str(path)]))
 def subtitle_time(t):
  ms=round(t*1000);h,ms=divmod(ms,3600000);m,ms=divmod(ms,60000);s,ms=divmod(ms,1000);return f'{h:02}:{m:02}:{s:02},{ms:03}'
@@ -59,6 +64,6 @@ for c in spec['courses']:
  if c.get('artwork'):lesson['artwork']=c['artwork']
  (DIST/'lessons'/f'{ID}.js').write_text('window.LESSON = '+json.dumps(lesson,ensure_ascii=False)+';\n')
  srt='\n\n'.join(f"{i+1}\n{subtitle_time(g['start'])} --> {subtitle_time(g['end'])}\n"+' '.join(p['text'] for p in g['phrases']) for i,g in enumerate(groups))+'\n';(RAW/'review'/f'{ID}.en.srt').write_text(srt)
- new.append(dict(id=ID,title=c['title'],label='S01E01 · 剧集对白',videoTitle='How I Met Your Mother · S01E01 · Pilot',excerpt=' '.join(c['rows'][0]['parts']),added='2026-11-04',sourceSeconds=cd,sourceStartSeconds=c['start'],sourceUrl=c['sourceUrl'],groupCount=len(groups),drillSeconds=round(cursor,3),cover=f'covers/{ID}-scene.webp'))
+ new.append(dict(id=ID,title=c['title'],label=spec.get('episode','S01E01')+' · 剧集对白',videoTitle=spec.get('videoTitle','How I Met Your Mother · S01E01 · Pilot'),excerpt=' '.join(c['rows'][0]['parts']),added=spec.get('added','2026-11-04'),sourceSeconds=cd,sourceStartSeconds=c.get('originalStart',c['start']),sourceUrl=c['sourceUrl'],groupCount=len(groups),drillSeconds=round(cursor,3),cover=f'covers/{ID}-scene.webp'))
  print(ID,len(groups),'groups;',len(blocks),'blocks;',round(cursor,2),'seconds Drill;',len(tasks)+1,'audio files',flush=True)
 path=DIST/'courses.js';catalog=json.loads(path.read_text().split('=',1)[1].strip().rstrip(';'));catalog=new+[c for c in catalog if c['id'] not in {c['id'] for c in new}];path.write_text('window.COURSES = '+json.dumps(catalog,ensure_ascii=False,indent=2)+';\n')
