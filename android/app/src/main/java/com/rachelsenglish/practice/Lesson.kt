@@ -3,7 +3,16 @@ package com.rachelsenglish.practice
 import org.json.JSONObject
 
 data class Course(val id: String, val title: String, val label: String, val cover: String, val version: String,
-    val sha256: String, val bundle: String, val seconds: Int, val count: Int)
+    val sha256: String, val bundle: String, val seconds: Int, val count: Int,
+    val sourceUrl: String=courseSourceUrl(id,null))
+/** Catalogs without a source keep the original YouTube behavior. */
+fun courseSourceUrl(id: String,source: String?): String {
+    val fallback="https://www.youtube.com/watch?v=$id"
+    return source?.takeIf { value -> runCatching {
+        val uri=java.net.URI(value)
+        uri.scheme=="https"&&!uri.host.isNullOrBlank()&&uri.userInfo==null
+    }.getOrDefault(false) }?:fallback
+}
 data class Phrase(val text: String, val start: Double, val end: Double)
 data class Sentence(val id: Int, val audioFile: String, val start: Double, val lead: Double,
     val duration: Double, val phrases: List<Phrase>, val translation: String, val cues: List<String>)

@@ -410,7 +410,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                             Text(open.course.label,fontSize=12.sp,color=Muted)
                         }
                         val context=LocalContext.current
-                        GlyphButton("打开原视频","external",{runCatching {context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://www.youtube.com/watch?v=${open.course.id}")))}})
+                        GlyphButton("打开原视频","external",{runCatching {context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(open.course.sourceUrl)))}})
                     }
                 }
             }

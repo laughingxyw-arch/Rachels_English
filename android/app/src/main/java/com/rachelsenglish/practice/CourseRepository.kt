@@ -35,7 +35,7 @@ class CourseRepository(private val context: Context) {
             val json=JSONObject(raw);require(json.getInt("schemaVersion")==1)
             val a=json.getJSONArray("courses");require(a.length()<=10000)
             val courses=(0 until a.length()).map { val c=a.getJSONObject(it)
-                Course(c.getString("id"),c.getString("title"),c.optString("label"),c.getString("cover"),c.getString("version"),c.getString("sha256"),c.getString("bundle"),c.getDouble("sourceSeconds").toInt(),c.getInt("groupCount")) }
+                Course(c.getString("id"),c.getString("title"),c.optString("label"),c.getString("cover"),c.getString("version"),c.getString("sha256"),c.getString("bundle"),c.getDouble("sourceSeconds").toInt(),c.getInt("groupCount"),courseSourceUrl(c.getString("id"),c.optString("sourceUrl"))) }
             require(courses.map { it.id }.distinct().size==courses.size)
             courses.forEach { require(it.id.matches(Regex("[A-Za-z0-9_-]{11}"))&&it.version.matches(Regex("[a-f0-9]{16}"))&&it.sha256.matches(Regex("[a-f0-9]{64}"))&&safePath(it.bundle)&&safePath(it.cover)) }
             return courses
