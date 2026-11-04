@@ -1,5 +1,5 @@
 from pathlib import Path
-import json,hashlib,zipfile,io,wave
+import json,hashlib,zipfile,io,wave,subprocess,tempfile
 ROOT=Path(__file__).resolve().parents[1];DIST=ROOT/'cloud/dist'
 catalog=json.loads((DIST/'catalog.json').read_text());assert catalog['schemaVersion']==1
 for c in catalog['courses']:
@@ -15,9 +15,19 @@ for c in catalog['courses']:
   assert continuous is not None, 'New publications require a continuous dialogue master'
   if continuous:
    audio=z.read(continuous['audioFile']);assert hashlib.sha256(audio).hexdigest()==continuous['sha256']
-   with wave.open(io.BytesIO(audio)) as w:
-    assert (w.getframerate(),w.getnchannels(),w.getsampwidth())==(48000,2,2)
-    assert abs(w.getnframes()/w.getframerate()-continuous['duration'])<1/48000
+   if continuous['audioFile'].endswith('.wav'):
+    with wave.open(io.BytesIO(audio)) as w:
+     assert (w.getframerate(),w.getnchannels(),w.getsampwidth())==(48000,2,2)
+     assert abs(w.getnframes()/w.getframerate()-continuous['duration'])<1/48000
+   else:
+    assert continuous['audioFile'].endswith('.m4a'), 'Unsupported continuous audio format'
+    with tempfile.NamedTemporaryFile(suffix='.m4a') as f:
+     f.write(audio);f.flush()
+     media=json.loads(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration:stream=codec_name,sample_rate,channels','-of','json',f.name]))
+     assert media['streams'][0]['codec_name']=='aac'
+     assert int(media['streams'][0]['sample_rate']) in (44100,48000)
+     assert media['streams'][0]['channels']==2
+     assert abs(float(media['format']['duration'])-continuous['duration'])<.002
    starts=[g['start'] for g in lesson['groups']];assert all(a<b for a,b in zip(starts,starts[1:]))
    assert abs(starts[0]-continuous['sourceStart'])<.0001
    assert abs(max(g['end'] for g in lesson['groups'])-continuous['sourceStart']-continuous['duration'])<1/48000

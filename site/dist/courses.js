@@ -1,5 +1,33 @@
 window.COURSES = [
   {
+    "id": "HIMYM010102",
+    "title": "寻妈记 · 初次约会",
+    "label": "S01E01 · 剧集对白",
+    "videoTitle": "How I Met Your Mother · S01E01 · Pilot",
+    "excerpt": "So, what do you do?",
+    "added": "2026-11-04",
+    "sourceSeconds": 211.21,
+    "sourceStartSeconds": 429.5,
+    "sourceUrl": "https://www.bilibili.com/video/BV1PeWczpEUC/?t=429",
+    "groupCount": 69,
+    "drillSeconds": 822.973,
+    "cover": "covers/HIMYM010102-scene.webp"
+  },
+  {
+    "id": "HIMYM010103",
+    "title": "寻妈记 · 把握时机",
+    "label": "S01E01 · 剧集对白",
+    "videoTitle": "How I Met Your Mother · S01E01 · Pilot",
+    "excerpt": "So, did you kiss her?",
+    "added": "2026-11-04",
+    "sourceSeconds": 214.106,
+    "sourceStartSeconds": 642.55,
+    "sourceUrl": "https://www.bilibili.com/video/BV1PeWczpEUC/?t=642",
+    "groupCount": 64,
+    "drillSeconds": 884.31,
+    "cover": "covers/HIMYM010103-scene.webp"
+  },
+  {
     "id": "2JnnSu53QS0",
     "title": "Cha Cha Real Smooth",
     "label": "电影对白",
