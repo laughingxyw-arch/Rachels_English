@@ -244,6 +244,9 @@ class NativePracticeTest {
    rule.runOnUiThread {model.updateLoopMode(PracticeLoop.OFF);model.back()}
    rule.mainClock.advanceTimeBy(32);rule.mainClock.autoAdvance=true
   }
+  // Returning preserves the course's scrolled library position. Reveal the
+  // header explicitly before opening records, as a user would scroll to it.
+  rule.onNodeWithTag("library").performScrollToIndex(0)
   rule.onNodeWithContentDescription("学习记录").performClick()
   rule.onNodeWithText("Jaafar Jackson").assertExists()
   screenshot("study-records-effective")
