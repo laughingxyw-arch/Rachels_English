@@ -12,6 +12,12 @@ import org.junit.Rule
 import org.junit.Test
 import kotlinx.coroutines.launch
 class NativePracticeTest {
+ private fun showCourse(id: String) {
+  if(runCatching {rule.onNodeWithTag("course-$id").assertIsDisplayed()}.isFailure) {
+   rule.onNodeWithTag("library").performScrollToNode(hasTestTag("course-$id"))
+  }
+ }
+
  private fun screenshot(name: String){
   rule.waitForIdle()
   // Allow the platform window surface to present the settled Compose frame.
@@ -41,8 +47,10 @@ class NativePracticeTest {
   val icon=rule.activity.packageManager.getApplicationIcon(rule.activity.applicationInfo)
   val bitmap=android.graphics.Bitmap.createBitmap(384,384,android.graphics.Bitmap.Config.ARGB_8888)
   icon.setBounds(0,0,384,384);icon.draw(android.graphics.Canvas(bitmap));saveImage("launcher-icon",bitmap)
+  showCourse("4dXbgvm4_7g")
   rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
   screenshot("home")
+  showCourse("4dXbgvm4_7g")
   rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
   // Audio uses real time; freeze Compose's test clock to avoid waiting until
@@ -156,6 +164,7 @@ class NativePracticeTest {
    var landed=false
    repeat(100){if(!landed){frame();landed=rule.onAllNodesWithTag("utility-records").fetchSemanticsNodes().isEmpty()}}
    assertTrue(landed)
+   showCourse("4dXbgvm4_7g")
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    repeat(100){frame()}
    rule.onNodeWithTag("lesson").assertExists()
@@ -199,6 +208,7 @@ class NativePracticeTest {
   val main=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
   val audio=context.getSystemService(android.media.AudioManager::class.java)
   audio.setStreamVolume(android.media.AudioManager.STREAM_MUSIC,5,0)
+  showCourse("4dXbgvm4_7g")
   rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
   rule.mainClock.autoAdvance=false
@@ -252,6 +262,7 @@ class NativePracticeTest {
   rule.onNodeWithTag("utility-records").assertExists()
   rule.onNodeWithContentDescription("返回课程").performClick()
   rule.waitUntil(5000){rule.onAllNodesWithTag("utility-records").fetchSemanticsNodes().isEmpty()}
+  showCourse("epfQlb_Tgco")
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
   rule.mainClock.autoAdvance=false
@@ -279,6 +290,7 @@ class NativePracticeTest {
   rule.runOnIdle {model.updateLoopMode(PracticeLoop.OFF);model.updateShadow(false);model.updateCues(true);model.updateTranslation(false)}
   rule.waitUntil(20000){!model.syncing}
   // Updated dialogue is downloaded as a course, rather than inflating the APK.
+  showCourse("epfQlb_Tgco")
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(20000){model.opened!=null}
   rule.mainClock.autoAdvance=false
@@ -327,6 +339,7 @@ class NativePracticeTest {
  @Test fun originalLoopsCurrentSentenceThenContinuesToTheEnd(){
   val model=(rule.activity.application as PracticeApplication).model
   rule.runOnIdle {model.updateShadow(false);model.updateLoop(true)}
+  showCourse("epfQlb_Tgco")
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
   rule.mainClock.autoAdvance=false
@@ -356,11 +369,13 @@ class NativePracticeTest {
   try {
    rule.activity.getSharedPreferences("practice-native",0).edit().putInt("position.epfQlb_Tgco",0).commit()
    scale("1");rule.activityRule.scenario.recreate()
+   showCourse("epfQlb_Tgco")
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    val model=(rule.activity.application as PracticeApplication).model
    assertTrue(titleLines().all {it==1})
    assertTrue(badgeValues().all {it==1f})
    rule.mainClock.autoAdvance=false
+   showCourse("epfQlb_Tgco")
    rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
    rule.waitUntil(10000){model.opened?.course?.id=="epfQlb_Tgco"}
    var enteringIntermediate=false
@@ -386,6 +401,7 @@ class NativePracticeTest {
  @Test fun transportShowsTaskProgressAndHidesSingleSentenceAndLoopProgress(){
   val model=(rule.activity.application as PracticeApplication).model
   rule.runOnUiThread {model.updateLoop(false);model.updateShadow(false)}
+  showCourse("epfQlb_Tgco")
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(10000){model.opened!=null}
   rule.mainClock.autoAdvance=false
@@ -416,9 +432,11 @@ class NativePracticeTest {
   fun frames(ms: Long){repeat((ms/16).toInt()){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(20)}}
   try {
    animationScale("1");rule.activityRule.scenario.recreate()
+   showCourse("4dXbgvm4_7g")
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    val course=rule.onNodeWithTag("course-4dXbgvm4_7g").fetchSemanticsNode().boundsInRoot
    rule.mainClock.autoAdvance=false
+   showCourse("4dXbgvm4_7g")
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    val model=(rule.activity.application as PracticeApplication).model
    rule.waitUntil(10000){model.opened!=null}
@@ -457,6 +475,7 @@ class NativePracticeTest {
    assertEquals("Cancelled gestures must restore the full reading surface",expanded.height,restored.height,2f)
    rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()}
    rule.waitForIdle();rule.mainClock.advanceTimeByFrame();rule.waitForIdle();frames(160)
+   showCourse("epfQlb_Tgco")
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    screenshot("course-return-mid")
    frames(1000)
@@ -469,8 +488,10 @@ class NativePracticeTest {
   fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(10)}
   try {
    animationScale("1");rule.activityRule.scenario.recreate()
+   showCourse("4dXbgvm4_7g")
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    val target=rule.onNodeWithTag("course-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
+   showCourse("4dXbgvm4_7g")
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
    rule.waitForIdle();rule.mainClock.autoAdvance=false
@@ -513,11 +534,13 @@ class NativePracticeTest {
   try {
    rule.activity.getSharedPreferences("practice-native",0).edit().putInt("position.epfQlb_Tgco",0).commit()
    scale("1");rule.activityRule.scenario.recreate()
+   showCourse("epfQlb_Tgco")
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    val model=(rule.activity.application as PracticeApplication).model
    for(gesture in listOf(false,true))for(target in listOf("epfQlb_Tgco","4dXbgvm4_7g")){
     rule.mainClock.autoAdvance=true
     val restingTarget=rule.onNodeWithTag("course-$target",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
+    showCourse("epfQlb_Tgco")
     rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
     rule.waitUntil(10000){model.opened?.course?.id=="epfQlb_Tgco"}
     rule.waitForIdle()
@@ -557,6 +580,7 @@ class NativePracticeTest {
  }
  @Test fun finishingOldReturnPreservesPendingAndSameCourseReopen(){
   val model=(rule.activity.application as PracticeApplication).model
+  showCourse("epfQlb_Tgco")
   rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
   rule.waitUntil(10000){model.opened?.course?.id=="epfQlb_Tgco"}
   val origin=model.opened!!
@@ -588,8 +612,10 @@ class NativePracticeTest {
   try {
    rule.activity.getSharedPreferences("practice-native",0).edit().putInt("position.4dXbgvm4_7g",2).commit()
    scale("1");rule.activityRule.scenario.recreate()
+   showCourse("4dXbgvm4_7g")
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    rule.mainClock.autoAdvance=false
+   showCourse("4dXbgvm4_7g")
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    val model=(rule.activity.application as PracticeApplication).model
    rule.waitUntil(10000){model.opened?.course?.id=="4dXbgvm4_7g"}
@@ -619,6 +645,7 @@ class NativePracticeTest {
   fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(15)}
   try {
    scale("1");rule.activityRule.scenario.recreate()
+   showCourse("4dXbgvm4_7g")
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
    rule.waitForIdle();rule.mainClock.autoAdvance=false
@@ -664,6 +691,7 @@ class NativePracticeTest {
   fun width()=rule.onNodeWithTag("reading-space",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.width
   try {
    animationScale("1");rule.activityRule.scenario.recreate()
+   showCourse("4dXbgvm4_7g")
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    rule.onNodeWithTag("lesson").assertExists()
    rule.waitForIdle()
@@ -812,9 +840,11 @@ class NativePracticeTest {
    night("yes");waitTheme(true)
    val home=rule.onNodeWithTag("app-root",useUnmergedTree=true).captureToImage().toPixelMap()
    assertTrue(home[3,3].red<.15f)
+   showCourse("4dXbgvm4_7g")
    val card=rule.onNodeWithTag("course-4dXbgvm4_7g").captureToImage().toPixelMap()
    assertTrue(card[card.width-8,card.height/2].red<.2f)
    screenshot("dark-home")
+   showCourse("4dXbgvm4_7g")
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    rule.waitUntil(10000){model.opened!=null}
    rule.mainClock.autoAdvance=false
