@@ -50,6 +50,28 @@ class NativePracticeTest {
  @org.junit.Before fun resetSession(){rule.runOnUiThread {(rule.activity.application as PracticeApplication).model.apply {back();consumeMessage()}}}
  @org.junit.After fun closeSession(){rule.runOnUiThread {(rule.activity.application as PracticeApplication).model.back()}}
  @get:Rule val rule=createAndroidComposeRule<MainActivity>()
+ @Test fun longPressChangesCourseWithoutMovingTheTransportOrStartingPausedAudio(){
+  val model=(rule.activity.application as PracticeApplication).model
+  try {
+   showCourse("epfQlb_Tgco");rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+   rule.waitUntil(15000){model.opened?.course?.id=="epfQlb_Tgco"}
+   rule.runOnUiThread {model.updateLoopMode(PracticeLoop.ALL_COURSES);model.updateDrill(true);model.updateRepeatCount(2);model.start(model.opened!!.lesson.groups.lastIndex,playWhenReady=false)}
+   rule.waitForIdle()
+   val player=rule.onNodeWithTag("player-surface").fetchSemanticsNode().boundsInRoot
+   rule.onNodeWithContentDescription("下一句").performTouchInput {down(center);advanceEventTime(600);up()}
+   rule.waitUntil(45000){model.opened?.course?.id=="4dXbgvm4_7g"&&!model.courseChanging}
+   rule.waitForIdle()
+   rule.runOnIdle {assertEquals(0,model.playback.selected);assertTrue(model.playback.paused);assertTrue(model.drill);assertEquals(2,model.repeatCount);assertNotNull(model.readingLesson)}
+   val after=rule.onNodeWithTag("player-surface").fetchSemanticsNode().boundsInRoot
+   assertEquals(player.top,after.top,.5f);assertEquals(player.height,after.height,.5f)
+   val list=rule.onNodeWithTag("dialogue-list").fetchSemanticsNode().config
+   assertEquals(0,list[ReadingFirstItemKey])
+   screenshot("playlist-course-handoff")
+   rule.onNodeWithContentDescription("练习设置").performClick();rule.onNodeWithTag("loop-setting").performClick()
+   rule.onNodeWithTag("loop-ALL_COURSES").assertExists()
+   screenshot("playlist-loop-options")
+  }finally{rule.runOnUiThread {model.back();model.updateLoopMode(PracticeLoop.OFF);model.updateRepeatCount(3)}}
+ }
  @Test fun bundledLessonPlaysAndSettingsRemainNative(){
   val icon=rule.activity.packageManager.getApplicationIcon(rule.activity.applicationInfo)
   val bitmap=android.graphics.Bitmap.createBitmap(384,384,android.graphics.Bitmap.Config.ARGB_8888)

@@ -321,7 +321,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
         items(courses,key={it.id}) {course ->
             val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
-            val scale by animateFloatAsState(if(pressed).978f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="card-pressure")
+            val scale=animateFloatAsState(if(pressed).978f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="card-pressure")
             Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale.value;scaleY=scale.value}.clip(RoundedCornerShape(18.dp)).background(Surface)
                 .then(with(shared){Modifier.skipToLookaheadSize()})
                 .clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={model.open(course)})

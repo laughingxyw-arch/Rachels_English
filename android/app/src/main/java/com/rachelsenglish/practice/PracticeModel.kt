@@ -222,7 +222,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun notify(text: String,error: Boolean=false){messageIsError=error;message=text}
     fun consumeMessage(){message=null}
     fun sync(explicit: Boolean=true,quietSuccess: Boolean=false){if(syncing)return;syncing=true;viewModelScope.launch {
-        try {val previous=courses;val next=repository.sync();courses=next;if(explicit&&!quietSuccess)notify(if(next==previous)"已是最新" else "已更新课程")}catch(e: Exception){if(explicit)notify("同步失败，已缓存课程仍可使用。",true)}finally{syncing=false}
+        try {val previous=courses;val next=repository.sync();courses=next;prepareNextCourse();if(explicit&&!quietSuccess)notify(if(next==previous)"已是最新" else "已更新课程")}catch(e: Exception){if(explicit)notify("同步失败，已缓存课程仍可使用。",true)}finally{syncing=false}
     }}
     private fun cancelCourseSwitch(){courseSwitchToken++;courseSwitchJob?.cancel();courseSwitchJob=null;courseChanging=false;switchingAutomatically=false}
     private fun cancelPrefetch(){prefetchJob?.cancel();prefetchJob=null;prefetchedCourse=null}
@@ -234,7 +234,9 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         }
     }
     fun open(course: Course){
-        if(opened?.course?.id==course.id&&!readingVisible&&playback.running&&!courseChanging){readingVisible=true;readingSessionId++;inlineCourseId=null;return}
+        if(opened?.course?.id==course.id&&!readingVisible&&playback.running&&!courseChanging){
+            openToken++;openJob?.cancel();loadingId=null;readingVisible=true;readingSessionId++;inlineCourseId=null;return
+        }
         cancelCourseSwitch();val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
         try {val result=courseOpener(course);if(token!=openToken)return@launch
             stopPlayback();queue=emptyList();index=0;refreshTimeline();opened=result;readingVisible=true;readingSessionId++;inlineCourseId=null;if(loopMode!=PracticeLoop.ALL_COURSES)drill=false;feedback.reset()
@@ -244,12 +246,13 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         }catch(e: kotlinx.coroutines.CancellationException){throw e}catch(e: Exception){notify("课程下载失败，请稍后重试。",true)}finally{if(token==openToken)loadingId=null}
     }}
     fun back(){openToken++;openJob?.cancel();loadingId=null;stop();readingVisible=false;readingSessionId++;inlineCourseId=null;opened=null;artworkJob?.cancel();mediaArtwork=null;mediaChanged?.invoke()}
+    private fun hideReading(){readingVisible=false;readingSessionId++;inlineCourseId=null}
     fun leaveReading(){
-        if(loopMode==PracticeLoop.ALL_COURSES&&opened!=null){readingVisible=false;readingSessionId++;inlineCourseId=null}
+        if(loopMode==PracticeLoop.ALL_COURSES&&opened!=null){openToken++;openJob?.cancel();loadingId=null;hideReading()}
         else back()
     }
     fun finishBack(origin: OpenLesson?){if(opened===origin){
-        if(loopMode==PracticeLoop.ALL_COURSES)leaveReading()
+        if(loopMode==PracticeLoop.ALL_COURSES)hideReading()
         else {
             // Do not cancel a new manual open which is still downloading while
             // this visual return settles onto the library.
@@ -268,7 +271,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     private fun prepareNextCourse(){
         if(loopMode!=PracticeLoop.ALL_COURSES||opened==null)return
         val entries=navigationCourses();val id=courseNavigationOrder(entries.map {it.id},opened!!.course.id,1,true).firstOrNull {it !in unavailableCourses}?:return
-        val next=entries.first {it.id==id}
+        val next=courses.firstOrNull {it.id==id}?:entries.first {it.id==id}
         if(prefetchedCourse==next&&prefetchJob!=null)return
         cancelPrefetch();prefetchedCourse=next
         prefetchJob=viewModelScope.async {
@@ -280,10 +283,12 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun changeCourse(direction: Int,automatic: Boolean=false){
         val origin=opened?:return
         if(automatic&&courseChanging)return
+        if(!automatic){if(unavailableCourses.isNotEmpty())cancelPrefetch();unavailableCourses.clear();unavailableNoticeShown=false}
         if(loopMode==PracticeLoop.ALL_COURSES&&playbackCourses.none {it.id==origin.course.id})capturePlaybackCourses()
         val entries=navigationCourses().toList()
+        val latest=courses.associateBy {it.id};val captured=entries.associateBy {it.id}
         val candidates=courseNavigationOrder(entries.map {it.id},origin.course.id,direction,loopMode==PracticeLoop.ALL_COURSES)
-            .filter {it !in unavailableCourses}.map {id->entries.first {it.id==id}}
+            .filter {it !in unavailableCourses}.map {id->latest[id]?:captured.getValue(id)}
         if(candidates.isEmpty()){
             if(automatic){stop();notify("暂无可播放课程，请检查网络后重试。",true)}
             return
