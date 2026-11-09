@@ -194,7 +194,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                         else LessonScreen(model,open,shared,this)
                     }
                 }
-                AnimatedVisibility(model.opened!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp).then(if(utilityPage!=null)Modifier.clearAndSetSemantics {} else Modifier).graphicsLayer {alpha=if(seeking||model.opened==null)(1f-gesture.value).coerceIn(0f,1f) else 1f},
+                AnimatedVisibility(model.readingLesson!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp).then(if(utilityPage!=null)Modifier.clearAndSetSemantics {} else Modifier).graphicsLayer {alpha=if(seeking||model.opened==null)(1f-gesture.value).coerceIn(0f,1f) else 1f},
                     enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(1f,600f)){it/3},
                     exit=if(reduced)ExitTransition.None else fadeOut(tween(100))) {
                     CompositionLocalProvider(LocalBackdropSource provides backdrop){Transport(model,{settings=true},Modifier.padding(horizontal=28.dp))}
@@ -209,7 +209,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                         UtilityPage(model,closeRecords,{settings=true},{course->closeRecords();model.open(course)})
                     }
                 }
-                NoticePill(model,Modifier.align(Alignment.BottomCenter).padding(horizontal=24.dp).padding(bottom=if(model.opened!=null)88.dp else 24.dp))
+                NoticePill(model,Modifier.align(Alignment.BottomCenter).padding(horizontal=24.dp).padding(bottom=if(model.readingLesson!=null)88.dp else 24.dp))
             }
             if(settings&&(model.opened!=null||utilityPage!=null))SettingsSheet(model,environment.highContrast,settingsSheet,{sheetHeight=it},{settings=false},generalOnly=utilityPage!=null)
         }
@@ -306,7 +306,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     }}
     Box(Modifier.fillMaxSize().nestedScroll(connection)
         .testTag("library-refresh").semantics {this[LibraryPullKey]=refreshState.distanceFraction;customActions=listOf(CustomAccessibilityAction("更新课程"){latestRequest();true})}) {
-    LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,if(model.opened!=null)128.dp else 24.dp),
+    LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,24.dp),
         horizontalArrangement=Arrangement.spacedBy(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.graphicsLayer {translationY=72.dp.toPx()*refreshState.distanceFraction}.testTag("library")) {
         item(span={GridItemSpan(maxLineSpan)}) {
             Column {
@@ -322,7 +322,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         items(courses,key={it.id}) {course ->
             val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
             val scale by animateFloatAsState(if(pressed).978f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="card-pressure")
-            Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale;scaleY=scale}.clip(RoundedCornerShape(18.dp)).background(Surface)
+            Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale.value;scaleY=scale.value}.clip(RoundedCornerShape(18.dp)).background(Surface)
                 .then(with(shared){Modifier.skipToLookaheadSize()})
                 .clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={model.open(course)})
                 .testTag("course-${course.id}").semantics {stateDescription="${course.seconds} 秒 · ${course.count} 句"}.fillMaxWidth().heightIn(min=88.dp).padding(vertical=8.dp),
@@ -607,10 +607,10 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
     val ink=Ink;val muted=Muted;val accent=Accent
     val highlight=if(LocalPracticePalette.current.dark)Color.White.copy(alpha=.07f) else Color.White.copy(alpha=.75f)
-    val scale by animateFloatAsState(if(pressed).97f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="control-pressure")
+    val scale=animateFloatAsState(if(pressed).97f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="control-pressure")
     val content: @Composable () -> Unit={
         Crossfade(glyph,animationSpec=if(LocalReduced.current)snap() else tween(100),label="control-symbol") {symbol ->
-        Canvas(Modifier.size(21.dp).graphicsLayer {scaleX=scale;scaleY=scale}) {
+        Canvas(Modifier.size(21.dp).graphicsLayer {scaleX=scale.value;scaleY=scale.value}) {
             val color=if(enabled)ink else muted.copy(alpha=.5f);val stroke=1.7.dp.toPx();val s=size.width/24f
             fun line(x1: Float,y1: Float,x2: Float,y2: Float)=drawLine(color,Offset(x1*s,y1*s),Offset(x2*s,y2*s),stroke,StrokeCap.Round)
             fun path(vararg pts: Float,fill: Boolean=false){val p=Path();p.moveTo(pts[0]*s,pts[1]*s);var i=2;while(i<pts.size){p.lineTo(pts[i]*s,pts[i+1]*s);i+=2};if(fill)p.close();drawPath(p,color,style=if(fill)androidx.compose.ui.graphics.drawscope.Fill else Stroke(stroke,cap=StrokeCap.Round,join=StrokeJoin.Round))}
@@ -632,7 +632,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     }
     if(longClick==null){
         IconButton(onClick=click,enabled=enabled,interactionSource=interaction,modifier=Modifier.size(48.dp).drawBehind {
-            if(glyph=="play"||glyph=="pause")drawCircle(Brush.verticalGradient(listOf(highlight,accent.copy(alpha=if(pressed).10f else .025f))),radius=20.dp.toPx()*scale)
+            if(glyph=="play"||glyph=="pause")drawCircle(Brush.verticalGradient(listOf(highlight,accent.copy(alpha=if(pressed).10f else .025f))),radius=20.dp.toPx()*scale.value)
         }.semantics {contentDescription=label}) {content()}
     }else{
         val haptic=LocalHapticFeedback.current

@@ -38,6 +38,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     private var switchingAutomatically=false
     private var playbackCourses by mutableStateOf(emptyList<Course>())
     private val unavailableCourses=mutableSetOf<String>()
+    private var unavailableNoticeShown=false
     private var prefetchedCourse: Course?=null
     private var prefetchJob: Deferred<Result<OpenLesson>>?=null
     var loadingId by mutableStateOf<String?>(null);private set
@@ -232,7 +233,9 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             if(opened===result){mediaArtwork=bytes;mediaChanged?.invoke()}
         }
     }
-    fun open(course: Course){cancelCourseSwitch();val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
+    fun open(course: Course){
+        if(opened?.course?.id==course.id&&!readingVisible&&playback.running&&!courseChanging){readingVisible=true;readingSessionId++;inlineCourseId=null;return}
+        cancelCourseSwitch();val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
         try {val result=courseOpener(course);if(token!=openToken)return@launch
             stopPlayback();queue=emptyList();index=0;refreshTimeline();opened=result;readingVisible=true;readingSessionId++;inlineCourseId=null;if(loopMode!=PracticeLoop.ALL_COURSES)drill=false;feedback.reset()
             setArtwork(result)
@@ -245,15 +248,23 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         if(loopMode==PracticeLoop.ALL_COURSES&&opened!=null){readingVisible=false;readingSessionId++;inlineCourseId=null}
         else back()
     }
-    fun finishBack(origin: OpenLesson?){if(opened===origin)leaveReading()}
-    fun finishReadingBack(session: Long){if(session==readingSessionId)leaveReading()}
+    fun finishBack(origin: OpenLesson?){if(opened===origin){
+        if(loopMode==PracticeLoop.ALL_COURSES)leaveReading()
+        else {
+            // Do not cancel a new manual open which is still downloading while
+            // this visual return settles onto the library.
+            stop();readingVisible=false;readingSessionId++;inlineCourseId=null;opened=null
+            artworkJob?.cancel();mediaArtwork=null;mediaChanged?.invoke()
+        }
+    }}
+    fun finishReadingBack(session: Long){if(session==readingSessionId)finishBack(opened)}
     private fun navigationCourses(): List<Course> =if(loopMode==PracticeLoop.ALL_COURSES&&playbackCourses.isNotEmpty())playbackCourses else courses
     fun canChangeCourse(direction: Int): Boolean {
         val id=opened?.course?.id?:return false
         val entries=navigationCourses();val at=entries.indexOfFirst {it.id==id}
         return at>=0&&(if(loopMode==PracticeLoop.ALL_COURSES)entries.isNotEmpty() else if(direction>0)at<entries.lastIndex else at>0)
     }
-    private fun capturePlaybackCourses(){playbackCourses=courses.toList();unavailableCourses.clear();cancelPrefetch()}
+    private fun capturePlaybackCourses(){playbackCourses=courses.toList();unavailableCourses.clear();unavailableNoticeShown=false;cancelPrefetch()}
     private fun prepareNextCourse(){
         if(loopMode!=PracticeLoop.ALL_COURSES||opened==null)return
         val entries=navigationCourses();val id=courseNavigationOrder(entries.map {it.id},opened!!.course.id,1,true).firstOrNull {it !in unavailableCourses}?:return
@@ -292,7 +303,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
                     stopPlayback();queue=emptyList();index=0;opened=result;inlineCourseId=if(readingVisible)course.id else null
                     setArtwork(result);playback=Playback();courseChanging=false;switchingAutomatically=false
                     start(0,playWhenReady=play,resetFailures=false)
-                    if(skipped)notify("部分课程暂不可用，已跳过")
+                    if(skipped&&!unavailableNoticeShown){unavailableNoticeShown=true;notify("部分课程暂不可用，已跳过")}
                     return@launch
                 }
                 if(automatic)stopPlayback()
@@ -362,7 +373,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun updateGap(v: Float){sampleStudy();gap=v;prefs.edit().putFloat("gap",v).apply();refreshTimeline()}
     fun start(selected: Int=playback.selected,all: Boolean=true,playWhenReady: Boolean=true,resetFailures: Boolean=true){
         val data=opened?:return
-        if(resetFailures){cancelCourseSwitch();unavailableCourses.clear()}
+        if(resetFailures){cancelCourseSwitch();unavailableCourses.clear();unavailableNoticeShown=false}
         if(loopMode==PracticeLoop.ALL_COURSES&&playbackCourses.none {it.id==data.course.id})capturePlaybackCourses()
         stopPlayback();mediaTaskId++;playAll=all;taskStart=if(loopMode==PracticeLoop.LESSON&&all)0 else selected
         continuousActive=canUseContinuous();queue=makeQueue(data.lesson,taskStart);index=queue.indexOfFirst {it.group==selected}.coerceAtLeast(0);refreshTimeline()
@@ -408,6 +419,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         mediaChanged?.invoke()
     }
     private fun begin(paused: Boolean=false){studyMeter.reset(0);studyWaitRemaining=null;releaseWaitLock();val data=opened?:return;val clip=queue.getOrNull(index)?:return
+        if(paused)player.pause()
         playback=Playback(clip.group,true,paused,0f,-1.0,if(drill)clip.repeat else 0,clip.total,whole=clip.whole,taskProgress=taskProgress(0f))
         prefs.edit().putInt("position.${data.course.id}",clip.group).apply()
         if(continuousActive){

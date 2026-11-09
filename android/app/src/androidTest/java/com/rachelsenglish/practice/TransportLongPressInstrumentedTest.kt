@@ -14,7 +14,7 @@ class TransportLongPressInstrumentedTest {
  @Test fun shortPressLongPressAndCancellationAreIndependent(){
   var sentence=0;var course=0
   val clickEnabled=mutableStateOf(true)
-  rule.activity.setContent {GlyphButton("下一句","next",{sentence++},enabled=clickEnabled.value,longClick={course++},longLabel="下一课")}
+  rule.runOnUiThread {rule.activity.setContent {GlyphButton("下一句","next",{sentence++},enabled=clickEnabled.value,longClick={course++},longLabel="下一课")}}
   val button=rule.onNodeWithContentDescription("下一句")
   button.performTouchInput {click()};assertEquals(1,sentence)
   button.performTouchInput {down(center);advanceEventTime(430);up()}
@@ -28,7 +28,8 @@ class TransportLongPressInstrumentedTest {
   rule.runOnUiThread {clickEnabled.value=false}
   button.performTouchInput {click()};assertEquals(2,sentence)
   button.performTouchInput {down(center);advanceEventTime(600);up()};assertEquals(3,course)
-  rule.runOnIdle {val actions=button.fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.CustomActions];assertTrue(actions.first {it.label=="下一课"}.action())}
+  val actions=button.fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsActions.CustomActions]
+  rule.runOnUiThread {assertTrue(actions.first {it.label=="下一课"}.action())}
   assertEquals(4,course)
  }
 }

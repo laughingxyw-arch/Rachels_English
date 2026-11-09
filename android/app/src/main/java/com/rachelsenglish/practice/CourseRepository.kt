@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -102,13 +104,14 @@ class CourseRepository(private val context: Context) {
         try {java.io.ByteArrayOutputStream().use {out->if(scaled.compress(Bitmap.CompressFormat.JPEG,85,out))out.toByteArray() else null}}
         finally {if(scaled!==image)scaled.recycle()}
     }
-    private fun fetch(path: String,limit: Int): ByteArray {
+    private suspend fun fetch(path: String,limit: Int): ByteArray {
+        currentCoroutineContext().ensureActive()
         require(safePath(path)&&BuildConfig.CONTENT_BASE_URL.startsWith("https://"))
         val connection=URL(BuildConfig.CONTENT_BASE_URL+path).openConnection() as HttpURLConnection
         connection.connectTimeout=10000;connection.readTimeout=30000;connection.instanceFollowRedirects=false
         try {check(connection.responseCode==200);return connection.inputStream.use { input ->
             val out=java.io.ByteArrayOutputStream();val buffer=ByteArray(16384);var n=input.read(buffer)
-            while(n!=-1){require(out.size()+n<=limit);out.write(buffer,0,n);n=input.read(buffer)};out.toByteArray()
+            while(n!=-1){currentCoroutineContext().ensureActive();require(out.size()+n<=limit);out.write(buffer,0,n);n=input.read(buffer)};out.toByteArray()
         }}finally {connection.disconnect()}
     }
     private fun save(file: File,bytes: ByteArray) {file.parentFile?.mkdirs();val temp=File(file.path+".tmp")
