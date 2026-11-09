@@ -21,7 +21,7 @@ data class OpenLesson(val course: Course, val lesson: Lesson, val directory: Fil
 class CourseRepository(private val context: Context) {
     // Preserve 1.x cached courses and private preference names during upgrades.
     private val prefs=context.getSharedPreferences("MainActivity",Context.MODE_PRIVATE)
-    private val mutex=Mutex()
+    private val courseLocks=java.util.concurrent.ConcurrentHashMap<String,Mutex>()
     private val syncMutex=Mutex()
     private val coverCache=object: android.util.LruCache<String,Bitmap>(8*1024*1024) {
         override fun sizeOf(key: String,value: Bitmap)=value.byteCount
@@ -53,7 +53,7 @@ class CourseRepository(private val context: Context) {
         if(!version.matches(Regex("[a-f0-9]{16}")))return null
         return File(context.filesDir,"courses/$id/$version").takeIf { File(it,"lesson.json").isFile }
     }
-    suspend fun open(course: Course): OpenLesson = withContext(Dispatchers.IO) { mutex.withLock {
+    suspend fun open(course: Course): OpenLesson = withContext(Dispatchers.IO) { courseLocks.getOrPut(course.id){Mutex()}.withLock {
         val existing=installed(course.id);val built=bundled.find { it.id==course.id }
         if(existing!=null&&existing.name==course.version)return@withLock OpenLesson(course,Lesson.parse(File(existing,"lesson.json").readText()),existing)
         if(built?.version==course.version)return@withLock bundledLesson(course)
@@ -79,6 +79,7 @@ class CourseRepository(private val context: Context) {
                 prefs.edit().putString("installed.${course.id}",course.version).apply()
                 OpenLesson(course,lesson,destination)
             } finally {stage.deleteRecursively()}
+        } catch(error: kotlinx.coroutines.CancellationException) {throw error
         } catch(error: Exception) {
             when { existing!=null -> OpenLesson(course,Lesson.parse(File(existing,"lesson.json").readText()),existing,true)
                 built!=null -> bundledLesson(course).copy(offlineFallback=true)

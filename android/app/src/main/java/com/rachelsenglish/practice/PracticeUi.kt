@@ -93,13 +93,13 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     var recordsToken by remember {mutableIntStateOf(0)}
     var recordsJob by remember {mutableStateOf<kotlinx.coroutines.Job?>(null)}
     var query by rememberSaveable {mutableStateOf("")}
-    var settings by rememberSaveable(model.opened?.course?.id) {mutableStateOf(false)}
+    var settings by rememberSaveable {mutableStateOf(false)}
     val settingsSheet=rememberModalBottomSheetState(skipPartiallyExpanded=true)
     var sceneSize by remember {mutableStateOf(IntSize.Zero)}
     var sheetHeight by remember {mutableFloatStateOf(0f)}
     val progressSpring=remember(sceneSize){courseProgressSpring(maxOf(sceneSize.width,sceneSize.height).toFloat())}
     val gestureScope=rememberCoroutineScope()
-    val navigation=remember {SeekableTransitionState<OpenLesson?>(model.opened)}
+    val navigation=remember {SeekableTransitionState<OpenLesson?>(model.readingLesson)}
     val transition=rememberTransition(navigation,label="course-space")
     // Retained exit content must never sit above the destination's touch targets.
     // Keep separate transforms: AnimatedContent remembers each scene's enter spec.
@@ -112,7 +112,13 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     var gestureToken by remember {mutableIntStateOf(0)}
     // Keep all shared geometry on one linear timeline. Apply physics to its progress,
     // rather than mixing bounds springs of different durations with a seekable gesture.
-    LaunchedEffect(model.opened,reduced,seeking){if(!seeking){if(model.opened!=null)gesture.snapTo(0f);if(reduced)navigation.snapTo(model.opened) else navigation.animateTo(model.opened,animationSpec=progressSpring)}}
+    LaunchedEffect(model.readingLesson,reduced,seeking){if(!seeking){
+        val next=model.readingLesson
+        if(next!=null)gesture.snapTo(0f)
+        // Course-to-course handoff stays inside the full-size reading surface.
+        if(reduced||navigation.currentState!=null&&next!=null)navigation.snapTo(next)
+        else navigation.animateTo(next,animationSpec=progressSpring)
+    }}
     LaunchedEffect(utilityPage,reduced,recordsSeeking) {
         if(utilityPage!=null&&!recordsSeeking){if(reduced)recordsProgress.snapTo(1f) else recordsProgress.animateTo(1f,progressSpring)}
     }
@@ -133,8 +139,9 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         } catch(_: CancellationException){withContext(NonCancellable){if(token==recordsToken){if(reduced)recordsProgress.snapTo(1f) else recordsProgress.animateTo(1f,progressSpring,initialVelocity=-initial*velocity.velocity)}}}
         finally {if(token==recordsToken)recordsSeeking=false}
     }
-    PredictiveBackHandler(enabled=model.opened!=null&&!settings&&utilityPage==null) {events ->
-        val origin=model.opened
+    PredictiveBackHandler(enabled=model.readingLesson!=null&&!settings&&utilityPage==null) {events ->
+        val origin=model.readingLesson
+        val readingTicket=model.readingSessionId
         val token=++gestureToken
         val initial=if(seeking)gesture.value.coerceIn(0f,1f) else 0f
         val velocity=GestureVelocity()
@@ -155,16 +162,16 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 navigation.animateTo(null,animationSpec=progressSpring)
                 fading.cancelAndJoin();gesture.snapTo(1f)
             }
-            if(token==gestureToken&&model.opened===origin){if(reduced)navigation.snapTo(null);model.finishBack(origin)}
+            if(token==gestureToken&&model.readingSessionId==readingTicket){if(reduced)navigation.snapTo(null);model.finishReadingBack(readingTicket)}
         } catch(_: CancellationException){withContext(NonCancellable){
             tracking?.cancelAndJoin()
-            if(token==gestureToken&&model.opened===origin){
+            if(token==gestureToken&&model.readingSessionId==readingTicket){
                 if(!reduced)coroutineScope {
                     val fading=launch {gesture.animateTo(0f,progressSpring,initialVelocity=velocity.velocity)}
                     navigation.animateTo(origin,animationSpec=progressSpring)
                     fading.cancelAndJoin();gesture.snapTo(0f)
                 }
-                if(reduced&&token==gestureToken&&model.opened===origin)navigation.snapTo(origin)
+                if(reduced&&token==gestureToken&&model.readingSessionId==readingTicket)navigation.snapTo(origin)
             }
         }} finally {tracking?.cancel();if(token==gestureToken)seeking=false}
     }
@@ -299,7 +306,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     }}
     Box(Modifier.fillMaxSize().nestedScroll(connection)
         .testTag("library-refresh").semantics {this[LibraryPullKey]=refreshState.distanceFraction;customActions=listOf(CustomAccessibilityAction("更新课程"){latestRequest();true})}) {
-    LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,24.dp),
+    LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,if(model.opened!=null)128.dp else 24.dp),
         horizontalArrangement=Arrangement.spacedBy(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.graphicsLayer {translationY=72.dp.toPx()*refreshState.distanceFraction}.testTag("library")) {
         item(span={GridItemSpan(maxLineSpan)}) {
             Column {
@@ -396,13 +403,16 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
     }
     val seeking=LocalSeeking.current
+    val handoff=remember(open){Animatable(if(model.inlineCourseId==open.course.id&&!reduced)0f else 1f)}
+    LaunchedEffect(open,reduced){if(reduced)handoff.snapTo(1f) else handoff.animateTo(1f,spring(1f,700f))}
+    val handoffDistance=with(LocalDensity.current){8.dp.toPx()}
     val corner by visibility.transition.animateDp(transitionSpec={if(reduced)snap() else tween(360,easing=LinearEasing)},label="course-corner") {if(it==EnterExitState.Visible)0.dp else 18.dp}
     Box(with(shared){containerModifier(open.course,visibility)}.testTag("lesson").clip(RoundedCornerShape(corner)).background(Backdrop)
         .then(with(shared){Modifier.skipToLookaheadSize()}).fillMaxSize()) {
-        LazyColumn(state=list,modifier=Modifier.testTag("dialogue-list").semantics {this[ReadingFirstItemKey]=list.firstVisibleItemIndex;this[ReadingFirstOffsetKey]=list.firstVisibleItemScrollOffset},contentPadding=PaddingValues(16.dp,12.dp,16.dp,128.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+        LazyColumn(state=list,modifier=Modifier.graphicsLayer {alpha=.65f+.35f*handoff.value;translationY=handoffDistance*(1f-handoff.value)}.testTag("dialogue-list").semantics {this[ReadingFirstItemKey]=list.firstVisibleItemIndex;this[ReadingFirstOffsetKey]=list.firstVisibleItemScrollOffset},contentPadding=PaddingValues(16.dp,12.dp,16.dp,128.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
             item(key="header") {
                 Column(Modifier.padding(bottom=18.dp)) {
-                    Row(verticalAlignment=Alignment.CenterVertically) {GlyphButton("返回课程","back",model::back);Text("课程",fontSize=12.sp,color=Muted)}
+                    Row(verticalAlignment=Alignment.CenterVertically) {GlyphButton("返回课程","back",model::leaveReading);Text("课程",fontSize=12.sp,color=Muted)}
                     Row(Modifier.padding(top=10.dp,bottom=24.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                         Cover(open.course,model.repository,(if(headerVisible)with(shared){coverModifier(open.course,visibility)} else Modifier).size(76.dp,50.dp),coverBadge(visibility,false))
                         Column(Modifier.weight(1f)) {
@@ -469,6 +479,8 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 }
 @Composable private fun Transport(model: PracticeModel,settings: ()->Unit,modifier: Modifier) {
     val p=model.playback
+    val previousCourse by remember(model){derivedStateOf {model.canChangeCourse(-1)}}
+    val nextCourse by remember(model){derivedStateOf {model.canChangeCourse(1)}}
     val style=LocalMaterialStyle.current
     val accent=Accent
     val progress=animateFloatAsState(p.taskProgress?:0f,if(LocalReduced.current||p.taskProgress==0f)snap() else tween(45,easing=LinearEasing),label="transport-light")
@@ -479,9 +491,9 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 drawRect(Brush.horizontalGradient(colors),size=androidx.compose.ui.geometry.Size(size.width*progress.value,size.height))
             }
             Row(Modifier.padding(6.dp,4.dp),verticalAlignment=Alignment.CenterVertically) {
-                GlyphButton("上一句","previous",model::previous,enabled=p.selected>0)
+                GlyphButton("上一句","previous",model::previous,enabled=p.selected>0,longClick=if(previousCourse)({model.changeCourse(-1)}) else null,longLabel="上一课")
                 GlyphButton(if(p.running&&!p.paused)"暂停" else "播放",if(p.running&&!p.paused)"pause" else "play",model::toggle)
-                GlyphButton("下一句","next",model::next,enabled=p.selected<(model.opened?.lesson?.groups?.lastIndex?:0))
+                GlyphButton("下一句","next",model::next,enabled=p.selected<(model.opened?.lesson?.groups?.lastIndex?:0),longClick=if(nextCourse)({model.changeCourse(1)}) else null,longLabel="下一课")
                 ModeRoller(model.drill,model::updateDrill)
                 GlyphButton("练习设置","more",settings)
             }
@@ -507,6 +519,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 listOf(1f,1.5f,2f).forEach {factor->Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(if(model.gap==factor)Tint else Color.Transparent)
                     .selectable(model.gap==factor,interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.RadioButton,onClick={model.updateGap(factor)}).heightIn(min=48.dp).padding(12.dp),contentAlignment=Alignment.Center){Text("${factor}×",fontSize=13.sp,color=if(model.gap==factor)Accent else Muted)}
             }}}
+            Text("长按上一句／下一句可切换课程",fontSize=11.sp,color=Muted,modifier=Modifier.padding(top=8.dp,bottom=4.dp))
             Row(Modifier.fillMaxWidth().heightIn(min=56.dp).clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={moreExpanded=!moreExpanded}).testTag("more-settings").semantics {stateDescription=if(moreExpanded)"已展开" else "已收起"},verticalAlignment=Alignment.CenterVertically) {
                 Text("更多设置",fontSize=15.sp,modifier=Modifier.weight(1f));Text("›",color=Muted,modifier=Modifier.graphicsLayer {rotationZ=moreRotation.value})
             }
@@ -590,14 +603,12 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
     }
 }
-@Composable internal fun GlyphButton(label: String,glyph: String,click: ()->Unit,enabled: Boolean=true) {
+@Composable internal fun GlyphButton(label: String,glyph: String,click: ()->Unit,enabled: Boolean=true,longClick: (() -> Unit)?=null,longLabel: String="") {
     val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
     val ink=Ink;val muted=Muted;val accent=Accent
     val highlight=if(LocalPracticePalette.current.dark)Color.White.copy(alpha=.07f) else Color.White.copy(alpha=.75f)
     val scale by animateFloatAsState(if(pressed).97f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="control-pressure")
-    IconButton(onClick=click,enabled=enabled,interactionSource=interaction,modifier=Modifier.size(48.dp).drawBehind {
-        if(glyph=="play"||glyph=="pause")drawCircle(Brush.verticalGradient(listOf(highlight,accent.copy(alpha=if(pressed).10f else .025f))),radius=20.dp.toPx()*scale)
-    }.semantics {contentDescription=label}) {
+    val content: @Composable () -> Unit={
         Crossfade(glyph,animationSpec=if(LocalReduced.current)snap() else tween(100),label="control-symbol") {symbol ->
         Canvas(Modifier.size(21.dp).graphicsLayer {scaleX=scale;scaleY=scale}) {
             val color=if(enabled)ink else muted.copy(alpha=.5f);val stroke=1.7.dp.toPx();val s=size.width/24f
@@ -619,6 +630,21 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
         }
     }
+    if(longClick==null){
+        IconButton(onClick=click,enabled=enabled,interactionSource=interaction,modifier=Modifier.size(48.dp).drawBehind {
+            if(glyph=="play"||glyph=="pause")drawCircle(Brush.verticalGradient(listOf(highlight,accent.copy(alpha=if(pressed).10f else .025f))),radius=20.dp.toPx()*scale)
+        }.semantics {contentDescription=label}) {content()}
+    }else{
+        val haptic=LocalHapticFeedback.current
+        val configuration=androidx.compose.ui.platform.LocalViewConfiguration.current
+        val longConfiguration=remember(configuration){object: androidx.compose.ui.platform.ViewConfiguration by configuration {override val longPressTimeoutMillis=450L}}
+        val longAction={haptic.performHapticFeedback(HapticFeedbackType.LongPress);longClick()}
+        CompositionLocalProvider(androidx.compose.ui.platform.LocalViewConfiguration provides longConfiguration){
+            Box(Modifier.size(48.dp).combinedClickable(interactionSource=interaction,indication=null,role=Role.Button,
+                onClick={if(enabled)click()},onLongClickLabel=longLabel,onLongClick=longAction,hapticFeedbackEnabled=false)
+                .semantics {contentDescription=label;customActions=listOf(CustomAccessibilityAction(longLabel){longAction();true})},contentAlignment=Alignment.Center){content()}
+        }
+    }
 }
 
 @Composable private fun LoopSetting(model: PracticeModel) {
@@ -627,7 +653,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         Row(Modifier.fillMaxWidth().heightIn(min=56.dp).testTag("loop-setting")
             .clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={expanded=!expanded})
             .semantics {stateDescription=model.loopMode.label},verticalAlignment=Alignment.CenterVertically) {
-            Text("循环",fontSize=15.sp,modifier=Modifier.weight(1f))
+            Text("循环范围",fontSize=15.sp,modifier=Modifier.weight(1f))
             Text(model.loopMode.label,fontSize=14.sp,color=Accent);Text("  ›",color=Muted)
         }
         AnimatedVisibility(expanded,enter=if(LocalReduced.current)EnterTransition.None else expandVertically(spring(1f,600f))+fadeIn(tween(120)),exit=if(LocalReduced.current)ExitTransition.None else shrinkVertically(tween(160))+fadeOut(tween(100))) {

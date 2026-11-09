@@ -72,7 +72,8 @@ class NativePracticeTest {
   rule.mainClock.advanceTimeBy(32)
   rule.mainClock.autoAdvance=true
   rule.runOnIdle {assertTrue(model.playback.paused);assertFalse(model.translation)}
-  rule.onNodeWithContentDescription("上一句").assertIsNotEnabled()
+  rule.onNodeWithContentDescription("上一句").performClick()
+  rule.runOnIdle {assertEquals(0,model.playback.selected)}
   val target=rule.onNodeWithContentDescription("播放").fetchSemanticsNode().boundsInRoot
   val density=rule.activity.resources.displayMetrics.density
   assertTrue(target.width/density>=47.9f);assertTrue(target.height/density>=47.9f)

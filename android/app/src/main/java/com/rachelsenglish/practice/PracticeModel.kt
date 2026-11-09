@@ -10,6 +10,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.PlaybackException
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -22,9 +24,22 @@ data class Playback(val selected: Int=0,val running: Boolean=false,val paused: B
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PracticeModel(application: Application): AndroidViewModel(application) {
     val repository=CourseRepository(application)
+    internal var courseOpener: suspend (Course)->OpenLesson=repository::open
     private val prefs=application.getSharedPreferences("practice-native",0)
     var courses by mutableStateOf(repository.courses);private set
     var opened by mutableStateOf<OpenLesson?>(null,referentialEqualityPolicy());private set
+    private var readingVisible by mutableStateOf(false)
+    val readingLesson: OpenLesson? get()=opened.takeIf {readingVisible}
+    var readingSessionId=0L;private set
+    var inlineCourseId by mutableStateOf<String?>(null);private set
+    var courseChanging by mutableStateOf(false);private set
+    private var courseSwitchJob: Job?=null
+    private var courseSwitchToken=0
+    private var switchingAutomatically=false
+    private var playbackCourses by mutableStateOf(emptyList<Course>())
+    private val unavailableCourses=mutableSetOf<String>()
+    private var prefetchedCourse: Course?=null
+    private var prefetchJob: Deferred<Result<OpenLesson>>?=null
     var loadingId by mutableStateOf<String?>(null);private set
     var syncing by mutableStateOf(false);private set
     var message by mutableStateOf<String?>(null);private set
@@ -177,7 +192,10 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         viewModelScope.launch {var ticks=0;while(true){delay(500);sampleStudy();if(++ticks%20==0)flushStudy()}}
         player.addListener(object: Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {if(state==Player.STATE_ENDED&&playback.running&&!playback.waiting){if(continuousActive)finishContinuous() else enterWait()}}
-            override fun onPlayerError(error: PlaybackException) {stop();notify("音频播放失败，请重新打开课程。",true)}
+            override fun onPlayerError(error: PlaybackException) {
+                if(loopMode==PracticeLoop.ALL_COURSES){opened?.course?.id?.let {unavailableCourses.add(it)};changeCourse(1,true)}
+                else {stop();notify("音频播放失败，请重新打开课程。",true)}
+            }
             override fun onPlayWhenReadyChanged(ready: Boolean,reason: Int) {
                 if(!ready&&(reason==Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS||reason==Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY)&&playback.running)pause()
             }
@@ -205,22 +223,84 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun sync(explicit: Boolean=true,quietSuccess: Boolean=false){if(syncing)return;syncing=true;viewModelScope.launch {
         try {val previous=courses;val next=repository.sync();courses=next;if(explicit&&!quietSuccess)notify(if(next==previous)"已是最新" else "已更新课程")}catch(e: Exception){if(explicit)notify("同步失败，已缓存课程仍可使用。",true)}finally{syncing=false}
     }}
-    fun open(course: Course){val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
-        try {val result=repository.open(course);stop();queue=emptyList();index=0;refreshTimeline();opened=result;drill=false;feedback.reset()
-            artworkJob?.cancel();mediaArtwork=null
-            artworkJob=viewModelScope.launch {
-                val bytes=repository.mediaArtwork(result.course)
-                if(opened===result){mediaArtwork=bytes;mediaChanged?.invoke()}
-            }
+    private fun cancelCourseSwitch(){courseSwitchToken++;courseSwitchJob?.cancel();courseSwitchJob=null;courseChanging=false;switchingAutomatically=false}
+    private fun cancelPrefetch(){prefetchJob?.cancel();prefetchJob=null;prefetchedCourse=null}
+    private fun setArtwork(result: OpenLesson){
+        artworkJob?.cancel();mediaArtwork=null
+        artworkJob=viewModelScope.launch {
+            val bytes=repository.mediaArtwork(result.course)
+            if(opened===result){mediaArtwork=bytes;mediaChanged?.invoke()}
+        }
+    }
+    fun open(course: Course){cancelCourseSwitch();val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
+        try {val result=courseOpener(course);if(token!=openToken)return@launch
+            stopPlayback();queue=emptyList();index=0;refreshTimeline();opened=result;readingVisible=true;readingSessionId++;inlineCourseId=null;if(loopMode!=PracticeLoop.ALL_COURSES)drill=false;feedback.reset()
+            setArtwork(result)
             playback=Playback(selected=prefs.getInt("position.${course.id}",0).coerceIn(result.lesson.groups.indices))
             if(result.offlineFallback)notify("已打开本地课程")
         }catch(e: kotlinx.coroutines.CancellationException){throw e}catch(e: Exception){notify("课程下载失败，请稍后重试。",true)}finally{if(token==openToken)loadingId=null}
     }}
-    fun back(){openToken++;openJob?.cancel();loadingId=null;stop();opened=null;artworkJob?.cancel();mediaArtwork=null;mediaChanged?.invoke()}
-    // A visual return may finish after the user has already requested another course.
-    // Close only its original session, without cancelling the new loading job.
-    fun finishBack(origin: OpenLesson?){if(opened===origin){stop();opened=null;artworkJob?.cancel();mediaArtwork=null;mediaChanged?.invoke()}}
-    fun updateDrill(value: Boolean){if(drill==value)return;val resume=playback.running;val paused=playback.paused;stop();drill=value;mediaChanged?.invoke();playback=playback.copy(progress=0f);if(resume){start();if(paused)pause()}}
+    fun back(){openToken++;openJob?.cancel();loadingId=null;stop();readingVisible=false;readingSessionId++;inlineCourseId=null;opened=null;artworkJob?.cancel();mediaArtwork=null;mediaChanged?.invoke()}
+    fun leaveReading(){
+        if(loopMode==PracticeLoop.ALL_COURSES&&opened!=null){readingVisible=false;readingSessionId++;inlineCourseId=null}
+        else back()
+    }
+    fun finishBack(origin: OpenLesson?){if(opened===origin)leaveReading()}
+    fun finishReadingBack(session: Long){if(session==readingSessionId)leaveReading()}
+    private fun navigationCourses(): List<Course> =if(loopMode==PracticeLoop.ALL_COURSES&&playbackCourses.isNotEmpty())playbackCourses else courses
+    fun canChangeCourse(direction: Int): Boolean {
+        val id=opened?.course?.id?:return false
+        val entries=navigationCourses();val at=entries.indexOfFirst {it.id==id}
+        return at>=0&&(if(loopMode==PracticeLoop.ALL_COURSES)entries.isNotEmpty() else if(direction>0)at<entries.lastIndex else at>0)
+    }
+    private fun capturePlaybackCourses(){playbackCourses=courses.toList();unavailableCourses.clear();cancelPrefetch()}
+    private fun prepareNextCourse(){
+        if(loopMode!=PracticeLoop.ALL_COURSES||opened==null)return
+        val entries=navigationCourses();val id=courseNavigationOrder(entries.map {it.id},opened!!.course.id,1,true).firstOrNull {it !in unavailableCourses}?:return
+        val next=entries.first {it.id==id}
+        if(prefetchedCourse==next&&prefetchJob!=null)return
+        cancelPrefetch();prefetchedCourse=next
+        prefetchJob=viewModelScope.async {
+            try {Result.success(courseOpener(next))}
+            catch(e: kotlinx.coroutines.CancellationException){throw e}
+            catch(e: Exception){Result.failure(e)}
+        }
+    }
+    fun changeCourse(direction: Int,automatic: Boolean=false){
+        val origin=opened?:return
+        if(automatic&&courseChanging)return
+        if(loopMode==PracticeLoop.ALL_COURSES&&playbackCourses.none {it.id==origin.course.id})capturePlaybackCourses()
+        val entries=navigationCourses().toList()
+        val candidates=courseNavigationOrder(entries.map {it.id},origin.course.id,direction,loopMode==PracticeLoop.ALL_COURSES)
+            .filter {it !in unavailableCourses}.map {id->entries.first {it.id==id}}
+        if(candidates.isEmpty()){
+            if(automatic){stop();notify("暂无可播放课程，请检查网络后重试。",true)}
+            return
+        }
+        cancelCourseSwitch();openToken++;openJob?.cancel();loadingId=null
+        val token=++courseSwitchToken;courseChanging=true;switchingAutomatically=automatic
+        courseSwitchJob=viewModelScope.launch {
+            var skipped=unavailableCourses.isNotEmpty()
+            try {
+                for(course in candidates){
+                    val result=try {
+                        if(prefetchedCourse==course&&prefetchJob!=null)prefetchJob!!.await().getOrThrow() else courseOpener(course)
+                    }catch(e: kotlinx.coroutines.CancellationException){throw e}
+                    catch(e: Exception){unavailableCourses.add(course.id);skipped=true;continue}
+                    if(token!=courseSwitchToken)return@launch
+                    val play=playback.running&&!playback.paused
+                    stopPlayback();queue=emptyList();index=0;opened=result;inlineCourseId=if(readingVisible)course.id else null
+                    setArtwork(result);playback=Playback();courseChanging=false;switchingAutomatically=false
+                    start(0,playWhenReady=play,resetFailures=false)
+                    if(skipped)notify("部分课程暂不可用，已跳过")
+                    return@launch
+                }
+                if(automatic)stopPlayback()
+                notify("暂时无法切换课程，请检查网络后重试。",true)
+            }finally{if(token==courseSwitchToken){courseChanging=false;switchingAutomatically=false;courseSwitchJob=null}}
+        }
+    }
+    fun updateDrill(value: Boolean){if(drill==value)return;val resume=playback.running;val paused=playback.paused;stopPlayback();drill=value;mediaChanged?.invoke();playback=playback.copy(progress=0f);if(resume){start();if(paused)pause()}}
     fun updateRepeatCount(value: Int){
         val count=value.coerceIn(2,5);if(count==repeatCount)return
         sampleStudy();repeatCount=count;prefs.edit().putInt("repeats",count).apply()
@@ -239,7 +319,10 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         if(mode==loopMode)return
         val wasContinuous=continuousActive
         val source=currentSource();val paused=playback.paused
-        sampleStudy();loopMode=mode;prefs.edit().putString("loop-mode",mode.name).apply()
+        sampleStudy()
+        if(mode!=PracticeLoop.ALL_COURSES){cancelPrefetch();if(switchingAutomatically)stop()}
+        else capturePlaybackCourses()
+        loopMode=mode;prefs.edit().putString("loop-mode",mode.name).apply()
         val shouldContinuous=canUseContinuous()
         if(playback.running&&wasContinuous!=shouldContinuous){restartAtSource(source,paused);return}
         if(mode==PracticeLoop.LESSON&&playAll&&opened!=null&&queue.isNotEmpty()){
@@ -248,7 +331,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             index=if(ended)updated.size else updated.indexOfFirst {it.group==current?.group&&it.repeat==current?.repeat&&it.file==current?.file}.coerceAtLeast(0)
             queue=updated;taskStart=0
         }
-        refreshTimeline()
+        refreshTimeline();prepareNextCourse()
     }
     private fun canUseContinuous()=!drill&&!shadow&&playAll&&loopMode!=PracticeLoop.SENTENCE&&opened?.lesson?.continuous!=null
     private fun currentSource(): Double {
@@ -277,15 +360,23 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         if(playback.running&&continuousActive!=canUseContinuous())restartAtSource(source,paused) else refreshTimeline()
     }
     fun updateGap(v: Float){sampleStudy();gap=v;prefs.edit().putFloat("gap",v).apply();refreshTimeline()}
-    fun start(selected: Int=playback.selected,all: Boolean=true){val data=opened?:return;stop();mediaTaskId++;playAll=all;taskStart=if(loopMode==PracticeLoop.LESSON&&all)0 else selected;continuousActive=canUseContinuous();queue=makeQueue(data.lesson,taskStart);index=queue.indexOfFirst {it.group==selected}.coerceAtLeast(0);refreshTimeline();if(queue.isNotEmpty()){ensurePlaybackService();checkListening();begin()}}
+    fun start(selected: Int=playback.selected,all: Boolean=true,playWhenReady: Boolean=true,resetFailures: Boolean=true){
+        val data=opened?:return
+        if(resetFailures){cancelCourseSwitch();unavailableCourses.clear()}
+        if(loopMode==PracticeLoop.ALL_COURSES&&playbackCourses.none {it.id==data.course.id})capturePlaybackCourses()
+        stopPlayback();mediaTaskId++;playAll=all;taskStart=if(loopMode==PracticeLoop.LESSON&&all)0 else selected
+        continuousActive=canUseContinuous();queue=makeQueue(data.lesson,taskStart);index=queue.indexOfFirst {it.group==selected}.coerceAtLeast(0);refreshTimeline()
+        if(queue.isNotEmpty()){if(playWhenReady){ensurePlaybackService();checkListening()};begin(!playWhenReady);prepareNextCourse()}
+    }
     fun previous(){start((playback.selected-1).coerceAtLeast(0))}
     fun next(){val last=opened?.lesson?.groups?.lastIndex?:return;start((playback.selected+1).coerceAtMost(last))}
-    fun toggle(){when{!playback.running->start();playback.paused->{sampleStudy();studyMeter.reset(player.currentPosition);studyWaitRemaining=playback.waitSeconds;checkListening();ensurePlaybackService();playback=playback.copy(paused=false);if(playback.waiting)scheduleWait() else playAudio()};else->pause()}}
+    fun toggle(){if(courseChanging){val playing=playback.running&&!playback.paused;playback=playback.copy(running=true,paused=playing);return};when{!playback.running->start();playback.paused->{sampleStudy();studyMeter.reset(player.currentPosition);studyWaitRemaining=playback.waitSeconds;checkListening();ensurePlaybackService();playback=playback.copy(paused=false);if(playback.waiting)scheduleWait() else playAudio()};else->pause()}}
     fun pause(){sampleStudy();flushStudy();syncStudy();audioStartToken++;if(playback.running&&!playback.paused){
         val remaining=if(playback.waiting)waitClock.remaining(android.os.SystemClock.elapsedRealtime()) else playback.waitSeconds
         playback=playback.copy(paused=true,waitSeconds=remaining);releaseWaitLock();player.pause()
     }}
-    fun stop(){sampleStudy();flushStudy();syncStudy();studyMeter.reset();studyWaitRemaining=null;audioStartToken++;releaseWaitLock();playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0,taskProgress=null);player.stop()}
+    fun stop(){cancelCourseSwitch();cancelPrefetch();stopPlayback()}
+    private fun stopPlayback(){sampleStudy();flushStudy();syncStudy();studyMeter.reset();studyWaitRemaining=null;audioStartToken++;releaseWaitLock();playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0,taskProgress=null);player.stop()}
     fun seekMedia(positionMs: Long){
         if(queue.isEmpty()||opened==null||mediaTimeline.clipCount==0)return
         sampleStudy();studyMeter.reset();studyWaitRemaining=null
@@ -296,6 +387,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         val point=if(positionMs>=mediaDurationMs)TaskPoint(mediaTimeline.clipCount,0.0,0.0,false)
             else mediaTimeline.locate(positionMs.coerceAtLeast(0)/1000.0)
         if(point.index>=mediaTimeline.clipCount){
+            if(loopMode==PracticeLoop.ALL_COURSES){changeCourse(1,true);return}
             if(anyLoop){seekMedia(0);return}
             index=queue.size;stop();playback=playback.copy(selected=queue.last().group,progress=1f,taskProgress=if(timeline.spansSentences)1f else null);mediaChanged?.invoke();return
         }
@@ -315,8 +407,8 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         if(paused)pause() else if(point.waiting){player.pause();scheduleWait()}
         mediaChanged?.invoke()
     }
-    private fun begin(){studyMeter.reset(0);studyWaitRemaining=null;releaseWaitLock();val data=opened?:return;val clip=queue.getOrNull(index)?:return
-        playback=Playback(clip.group,true,false,0f,-1.0,if(drill)clip.repeat else 0,clip.total,whole=clip.whole,taskProgress=taskProgress(0f))
+    private fun begin(paused: Boolean=false){studyMeter.reset(0);studyWaitRemaining=null;releaseWaitLock();val data=opened?:return;val clip=queue.getOrNull(index)?:return
+        playback=Playback(clip.group,true,paused,0f,-1.0,if(drill)clip.repeat else 0,clip.total,whole=clip.whole,taskProgress=taskProgress(0f))
         prefs.edit().putInt("position.${data.course.id}",clip.group).apply()
         if(continuousActive){
             val audio=data.lesson.continuous!!;val position=((clip.sourceStart-audio.sourceStart)*1000).toLong()
@@ -325,7 +417,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             else {audioLoadCount++;player.setMediaItem(MediaItem.Builder().setMediaId(id).setUri(repository.audio(data,audio.audioFile)).build(),position);player.prepare()}
             studyMeter.reset(position);updateContinuousPosition(position)
         }else {audioLoadCount++;player.setMediaItem(MediaItem.fromUri(repository.audio(data,clip.file)));player.prepare()}
-        playAudio()
+        if(paused)player.pause() else playAudio()
     }
     private fun updateContinuousPosition(positionMs: Long){
         val audio=opened?.lesson?.continuous?:return
@@ -339,6 +431,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     private fun finishContinuous(){
         sampleStudy()
         if(loopMode==PracticeLoop.LESSON){mediaDiscontinuity++;index=0;begin()}
+        else if(loopMode==PracticeLoop.ALL_COURSES){changeCourse(1,true)}
         else {index=queue.size;stop();playback=playback.copy(selected=queue.last().group,progress=1f,taskProgress=if(timeline.spansSentences)1f else null)}
     }
     private fun seekContinuous(positionMs: Long){
@@ -366,6 +459,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     }
     private fun advance(){
         sampleStudy();val previous=index;index=nextClipIndex(queue,index,loopMode);if(index<=previous)mediaDiscontinuity++;if(index<queue.size){begin();return}
+        if(loopMode==PracticeLoop.ALL_COURSES){changeCourse(1,true);return}
         stop();playback=playback.copy(progress=1f,taskProgress=if(!loop&&timeline.spansSentences)1f else null)
     }
     private fun taskProgress(clipProgress: Float,waitLeft: Float?=null): Float? {
