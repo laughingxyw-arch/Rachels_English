@@ -12,6 +12,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -104,6 +106,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     private var continuousActive=false
     internal var audioLoadCount=0;private set
     internal val usesContinuousAudio: Boolean get()=continuousActive
+    internal val isAudioPlaying: Boolean get()=player.isPlaying
     private fun makeQueue(lesson: Lesson,start: Int)=if(continuousActive)continuousQueue(lesson,start) else practiceQueue(lesson,start,drill,playAll,repeatCount)
     private var queue=emptyList<Clip>();private var index=0;private var playAll=true;private var openJob: Job?=null;private var openToken=0
     private var taskStart=0
@@ -161,7 +164,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         studySampleAt=now;studySampleWall=wall
         val data=opened;val clip=queue.getOrNull(index);val p=playback
         var audio=0L;var follow=0L
-        if(studyReady&&data!=null&&clip!=null&&p.running&&!p.paused){
+        if(studyReady&&data!=null&&clip!=null&&p.running&&!p.paused&&!courseChanging){
             if(p.waiting){
                 val remaining=waitClock.remaining(now)
                 studyWaitRemaining?.let {before->if(shadow)follow=minOf(elapsed,((before-remaining).coerceAtLeast(0f)*1000).toLong())}
@@ -204,7 +207,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         viewModelScope.launch {
             while(true){delay(if(foreground)32 else 100);val now=android.os.SystemClock.elapsedRealtime()
                 val state=playback
-                if(state.running&&!state.paused){
+                if(state.running&&!state.paused&&!courseChanging){
                     if(state.waiting){val left=waitClock.remaining(now);if(left<=0)advance() else playback=state.copy(waitSeconds=left,taskProgress=taskProgress(1f,left))}
                     else if(player.isPlaying&&continuousActive)updateContinuousPosition(player.currentPosition)
                     else if(player.isPlaying){queue.getOrNull(index)?.let { clip ->
@@ -237,7 +240,8 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         if(opened?.course?.id==course.id&&!readingVisible&&playback.running&&!courseChanging){
             openToken++;openJob?.cancel();loadingId=null;readingVisible=true;readingSessionId++;inlineCourseId=null;return
         }
-        cancelCourseSwitch();val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
+        val wasChanging=courseChanging;cancelCourseSwitch();if(wasChanging)stopPlayback()
+        val token=++openToken;openJob?.cancel();loadingId=course.id;openJob=viewModelScope.launch {
         try {val result=courseOpener(course);if(token!=openToken)return@launch
             stopPlayback();queue=emptyList();index=0;refreshTimeline();opened=result;readingVisible=true;readingSessionId++;inlineCourseId=null;if(loopMode!=PracticeLoop.ALL_COURSES)drill=false;feedback.reset()
             setArtwork(result)
@@ -294,28 +298,40 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             return
         }
         cancelCourseSwitch();openToken++;openJob?.cancel();loadingId=null
-        val token=++courseSwitchToken;courseChanging=true;switchingAutomatically=automatic
+        sampleStudy();audioStartToken++
+        if(playback.waiting)playback=playback.copy(waitSeconds=waitClock.remaining(android.os.SystemClock.elapsedRealtime()))
+        releaseWaitLock();player.pause()
+        val token=++courseSwitchToken;courseChanging=true;switchingAutomatically=automatic;mediaChanged?.invoke()
+        if(playback.running&&!playback.paused)waitLock.acquire(120_000)
         courseSwitchJob=viewModelScope.launch {
             var skipped=unavailableCourses.isNotEmpty()
             try {
-                for(course in candidates){
-                    val result=try {
-                        if(prefetchedCourse==course&&prefetchJob!=null)prefetchJob!!.await().getOrThrow() else courseOpener(course)
-                    }catch(e: kotlinx.coroutines.CancellationException){throw e}
-                    catch(e: Exception){unavailableCourses.add(course.id);skipped=true;continue}
-                    if(token!=courseSwitchToken)return@launch
-                    val play=playback.running&&!playback.paused
-                    stopPlayback();queue=emptyList();index=0;opened=result;inlineCourseId=if(readingVisible)course.id else null
-                    setArtwork(result);playback=Playback();courseChanging=false;switchingAutomatically=false
-                    start(0,playWhenReady=play,resetFailures=false)
-                    if(skipped&&!unavailableNoticeShown){unavailableNoticeShown=true;notify("部分课程暂不可用，已跳过")}
-                    return@launch
+                // One minute for the complete traversal, rather than a fresh
+                // network timeout for every course in a large offline library.
+                val result=withTimeout(60_000){
+                    var available: OpenLesson?=null
+                    for(course in candidates){
+                        available=try {
+                            if(prefetchedCourse==course&&prefetchJob!=null)prefetchJob!!.await().getOrThrow() else courseOpener(course)
+                        }catch(e: kotlinx.coroutines.CancellationException){throw e}
+                        catch(e: Exception){unavailableCourses.add(course.id);skipped=true;continue}
+                        break
+                    }
+                    available
                 }
-                if(automatic)stopPlayback()
-                notify("暂时无法切换课程，请检查网络后重试。",true)
-            }finally{if(token==courseSwitchToken){courseChanging=false;switchingAutomatically=false;courseSwitchJob=null}}
+                if(token!=courseSwitchToken)return@launch
+                if(result==null){stopPlayback();notify("暂时无法切换课程，请检查网络后重试。",true);return@launch}
+                val play=playback.running&&!playback.paused
+                stopPlayback();queue=emptyList();index=0;opened=result;inlineCourseId=if(readingVisible)result.course.id else null
+                setArtwork(result);playback=Playback();courseChanging=false;switchingAutomatically=false
+                start(0,playWhenReady=play,resetFailures=false)
+                if(skipped&&!unavailableNoticeShown){unavailableNoticeShown=true;notify("部分课程暂不可用，已跳过")}
+            }catch(e: TimeoutCancellationException){
+                if(token==courseSwitchToken){stopPlayback();cancelPrefetch();notify("暂时无法切换课程，请检查网络后重试。",true)}
+            }finally{if(token==courseSwitchToken){releaseWaitLock();courseChanging=false;switchingAutomatically=false;courseSwitchJob=null}}
         }
     }
+
     fun updateDrill(value: Boolean){if(drill==value)return;val resume=playback.running;val paused=playback.paused;stopPlayback();drill=value;mediaChanged?.invoke();playback=playback.copy(progress=0f);if(resume){start();if(paused)pause()}}
     fun updateRepeatCount(value: Int){
         val count=value.coerceIn(2,5);if(count==repeatCount)return
@@ -386,9 +402,9 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     }
     fun previous(){start((playback.selected-1).coerceAtLeast(0))}
     fun next(){val last=opened?.lesson?.groups?.lastIndex?:return;start((playback.selected+1).coerceAtMost(last))}
-    fun toggle(){if(courseChanging){val playing=playback.running&&!playback.paused;playback=playback.copy(running=true,paused=playing);return};when{!playback.running->start();playback.paused->{sampleStudy();studyMeter.reset(player.currentPosition);studyWaitRemaining=playback.waitSeconds;checkListening();ensurePlaybackService();playback=playback.copy(paused=false);if(playback.waiting)scheduleWait() else playAudio()};else->pause()}}
+    fun toggle(){if(courseChanging){val playing=playback.running&&!playback.paused;playback=playback.copy(running=true,paused=playing);if(playing)releaseWaitLock() else {ensurePlaybackService();if(!waitLock.isHeld)waitLock.acquire(120_000)};return};when{!playback.running->start();playback.paused->{sampleStudy();studyMeter.reset(player.currentPosition);studyWaitRemaining=playback.waitSeconds;checkListening();ensurePlaybackService();playback=playback.copy(paused=false);if(playback.waiting)scheduleWait() else playAudio()};else->pause()}}
     fun pause(){sampleStudy();flushStudy();syncStudy();audioStartToken++;if(playback.running&&!playback.paused){
-        val remaining=if(playback.waiting)waitClock.remaining(android.os.SystemClock.elapsedRealtime()) else playback.waitSeconds
+        val remaining=if(playback.waiting&&!courseChanging)waitClock.remaining(android.os.SystemClock.elapsedRealtime()) else playback.waitSeconds
         playback=playback.copy(paused=true,waitSeconds=remaining);releaseWaitLock();player.pause()
     }}
     fun stop(){cancelCourseSwitch();cancelPrefetch();stopPlayback()}

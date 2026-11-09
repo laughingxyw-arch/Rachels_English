@@ -51,8 +51,10 @@ class CoursePlaybackInstrumentedTest {
    val gate=CompletableDeferred<OpenLesson>()
    val fixture=model.opened!!.copy(course=next)
    rule.runOnUiThread {
-    model.courseOpener={gate.await()};model.updateLoopMode(PracticeLoop.ALL_COURSES);model.start(0);model.changeCourse(1);model.pause()
+    model.courseOpener={gate.await()};model.updateLoopMode(PracticeLoop.ALL_COURSES);model.start(0);model.changeCourse(1);model.toggle()
    }
+   Thread.sleep(250)
+   rule.runOnUiThread {assertFalse("Pending course changes must not leave the old audio playing",model.isAudioPlaying)}
    gate.complete(fixture)
    rule.waitUntil(15000){model.opened?.course?.id==next.id&&!model.courseChanging}
    rule.runOnUiThread {assertTrue(model.playback.paused);assertEquals(0,model.playback.selected);model.stop();model.updateLoopMode(PracticeLoop.OFF)}

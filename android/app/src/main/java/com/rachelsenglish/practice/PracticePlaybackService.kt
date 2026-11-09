@@ -77,7 +77,7 @@ private class PracticeSessionPlayer(private val model: PracticeModel,private val
         if(p.selected<(data?.lesson?.groups?.lastIndex?:0))commands.addAll(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,Player.COMMAND_SEEK_TO_NEXT)
         val state=State.Builder().setAvailableCommands(commands.build())
             .setPlaylist(playlist).setCurrentMediaItemIndex(0)
-            .setPlaybackState(if(p.running&&playlist.isNotEmpty())Player.STATE_READY else if(model.mediaEnded&&playlist.isNotEmpty())Player.STATE_ENDED else Player.STATE_IDLE)
+            .setPlaybackState(if(p.running&&playlist.isNotEmpty()){if(model.courseChanging)Player.STATE_BUFFERING else Player.STATE_READY} else if(model.mediaEnded&&playlist.isNotEmpty())Player.STATE_ENDED else Player.STATE_IDLE)
             .setPlayWhenReady(p.running&&!p.paused,Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
             .setContentPositionMs {model.mediaPositionMs}
         if(lastDiscontinuity!=model.mediaDiscontinuity){lastDiscontinuity=model.mediaDiscontinuity;state.setPositionDiscontinuity(Player.DISCONTINUITY_REASON_AUTO_TRANSITION,model.mediaPositionMs)}
