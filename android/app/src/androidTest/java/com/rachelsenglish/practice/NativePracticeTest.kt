@@ -52,7 +52,10 @@ class NativePracticeTest {
  @get:Rule val rule=createAndroidComposeRule<MainActivity>()
  @Test fun longPressChangesCourseWithoutMovingTheTransportOrStartingPausedAudio(){
   val model=(rule.activity.application as PracticeApplication).model
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  fun scale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
   try {
+   scale("1");rule.activityRule.scenario.recreate()
    showCourse("epfQlb_Tgco");rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
    rule.waitUntil(15000){model.opened?.course?.id=="epfQlb_Tgco"}
    rule.runOnUiThread {model.updateLoopMode(PracticeLoop.ALL_COURSES);model.updateDrill(true);model.updateRepeatCount(2);model.start(model.opened!!.lesson.groups.lastIndex,playWhenReady=false)}
@@ -70,7 +73,7 @@ class NativePracticeTest {
    rule.onNodeWithContentDescription("练习设置").performClick();rule.onNodeWithTag("loop-setting").performClick()
    rule.onNodeWithTag("loop-ALL_COURSES").assertExists()
    screenshot("playlist-loop-options")
-  }finally{rule.runOnUiThread {model.back();model.updateLoopMode(PracticeLoop.OFF);model.updateRepeatCount(3)}}
+  }finally{rule.runOnUiThread {model.back();model.updateLoopMode(PracticeLoop.OFF);model.updateRepeatCount(3)};scale("0")}
  }
  @Test fun bundledLessonPlaysAndSettingsRemainNative(){
   val icon=rule.activity.packageManager.getApplicationIcon(rule.activity.applicationInfo)
@@ -603,7 +606,11 @@ class NativePracticeTest {
      }
     }
     assertTrue("The return must reach its visual handoff",touched)
-    rule.waitUntil(3000){model.loadingId==target||model.opened?.course?.id==target&&model.opened!==origin}
+    try {rule.waitUntil(3000){model.loadingId==target||model.opened?.course?.id==target&&model.opened!==origin}}
+    catch(e: androidx.compose.ui.test.ComposeTimeoutException){
+     screenshot("home-touch-failed-${gesture}-${target}")
+     throw AssertionError("gesture=$gesture target=$target current=${model.opened?.course?.id} loading=${model.loadingId} reading=${model.readingLesson?.course?.id} bounds=$restingTarget",e)
+    }
     repeat(90){frame()}
     assertEquals("A tap at handoff must reopen the requested course",target,model.opened?.course?.id)
     assertNotSame("The old return must not retain or close the new session",origin,model.opened)

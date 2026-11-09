@@ -20,6 +20,12 @@ class CoursePlaybackInstrumentedTest {
   try {
    openTower();rule.mainClock.autoAdvance=false
    val entries=model.courses.toList();val at=entries.indexOfFirst {it.id=="epfQlb_Tgco"};val next=entries[(at+1)%entries.size]
+   val localFixture=model.opened!!
+   rule.runOnUiThread {model.courseOpener={course->
+    // Playlist traversal uses local real audio; remote-package parsing and AAC
+    // decoding are verified separately, without depending on CI download speed.
+    if(course.id in setOf("epfQlb_Tgco","4dXbgvm4_7g"))model.repository.open(course) else localFixture.copy(course=course)
+   }}
    rule.runOnUiThread {model.updateLoopMode(PracticeLoop.ALL_COURSES);model.start(model.opened!!.lesson.groups.lastIndex)}
    rule.waitUntil(10000){model.playback.progress>0f}
    rule.runOnUiThread {model.leaveReading();assertNull(model.readingLesson);assertTrue(model.playback.running)}

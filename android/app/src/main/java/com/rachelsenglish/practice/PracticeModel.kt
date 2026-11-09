@@ -279,7 +279,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         if(prefetchedCourse==next&&prefetchJob!=null)return
         cancelPrefetch();prefetchedCourse=next
         prefetchJob=viewModelScope.async {
-            try {Result.success(courseOpener(next))}
+            try {val result=courseOpener(next);repository.cover(next);Result.success(result)}
             catch(e: kotlinx.coroutines.CancellationException){throw e}
             catch(e: Exception){Result.failure(e)}
         }
@@ -314,7 +314,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
                         available=try {
                             if(prefetchedCourse==course&&prefetchJob!=null)prefetchJob!!.await().getOrThrow() else courseOpener(course)
                         }catch(e: kotlinx.coroutines.CancellationException){throw e}
-                        catch(e: Exception){unavailableCourses.add(course.id);skipped=true;continue}
+                        catch(e: Exception){android.util.Log.w("CoursePlayback","Course unavailable: ${course.id}",e);unavailableCourses.add(course.id);skipped=true;continue}
                         break
                     }
                     available
@@ -513,7 +513,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             waitTotal=clipWaitSeconds(queue,index,drill,shadow,gap,anyLoop).toFloat()
             playback=playback.copy(waitSeconds=waitTotal*(1f-elapsedRatio.coerceIn(0f,1f)))
             studyWaitRemaining=playback.waitSeconds
-            if(!playback.paused)scheduleWait()
+            if(!playback.paused&&!courseChanging)scheduleWait()
         }
         playback=playback.copy(taskProgress=taskProgress(playback.progress,if(playback.waiting)playback.waitSeconds else null))
     }

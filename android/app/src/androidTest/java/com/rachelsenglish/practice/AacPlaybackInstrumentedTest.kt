@@ -10,6 +10,15 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 class AacPlaybackInstrumentedTest {
+ @Test fun publishedAacCourseParsesWithNativeLessonReader(){
+  val context=InstrumentationRegistry.getInstrumentation().context
+  val raw=context.assets.open("playlist-aac-lesson.json").bufferedReader().use {it.readText()}
+  val lesson=Lesson.parse(raw)
+  assertEquals(65,lesson.groups.size);assertEquals(99,lesson.drill.size)
+  assertNotNull(lesson.continuous);assertTrue(lesson.continuous!!.audioFile.endsWith(".m4a"))
+  assertTrue(lesson.groups.all {it.audioFile.endsWith(".m4a")})
+ }
+
  @Test fun aacLessonSupportsPreparationSeekingAndPlayback() {
   val instrumentation=InstrumentationRegistry.getInstrumentation()
   val sample=java.io.File(instrumentation.targetContext.cacheDir,"aac-playback-sample.m4a")

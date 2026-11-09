@@ -116,7 +116,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         val next=model.readingLesson
         if(next!=null)gesture.snapTo(0f)
         // Course-to-course handoff stays inside the full-size reading surface.
-        if(reduced||navigation.currentState!=null&&next!=null)navigation.snapTo(next)
+        if(reduced||navigation.currentState!=null&&next!=null&&model.inlineCourseId==next.course.id)navigation.snapTo(next)
         else navigation.animateTo(next,animationSpec=progressSpring)
     }}
     LaunchedEffect(utilityPage,reduced,recordsSeeking) {
@@ -321,8 +321,8 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
         items(courses,key={it.id}) {course ->
             val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
-            val scale=animateFloatAsState(if(pressed).978f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="card-pressure")
-            Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale.value;scaleY=scale.value}.clip(RoundedCornerShape(18.dp)).background(Surface)
+            val scale by animateFloatAsState(if(pressed).978f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="card-pressure")
+            Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale;scaleY=scale}.clip(RoundedCornerShape(18.dp)).background(Surface)
                 .then(with(shared){Modifier.skipToLookaheadSize()})
                 .clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={model.open(course)})
                 .testTag("course-${course.id}").semantics {stateDescription="${course.seconds} 秒 · ${course.count} 句"}.fillMaxWidth().heightIn(min=88.dp).padding(vertical=8.dp),
@@ -611,7 +611,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val content: @Composable () -> Unit={
         Crossfade(glyph,animationSpec=if(LocalReduced.current)snap() else tween(100),label="control-symbol") {symbol ->
         Canvas(Modifier.size(21.dp).graphicsLayer {scaleX=scale.value;scaleY=scale.value}) {
-            val color=if(enabled)ink else muted.copy(alpha=.5f);val stroke=1.7.dp.toPx();val s=size.width/24f
+            val color=if(enabled||longClick!=null)ink else muted.copy(alpha=.5f);val stroke=1.7.dp.toPx();val s=size.width/24f
             fun line(x1: Float,y1: Float,x2: Float,y2: Float)=drawLine(color,Offset(x1*s,y1*s),Offset(x2*s,y2*s),stroke,StrokeCap.Round)
             fun path(vararg pts: Float,fill: Boolean=false){val p=Path();p.moveTo(pts[0]*s,pts[1]*s);var i=2;while(i<pts.size){p.lineTo(pts[i]*s,pts[i+1]*s);i+=2};if(fill)p.close();drawPath(p,color,style=if(fill)androidx.compose.ui.graphics.drawscope.Fill else Stroke(stroke,cap=StrokeCap.Round,join=StrokeJoin.Round))}
             when(symbol){
