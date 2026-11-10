@@ -197,7 +197,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 AnimatedVisibility(model.readingLesson!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp).then(if(utilityPage!=null)Modifier.clearAndSetSemantics {} else Modifier).graphicsLayer {alpha=if(seeking||model.opened==null)(1f-gesture.value).coerceIn(0f,1f) else 1f},
                     enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(1f,600f)){it/3},
                     exit=if(reduced)ExitTransition.None else fadeOut(tween(100))) {
-                    CompositionLocalProvider(LocalBackdropSource provides backdrop){Transport(model,{settings=true},Modifier.padding(horizontal=28.dp))}
+                    CompositionLocalProvider(LocalBackdropSource provides backdrop){Transport(model,{settings=true},Modifier.padding(horizontal=28.dp),interactive=transition.targetState!=null&&utilityPage==null)}
                 }
                 if(utilityPage!=null) {
                     Box(Modifier.fillMaxSize().captureBackdrop(recordsBackdrop).graphicsLayer {
@@ -447,7 +447,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
     }
 }
-@Composable private fun ModeRoller(drill: Boolean,onChange: (Boolean)->Unit) {
+@Composable private fun ModeRoller(drill: Boolean,onChange: (Boolean)->Unit,interactive: Boolean=true) {
     val reduced=LocalReduced.current
     val interaction=remember {MutableInteractionSource()}
     val pressed by interaction.collectIsPressedAsState()
@@ -462,7 +462,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val practice=remember(measurer,textStyle){measurer.measure(AnnotatedString("Drill"),style=textStyle)}
     val windowHeight=with(LocalDensity.current){maxOf(original.size.height,practice.size.height).toDp().coerceAtLeast(20.dp)}
     Box(Modifier.width(52.dp).heightIn(min=48.dp)
-        .clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={step++;onChange(!drill)})
+        .then(if(interactive)Modifier.clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={step++;onChange(!drill)}) else Modifier.clearAndSetSemantics {})
         .testTag("mode-toggle").semantics {contentDescription="切换播放模式";stateDescription=if(drill)"Drill" else "原句";this[ModeRollPositionKey]=roll.value},contentAlignment=Alignment.Center) {
         Canvas(Modifier.fillMaxWidth().height(windowHeight).clipToBounds().graphicsLayer {scaleX=pressure.value;scaleY=pressure.value}) {
             val position=roll.value
@@ -477,7 +477,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
     }
 }
-@Composable private fun Transport(model: PracticeModel,settings: ()->Unit,modifier: Modifier) {
+@Composable private fun Transport(model: PracticeModel,settings: ()->Unit,modifier: Modifier,interactive: Boolean=true) {
     val p=model.playback
     val previousCourse by remember(model){derivedStateOf {model.canChangeCourse(-1)}}
     val nextCourse by remember(model){derivedStateOf {model.canChangeCourse(1)}}
@@ -491,11 +491,11 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 drawRect(Brush.horizontalGradient(colors),size=androidx.compose.ui.geometry.Size(size.width*progress.value,size.height))
             }
             Row(Modifier.padding(6.dp,4.dp),verticalAlignment=Alignment.CenterVertically) {
-                GlyphButton("上一句","previous",model::previous,enabled=p.selected>0,longClick=if(previousCourse)({model.changeCourse(-1)}) else null,longLabel="上一课")
-                GlyphButton(if(p.running&&!p.paused)"暂停" else "播放",if(p.running&&!p.paused)"pause" else "play",model::toggle)
-                GlyphButton("下一句","next",model::next,enabled=p.selected<(model.opened?.lesson?.groups?.lastIndex?:0),longClick=if(nextCourse)({model.changeCourse(1)}) else null,longLabel="下一课")
-                ModeRoller(model.drill,model::updateDrill)
-                GlyphButton("练习设置","more",settings)
+                GlyphButton("上一句","previous",model::previous,enabled=p.selected>0,longClick=if(previousCourse)({model.changeCourse(-1)}) else null,longLabel="上一课",interactive=interactive)
+                GlyphButton(if(p.running&&!p.paused)"暂停" else "播放",if(p.running&&!p.paused)"pause" else "play",model::toggle,interactive=interactive)
+                GlyphButton("下一句","next",model::next,enabled=p.selected<(model.opened?.lesson?.groups?.lastIndex?:0),longClick=if(nextCourse)({model.changeCourse(1)}) else null,longLabel="下一课",interactive=interactive)
+                ModeRoller(model.drill,model::updateDrill,interactive)
+                GlyphButton("练习设置","more",settings,interactive=interactive)
             }
         }
         if(p.running&&p.waiting&&model.shadow)Text("跟读 · %.1f 秒".format(p.waitSeconds),fontSize=11.sp,color=Muted,modifier=Modifier.padding(top=5.dp))
@@ -603,7 +603,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
     }
 }
-@Composable internal fun GlyphButton(label: String,glyph: String,click: ()->Unit,enabled: Boolean=true,longClick: (() -> Unit)?=null,longLabel: String="") {
+@Composable internal fun GlyphButton(label: String,glyph: String,click: ()->Unit,enabled: Boolean=true,longClick: (() -> Unit)?=null,longLabel: String="",interactive: Boolean=true) {
     val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
     val ink=Ink;val muted=Muted;val accent=Accent
     val highlight=if(LocalPracticePalette.current.dark)Color.White.copy(alpha=.07f) else Color.White.copy(alpha=.75f)
@@ -630,7 +630,13 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
         }
     }
-    if(longClick==null){
+    // Retained fade-out content must not intercept the destination's touches.
+    // Keep drawing identical; remove input nodes instead of merely hiding them.
+    if(!interactive){
+        Box(Modifier.size(48.dp).clearAndSetSemantics {}.drawBehind {
+            if(glyph=="play"||glyph=="pause")drawCircle(Brush.verticalGradient(listOf(highlight,accent.copy(alpha=.025f))),radius=20.dp.toPx())
+        },contentAlignment=Alignment.Center){content()}
+    }else if(longClick==null){
         IconButton(onClick=click,enabled=enabled,interactionSource=interaction,modifier=Modifier.size(48.dp).drawBehind {
             if(glyph=="play"||glyph=="pause")drawCircle(Brush.verticalGradient(listOf(highlight,accent.copy(alpha=if(pressed).10f else .025f))),radius=20.dp.toPx()*scale.value)
         }.semantics {contentDescription=label}) {content()}
