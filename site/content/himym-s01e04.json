@@ -1,0 +1,1494 @@
+{
+  "source": "User-provided local audio; only approved S01E04 review selection 2",
+  "episode": "S01E04",
+  "videoTitle": "How I Met Your Mother · S01E04 · Return of the Shirt",
+  "added": "2026-11-10",
+  "courses": [
+    {
+      "id": "HIMYM010402",
+      "number": 2,
+      "title": "寻妈记 · 重新联系与道歉",
+      "start": 325.5,
+      "end": 677.75,
+      "originalStart": 4270.5,
+      "sourceFile": "02-reconnecting-apologizing-and-second-chances.m4a",
+      "sourceSha256": "38ee75da707bb8250ab308b22d367faef097a9af42562875216b3fbb815eee4d",
+      "sourceUrl": "https://www.bilibili.com/video/BV1PeWczpEUC/?t=4270",
+      "rows": [
+        {
+          "parts": [
+            "Found it! I found Natalie's number."
+          ],
+          "zh": "找到了！我找到娜塔莉的号码了。",
+          "cues": [],
+          "start": 0.0,
+          "end": 2.6474,
+          "phrases": [
+            {
+              "text": "Found it! I found Natalie's number.",
+              "start": 0.0,
+              "end": 2.6474
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Hey, Ted! Nice shirt! Is it yesterday already?"
+          ],
+          "zh": "嘿，泰德！衬衫不错！怎么又回到昨天了？",
+          "cues": [],
+          "start": 3.3127,
+          "end": 5.9505,
+          "phrases": [
+            {
+              "text": "Hey, Ted! Nice shirt! Is it yesterday already?",
+              "start": 3.3127,
+              "end": 5.9505
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I am calling her."
+          ],
+          "zh": "我要给她打电话。",
+          "cues": [],
+          "start": 7.845,
+          "end": 9.525,
+          "phrases": [
+            {
+              "text": "I am calling her.",
+              "start": 7.845,
+              "end": 9.525
+            }
+          ]
+        },
+        {
+          "parts": [
+            "This is crazy. I haven't talked to her in, like, three years."
+          ],
+          "zh": "真不可思议，我差不多三年没跟她说过话了。",
+          "cues": [],
+          "start": 10.005,
+          "end": 12.405,
+          "phrases": [
+            {
+              "text": "This is crazy. I haven't talked to her in, like, three years.",
+              "start": 10.005,
+              "end": 12.405
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Wonder if she even remembers me."
+          ],
+          "zh": "不知道她还记不记得我。",
+          "cues": [],
+          "start": 13.4577,
+          "end": 14.585,
+          "phrases": [
+            {
+              "text": "Wonder if she even remembers me.",
+              "start": 13.4577,
+              "end": 14.585
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Hello?"
+          ],
+          "zh": "喂？",
+          "cues": [],
+          "start": 17.475,
+          "end": 18.315,
+          "phrases": [
+            {
+              "text": "Hello?",
+              "start": 17.475,
+              "end": 18.315
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Natalie. It's Ted Mosby."
+          ],
+          "zh": "娜塔莉，是我，泰德·莫斯比。",
+          "cues": [],
+          "start": 18.575,
+          "end": 21.1048,
+          "phrases": [
+            {
+              "text": "Natalie. It's Ted Mosby.",
+              "start": 18.575,
+              "end": 21.1048
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Go to hell."
+          ],
+          "zh": "滚吧。",
+          "cues": [],
+          "start": 21.495,
+          "end": 22.4658,
+          "phrases": [
+            {
+              "text": "Go to hell.",
+              "start": 21.495,
+              "end": 22.4658
+            }
+          ]
+        },
+        {
+          "parts": [
+            "She remembers me."
+          ],
+          "zh": "她还记得我。",
+          "cues": [],
+          "start": 26.685,
+          "end": 27.745,
+          "phrases": [
+            {
+              "text": "She remembers me.",
+              "start": 26.685,
+              "end": 27.745
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Why would Natalie hang up on you? I don't know."
+          ],
+          "zh": "娜塔莉为什么挂你电话？我不知道。",
+          "cues": [],
+          "start": 32.585,
+          "end": 35.875,
+          "phrases": [
+            {
+              "text": "Why would Natalie hang up on you? I don't know.",
+              "start": 32.585,
+              "end": 35.875
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Did you sleep with her sister? No."
+          ],
+          "zh": "你跟她姐姐或妹妹上过床？没有。",
+          "cues": [],
+          "start": 35.995,
+          "end": 37.995,
+          "phrases": [
+            {
+              "text": "Did you sleep with her sister? No.",
+              "start": 35.995,
+              "end": 37.995
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Did you sleep with her mom? No. I'm losing interest in your story."
+          ],
+          "zh": "你跟她妈妈上过床？没有。我对你的故事越来越没兴趣了。",
+          "cues": [],
+          "start": 37.995,
+          "end": 41.9198,
+          "phrases": [
+            {
+              "text": "Did you sleep with her mom? No. I'm losing interest in your story.",
+              "start": 37.995,
+              "end": 41.9198
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Well, you must have done something. Why did you guys break up?"
+          ],
+          "zh": "你肯定做了什么。你们为什么分手？",
+          "cues": [],
+          "start": 43.365,
+          "end": 46.735,
+          "phrases": [
+            {
+              "text": "Well, you must have done something. Why did you guys break up?",
+              "start": 43.365,
+              "end": 46.735
+            }
+          ]
+        },
+        {
+          "parts": [
+            "He wasn't ready for a commitment."
+          ],
+          "zh": "他当时还没准备好认真交往。",
+          "cues": [],
+          "start": 47.315,
+          "end": 48.8849,
+          "phrases": [
+            {
+              "text": "He wasn't ready for a commitment.",
+              "start": 47.315,
+              "end": 48.8849
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Uh-huh."
+          ],
+          "zh": "嗯哼。",
+          "cues": [],
+          "start": 49.215,
+          "end": 49.715,
+          "phrases": [
+            {
+              "text": "Uh-huh.",
+              "start": 49.215,
+              "end": 49.715
+            }
+          ]
+        },
+        {
+          "parts": [
+            "And her birthday might've been coming up."
+          ],
+          "zh": "而且，她的生日可能也快到了。",
+          "cues": [],
+          "start": 51.245,
+          "end": 53.515,
+          "phrases": [
+            {
+              "text": "And her birthday might've been coming up.",
+              "start": 51.245,
+              "end": 53.515
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Uh-huh."
+          ],
+          "zh": "嗯哼……",
+          "cues": [],
+          "start": 54.065,
+          "end": 55.0513,
+          "phrases": [
+            {
+              "text": "Uh-huh.",
+              "start": 54.065,
+              "end": 55.0513
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Okay, so I didn't want to get a boyfriend-level gift",
+            "for a girl I was just about to break up with."
+          ],
+          "zh": "好吧，我不想给一个马上就要分手的姑娘，准备一份男朋友规格的礼物。",
+          "cues": [],
+          "start": 55.4118,
+          "end": 59.215,
+          "phrases": [
+            {
+              "text": "Okay, so I didn't want to get a boyfriend-level gift",
+              "start": 55.4118,
+              "end": 57.44895
+            },
+            {
+              "text": "for a girl I was just about to break up with.",
+              "start": 57.44895,
+              "end": 59.215
+            }
+          ]
+        },
+        {
+          "parts": [
+            "So you dumped her right before her birthday?"
+          ],
+          "zh": "所以你就在她生日前甩了她？",
+          "cues": [],
+          "start": 59.315,
+          "end": 61.6834,
+          "phrases": [
+            {
+              "text": "So you dumped her right before her birthday?",
+              "start": 59.315,
+              "end": 61.6834
+            }
+          ]
+        },
+        {
+          "parts": [
+            "No, I didn't dump her right before her birthday."
+          ],
+          "zh": "不，我不是在她生日前甩了她。",
+          "cues": [],
+          "start": 61.6834,
+          "end": 64.7215,
+          "phrases": [
+            {
+              "text": "No, I didn't dump her right before her birthday.",
+              "start": 61.6834,
+              "end": 64.7215
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Uh-oh."
+          ],
+          "zh": "糟了。",
+          "cues": [],
+          "start": 66.875,
+          "end": 67.605,
+          "phrases": [
+            {
+              "text": "Uh-oh.",
+              "start": 66.875,
+              "end": 67.605
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Natalie! Hey, happy birthday. Listen..."
+          ],
+          "zh": "娜塔莉！嘿，生日快乐。听我说……",
+          "cues": [],
+          "start": 68.125,
+          "end": 73.3263,
+          "phrases": [
+            {
+              "text": "Natalie! Hey, happy birthday. Listen...",
+              "start": 68.125,
+              "end": 73.3263
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Never break up with a girl on her birthday! Lily, please! The shirt! I know! It was a mistake!"
+          ],
+          "zh": "绝对不要在女生生日当天跟她分手！莉莉，拜托，衬衫！我知道，是我错了！",
+          "cues": [],
+          "start": 73.595,
+          "end": 80.3881,
+          "phrases": [
+            {
+              "text": "Never break up with a girl on her birthday! Lily, please! The shirt! I know! It was a mistake!",
+              "start": 73.595,
+              "end": 80.3881
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Well, did she cry her eyes out? I don't know."
+          ],
+          "zh": "那她是不是哭得很惨？我不知道。",
+          "cues": [],
+          "start": 80.975,
+          "end": 83.915,
+          "phrases": [
+            {
+              "text": "Well, did she cry her eyes out? I don't know.",
+              "start": 80.975,
+              "end": 83.915
+            }
+          ]
+        },
+        {
+          "parts": [
+            "How do you not...?! Oh, you didn't."
+          ],
+          "zh": "你怎么会不知道……？！你不会吧。",
+          "cues": [],
+          "start": 84.195,
+          "end": 88.485,
+          "phrases": [
+            {
+              "text": "How do you not...?! Oh, you didn't.",
+              "start": 84.195,
+              "end": 88.485
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Natalie! Hey, happy birthday. Listen..."
+          ],
+          "zh": "娜塔莉！嘿，生日快乐。听我说……",
+          "cues": [],
+          "start": 88.775,
+          "end": 93.7915,
+          "phrases": [
+            {
+              "text": "Natalie! Hey, happy birthday. Listen...",
+              "start": 88.775,
+              "end": 93.7915
+            }
+          ]
+        },
+        {
+          "parts": [
+            "You're awesome. You really are. Awesome."
+          ],
+          "zh": "你很棒，真的很棒。",
+          "cues": [],
+          "start": 95.795,
+          "end": 100.805,
+          "phrases": [
+            {
+              "text": "You're awesome. You really are. Awesome.",
+              "start": 95.795,
+              "end": 100.805
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I'm just, like, super busy right now,",
+            "so maybe we should just call it a day."
+          ],
+          "zh": "只是我最近实在太忙了，所以也许我们就到此为止吧。",
+          "cues": [],
+          "start": 101.295,
+          "end": 107.065,
+          "phrases": [
+            {
+              "text": "I'm just, like, super busy right now,",
+              "start": 101.295,
+              "end": 103.589
+            },
+            {
+              "text": "so maybe we should just call it a day.",
+              "start": 103.589,
+              "end": 107.065
+            }
+          ]
+        },
+        {
+          "parts": [
+            "But you're awesome."
+          ],
+          "zh": "不过你真的很棒。",
+          "cues": [],
+          "start": 108.195,
+          "end": 110.035,
+          "phrases": [
+            {
+              "text": "But you're awesome.",
+              "start": 108.195,
+              "end": 110.035
+            }
+          ]
+        },
+        {
+          "parts": [
+            "On her answering machine?! Lily, come on. And on her birthday?!",
+            "Who breaks up with somebody on their answering machine on their birthday?!"
+          ],
+          "zh": "你居然在她的电话答录机上提分手？！莉莉，别这样。而且还是她生日当天？！谁会在别人生日当天，往答录机里留话提分手啊？！",
+          "cues": [],
+          "start": 110.545,
+          "end": 120.322,
+          "phrases": [
+            {
+              "text": "On her answering machine?! Lily, come on. And on her birthday?!",
+              "start": 110.545,
+              "end": 115.2
+            },
+            {
+              "text": "Who breaks up with somebody on their answering machine on their birthday?!",
+              "start": 115.2,
+              "end": 120.322
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Yeah, dude. E-mail."
+          ],
+          "zh": "是啊，兄弟，应该发邮件嘛。",
+          "cues": [],
+          "start": 120.322,
+          "end": 121.7194,
+          "phrases": [
+            {
+              "text": "Yeah, dude. E-mail.",
+              "start": 120.322,
+              "end": 121.7194
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Not exactly the point I was trying to make, Marshall."
+          ],
+          "zh": "马修，我想说的可不是这个。",
+          "cues": [],
+          "start": 122.0287,
+          "end": 125.3607,
+          "phrases": [
+            {
+              "text": "Not exactly the point I was trying to make, Marshall.",
+              "start": 122.0287,
+              "end": 125.3607
+            }
+          ]
+        },
+        {
+          "parts": [
+            "That is a terrible way to break up with someone."
+          ],
+          "zh": "这种分手方式实在太糟糕了。",
+          "cues": [],
+          "start": 125.895,
+          "end": 128.7669,
+          "phrases": [
+            {
+              "text": "That is a terrible way to break up with someone.",
+              "start": 125.895,
+              "end": 128.7669
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Okay, in my client's defense,",
+            "is there an unterrible way to break up with somebody? No."
+          ],
+          "zh": "好吧，替我的当事人辩护一下：难道有哪种分手方式是不糟糕的吗？没有。",
+          "cues": [],
+          "start": 128.7669,
+          "end": 132.885,
+          "phrases": [
+            {
+              "text": "Okay, in my client's defense,",
+              "start": 128.7669,
+              "end": 130.30745
+            },
+            {
+              "text": "is there an unterrible way to break up with somebody? No.",
+              "start": 130.30745,
+              "end": 132.885
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Personally, I'd rather hear the bad news on an answering machine",
+            "than face the humiliation in person."
+          ],
+          "zh": "就我个人而言，我宁愿从答录机里听到坏消息，也不愿当面受那份羞辱。",
+          "cues": [],
+          "start": 133.3635,
+          "end": 137.785,
+          "phrases": [
+            {
+              "text": "Personally, I'd rather hear the bad news on an answering machine",
+              "start": 133.3635,
+              "end": 136.0394
+            },
+            {
+              "text": "than face the humiliation in person.",
+              "start": 136.0394,
+              "end": 137.785
+            }
+          ]
+        },
+        {
+          "parts": [
+            "It's the least painful way you can do it."
+          ],
+          "zh": "这是能让人痛苦最少的办法。",
+          "cues": [],
+          "start": 137.8551,
+          "end": 139.445,
+          "phrases": [
+            {
+              "text": "It's the least painful way you can do it.",
+              "start": 137.8551,
+              "end": 139.445
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Who are you calling? Hi, Marshall. It's Lily."
+          ],
+          "zh": "你在给谁打电话？嗨，马修，我是莉莉。",
+          "cues": [],
+          "start": 139.845,
+          "end": 141.9769,
+          "phrases": [
+            {
+              "text": "Who are you calling? Hi, Marshall. It's Lily.",
+              "start": 139.845,
+              "end": 141.9769
+            }
+          ]
+        },
+        {
+          "parts": [
+            "We're not gonna have sex for at least a month,",
+            "but you're awesome. Okay, bye-bye."
+          ],
+          "zh": "我们至少一个月都不会做爱了，不过你很棒。好了，拜拜。",
+          "cues": [],
+          "start": 142.097,
+          "end": 146.3388,
+          "phrases": [
+            {
+              "text": "We're not gonna have sex for at least a month,",
+              "start": 142.097,
+              "end": 144.2029
+            },
+            {
+              "text": "but you're awesome. Okay, bye-bye.",
+              "start": 144.2029,
+              "end": 146.3388
+            }
+          ]
+        },
+        {
+          "parts": [
+            "No, that was a big mistake, Ted. You should've done it in person."
+          ],
+          "zh": "不，泰德，那是个大错误。你应该当面说。",
+          "cues": [],
+          "start": 147.525,
+          "end": 150.5407,
+          "phrases": [
+            {
+              "text": "No, that was a big mistake, Ted. You should've done it in person.",
+              "start": 147.525,
+              "end": 150.5407
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Thank you."
+          ],
+          "zh": "谢谢。",
+          "cues": [],
+          "start": 150.765,
+          "end": 151.625,
+          "phrases": [
+            {
+              "text": "Thank you.",
+              "start": 150.765,
+              "end": 151.625
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Desperate, please-don't-leave-me sex is amazing."
+          ],
+          "zh": "那种绝望地求你别离开的性爱，可是很棒的。",
+          "cues": [],
+          "start": 151.925,
+          "end": 154.7026,
+          "phrases": [
+            {
+              "text": "Desperate, please-don't-leave-me sex is amazing.",
+              "start": 151.925,
+              "end": 154.7026
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Okay, it was childish and stupid.",
+            "I just... I didn't want to see her cry."
+          ],
+          "zh": "好吧，那样做既幼稚又愚蠢。我只是……不想看她哭。",
+          "cues": [],
+          "start": 155.845,
+          "end": 159.8849,
+          "phrases": [
+            {
+              "text": "Okay, it was childish and stupid.",
+              "start": 155.845,
+              "end": 157.789
+            },
+            {
+              "text": "I just... I didn't want to see her cry.",
+              "start": 157.789,
+              "end": 159.8849
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Well, guess what? She cried."
+          ],
+          "zh": "可你猜怎么着？她还是哭了。",
+          "cues": [],
+          "start": 160.1151,
+          "end": 162.2761,
+          "phrases": [
+            {
+              "text": "Well, guess what? She cried.",
+              "start": 160.1151,
+              "end": 162.2761
+            }
+          ]
+        },
+        {
+          "parts": [
+            "You just didn't have the sack to face those tears."
+          ],
+          "zh": "你只不过没胆量面对她的眼泪。",
+          "cues": [],
+          "start": 162.785,
+          "end": 165.2775,
+          "phrases": [
+            {
+              "text": "You just didn't have the sack to face those tears.",
+              "start": 162.785,
+              "end": 165.2775
+            }
+          ]
+        },
+        {
+          "parts": [
+            "That was me then, okay?",
+            "This is the new, old-shirt-wearing, sack-having Ted.",
+            "I'm gonna make this right."
+          ],
+          "zh": "那是以前的我，好吗？现在的泰德焕然一新，穿着旧衬衫，也有了担当。我要把这事补救好。",
+          "cues": [],
+          "start": 165.405,
+          "end": 171.445,
+          "phrases": [
+            {
+              "text": "That was me then, okay?",
+              "start": 165.405,
+              "end": 167.03335
+            },
+            {
+              "text": "This is the new, old-shirt-wearing, sack-having Ted.",
+              "start": 167.03335,
+              "end": 170.24485
+            },
+            {
+              "text": "I'm gonna make this right.",
+              "start": 170.24485,
+              "end": 171.445
+            }
+          ]
+        },
+        {
+          "parts": [
+            "You know what else?",
+            "\"My younger sister just got married, and I'm about to turn thirty\" sex."
+          ],
+          "zh": "还有一种也很棒，就是那种“我妹妹刚结婚，而我马上就三十岁了”的性爱。",
+          "cues": [],
+          "start": 171.6405,
+          "end": 175.165,
+          "phrases": [
+            {
+              "text": "You know what else?",
+              "start": 171.6405,
+              "end": 172.32585
+            },
+            {
+              "text": "\"My younger sister just got married, and I'm about to turn thirty\" sex.",
+              "start": 172.32585,
+              "end": 175.165
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Fantastic."
+          ],
+          "zh": "真是绝了。",
+          "cues": [],
+          "start": 175.545,
+          "end": 176.985,
+          "phrases": [
+            {
+              "text": "Fantastic.",
+              "start": 175.545,
+              "end": 176.985
+            }
+          ]
+        },
+        {
+          "parts": [
+            "An occasion that was supposed to be joyous",
+            "suddenly turned tragic when Ethel and Sadie Margolis, New York's oldest twins,",
+            "suddenly passed away on this, the eve of their hundredth birthday."
+          ],
+          "zh": "一场本应充满欢乐的庆典突然变成了悲剧：纽约最年长的双胞胎埃塞尔和萨迪·马戈利斯，在她们百岁生日前夕突然去世。",
+          "cues": [],
+          "start": 178.345,
+          "end": 190.5294,
+          "phrases": [
+            {
+              "text": "An occasion that was supposed to be joyous",
+              "start": 178.345,
+              "end": 181.13
+            },
+            {
+              "text": "suddenly turned tragic when Ethel and Sadie Margolis, New York's oldest twins,",
+              "start": 181.13,
+              "end": 186.15235
+            },
+            {
+              "text": "suddenly passed away on this, the eve of their hundredth birthday.",
+              "start": 186.15235,
+              "end": 190.5294
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I'm a dirty, dirty girl. Ow."
+          ],
+          "zh": "我是个坏坏的女孩。哎哟。",
+          "cues": [],
+          "start": 191.175,
+          "end": 194.905,
+          "phrases": [
+            {
+              "text": "I'm a dirty, dirty girl. Ow.",
+              "start": 191.175,
+              "end": 194.905
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Reporting live, Robin Scherbatsky, Metro News One."
+          ],
+          "zh": "都市新闻一台，罗宾·舍巴茨基，现场报道。",
+          "cues": [],
+          "start": 195.625,
+          "end": 198.9173,
+          "phrases": [
+            {
+              "text": "Reporting live, Robin Scherbatsky, Metro News One.",
+              "start": 195.625,
+              "end": 198.9173
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Clear."
+          ],
+          "zh": "收工。",
+          "cues": [],
+          "start": 199.285,
+          "end": 200.035,
+          "phrases": [
+            {
+              "text": "Clear.",
+              "start": 199.285,
+              "end": 200.035
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Joel Adams wants to see you in his office."
+          ],
+          "zh": "乔尔·亚当斯让你去他办公室。",
+          "cues": [],
+          "start": 202.0796,
+          "end": 204.7013,
+          "phrases": [
+            {
+              "text": "Joel Adams wants to see you in his office.",
+              "start": 202.0796,
+              "end": 204.7013
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Before you say anything, I just want to say",
+            "I really like working here at Metro News One."
+          ],
+          "zh": "在您开口之前，我只想说，我真的很喜欢在都市新闻一台工作。",
+          "cues": [],
+          "start": 207.003,
+          "end": 211.6556,
+          "phrases": [
+            {
+              "text": "Before you say anything, I just want to say",
+              "start": 207.003,
+              "end": 209.22945
+            },
+            {
+              "text": "I really like working here at Metro News One.",
+              "start": 209.22945,
+              "end": 211.6556
+            }
+          ]
+        },
+        {
+          "parts": [
+            "That's great. So, my dog keeps going..."
+          ],
+          "zh": "那很好。是这样，我的狗老是这么叫……",
+          "cues": [],
+          "start": 211.6556,
+          "end": 214.565,
+          "phrases": [
+            {
+              "text": "That's great. So, my dog keeps going...",
+              "start": 211.6556,
+              "end": 214.565
+            }
+          ]
+        },
+        {
+          "parts": [
+            "What? What? You have dogs, right? What do you think that means?"
+          ],
+          "zh": "怎么……什么？你养狗，对吧？你觉得它这是什么意思？",
+          "cues": [],
+          "start": 217.945,
+          "end": 222.3935,
+          "phrases": [
+            {
+              "text": "What? What? You have dogs, right? What do you think that means?",
+              "start": 217.945,
+              "end": 222.3935
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Take him to the vet?"
+          ],
+          "zh": "带它去看兽医？",
+          "cues": [],
+          "start": 222.855,
+          "end": 223.9345,
+          "phrases": [
+            {
+              "text": "Take him to the vet?",
+              "start": 222.855,
+              "end": 223.9345
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Genius. That's one I owe you."
+          ],
+          "zh": "天才啊。这回算我欠你一个人情。",
+          "cues": [],
+          "start": 225.295,
+          "end": 228.035,
+          "phrases": [
+            {
+              "text": "Genius. That's one I owe you.",
+              "start": 225.295,
+              "end": 228.035
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Was that all? Yeah."
+          ],
+          "zh": "就这件事吗？对。",
+          "cues": [],
+          "start": 228.735,
+          "end": 230.685,
+          "phrases": [
+            {
+              "text": "Was that all? Yeah.",
+              "start": 228.735,
+              "end": 230.685
+            }
+          ]
+        },
+        {
+          "parts": [
+            "And nothing about the twins story?"
+          ],
+          "zh": "关于双胞胎的报道，没有别的话要说吗？",
+          "cues": [],
+          "start": 233.745,
+          "end": 235.4476,
+          "phrases": [
+            {
+              "text": "And nothing about the twins story?",
+              "start": 233.745,
+              "end": 235.4476
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Oh, yeah, great job on that one.",
+            "New York loves you. You're a superstar. Bye-bye."
+          ],
+          "zh": "哦，对，那个报道做得很好。纽约人都喜欢你，你是大明星。拜拜。",
+          "cues": [],
+          "start": 235.655,
+          "end": 239.0286,
+          "phrases": [
+            {
+              "text": "Oh, yeah, great job on that one.",
+              "start": 235.655,
+              "end": 237.1031
+            },
+            {
+              "text": "New York loves you. You're a superstar. Bye-bye.",
+              "start": 237.1031,
+              "end": 239.0286
+            }
+          ]
+        },
+        {
+          "parts": [
+            "That's when Robin realized",
+            "no one, not even her boss, watched Metro News One."
+          ],
+          "zh": "就在那时，罗宾发现根本没人看都市新闻一台，连她老板都不看。",
+          "cues": [],
+          "start": 241.4492,
+          "end": 245.9504,
+          "phrases": [
+            {
+              "text": "That's when Robin realized",
+              "start": 241.4492,
+              "end": 242.8446
+            },
+            {
+              "text": "no one, not even her boss, watched Metro News One.",
+              "start": 242.8446,
+              "end": 245.9504
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Hi."
+          ],
+          "zh": "嗨。",
+          "cues": [],
+          "start": 257.4934,
+          "end": 257.815,
+          "phrases": [
+            {
+              "text": "Hi.",
+              "start": 257.4934,
+              "end": 257.815
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Natalie! Come on! I just want to say I'm sorry."
+          ],
+          "zh": "娜塔莉！开开门吧！我只是想道个歉。",
+          "cues": [],
+          "start": 261.0543,
+          "end": 263.6149,
+          "phrases": [
+            {
+              "text": "Natalie! Come on! I just want to say I'm sorry.",
+              "start": 261.0543,
+              "end": 263.6149
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I only came down here 'cause you wouldn't take my call."
+          ],
+          "zh": "我跑来这里，只是因为你不肯接我电话。",
+          "cues": [],
+          "start": 263.965,
+          "end": 266.1557,
+          "phrases": [
+            {
+              "text": "I only came down here 'cause you wouldn't take my call.",
+              "start": 263.965,
+              "end": 266.1557
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Hey, here's an idea. Why don't you leave a message?"
+          ],
+          "zh": "嘿，我有个主意。你怎么不留个言呢？",
+          "cues": [],
+          "start": 266.295,
+          "end": 269.5967,
+          "phrases": [
+            {
+              "text": "Hey, here's an idea. Why don't you leave a message?",
+              "start": 266.295,
+              "end": 269.5967
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Good one."
+          ],
+          "zh": "这讽刺得不错。",
+          "cues": [],
+          "start": 271.745,
+          "end": 272.4375,
+          "phrases": [
+            {
+              "text": "Good one.",
+              "start": 271.745,
+              "end": 272.4375
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Okay, fine, I'm just going to leave this sock monkey here. Good-bye."
+          ],
+          "zh": "好吧，那我就把这只袜子猴放在这里。再见。",
+          "cues": [],
+          "start": 273.065,
+          "end": 277.705,
+          "phrases": [
+            {
+              "text": "Okay, fine, I'm just going to leave this sock monkey here. Good-bye.",
+              "start": 273.065,
+              "end": 277.705
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Natalie... Okay! Okay! Look, look, look.",
+            "I know you're mad, but happy birthday. Three years ago."
+          ],
+          "zh": "娜塔莉……好，好，听我说！我知道你很生气，不过，生日快乐。补祝三年前的。",
+          "cues": [],
+          "start": 282.745,
+          "end": 289.925,
+          "phrases": [
+            {
+              "text": "Natalie... Okay! Okay! Look, look, look.",
+              "start": 282.745,
+              "end": 285.53635
+            },
+            {
+              "text": "I know you're mad, but happy birthday. Three years ago.",
+              "start": 285.53635,
+              "end": 289.925
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Oh, yeah? Up yours three years ago."
+          ],
+          "zh": "是吗？那你也滚回三年前去吧。",
+          "cues": [],
+          "start": 290.235,
+          "end": 292.735,
+          "phrases": [
+            {
+              "text": "Oh, yeah? Up yours three years ago.",
+              "start": 290.235,
+              "end": 292.735
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Look, look, I was an idiot leaving that message.",
+            "I realize how much that sucked."
+          ],
+          "zh": "听我说，留下那段留言的我就是个混蛋。我明白那有多糟糕。",
+          "cues": [],
+          "start": 292.8636,
+          "end": 297.4449,
+          "phrases": [
+            {
+              "text": "Look, look, I was an idiot leaving that message.",
+              "start": 292.8636,
+              "end": 295.7794
+            },
+            {
+              "text": "I realize how much that sucked.",
+              "start": 295.7794,
+              "end": 297.4449
+            }
+          ]
+        },
+        {
+          "parts": [
+            "No, you don't."
+          ],
+          "zh": "不，你不明白。",
+          "cues": [],
+          "start": 298.375,
+          "end": 299.295,
+          "phrases": [
+            {
+              "text": "No, you don't.",
+              "start": 298.375,
+              "end": 299.295
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Maybe we should just call it a day. But you're awesome. Okay, bye."
+          ],
+          "zh": "也许我们就到此为止吧。不过你很棒。好了，再见。",
+          "cues": [],
+          "start": 300.055,
+          "end": 308.2716,
+          "phrases": [
+            {
+              "text": "Maybe we should just call it a day. But you're awesome. Okay, bye.",
+              "start": 300.055,
+              "end": 308.2716
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Surprise."
+          ],
+          "zh": "惊喜吧。",
+          "cues": [],
+          "start": 311.645,
+          "end": 312.5745,
+          "phrases": [
+            {
+              "text": "Surprise.",
+              "start": 311.645,
+              "end": 312.5745
+            }
+          ]
+        },
+        {
+          "parts": [
+            "There was a surprise party that night?"
+          ],
+          "zh": "那天晚上居然有场惊喜派对？",
+          "cues": [],
+          "start": 314.815,
+          "end": 316.575,
+          "phrases": [
+            {
+              "text": "There was a surprise party that night?",
+              "start": 314.815,
+              "end": 316.575
+            }
+          ]
+        },
+        {
+          "parts": [
+            "How come nobody told me?",
+            "People think I can't keep a secret, but I totally can."
+          ],
+          "zh": "怎么没人告诉我？大家都觉得我守不住秘密，可我完全能守住。",
+          "cues": [],
+          "start": 317.215,
+          "end": 321.435,
+          "phrases": [
+            {
+              "text": "How come nobody told me?",
+              "start": 317.215,
+              "end": 318.6136
+            },
+            {
+              "text": "People think I can't keep a secret, but I totally can.",
+              "start": 318.6136,
+              "end": 321.435
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Sorry, not the issue."
+          ],
+          "zh": "抱歉，这不是重点。",
+          "cues": [],
+          "start": 322.375,
+          "end": 323.5818,
+          "phrases": [
+            {
+              "text": "Sorry, not the issue.",
+              "start": 322.375,
+              "end": 323.5818
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Look, Natalie, I was just a stupid kid back then,",
+            "terrified of commitment."
+          ],
+          "zh": "听我说，娜塔莉，那时我只是个蠢小子，害怕认真交往。",
+          "cues": [],
+          "start": 324.1023,
+          "end": 328.345,
+          "phrases": [
+            {
+              "text": "Look, Natalie, I was just a stupid kid back then,",
+              "start": 324.1023,
+              "end": 327.2493
+            },
+            {
+              "text": "terrified of commitment.",
+              "start": 327.2493,
+              "end": 328.345
+            }
+          ]
+        },
+        {
+          "parts": [
+            "And I suppose you're suddenly ready to get married and settle down?"
+          ],
+          "zh": "那你现在就突然准备好结婚、安定下来了？",
+          "cues": [],
+          "start": 328.415,
+          "end": 331.195,
+          "phrases": [
+            {
+              "text": "And I suppose you're suddenly ready to get married and settle down?",
+              "start": 328.415,
+              "end": 331.195
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Well, yeah, actually."
+          ],
+          "zh": "嗯，是的，确实准备好了。",
+          "cues": [],
+          "start": 332.015,
+          "end": 333.4408,
+          "phrases": [
+            {
+              "text": "Well, yeah, actually.",
+              "start": 332.015,
+              "end": 333.4408
+            }
+          ]
+        },
+        {
+          "parts": [
+            "I'm a different guy now. Give me another chance."
+          ],
+          "zh": "我现在不一样了。再给我一次机会，好吗？",
+          "cues": [],
+          "start": 334.295,
+          "end": 338.135,
+          "phrases": [
+            {
+              "text": "I'm a different guy now. Give me another chance.",
+              "start": 334.295,
+              "end": 338.135
+            }
+          ]
+        },
+        {
+          "parts": [
+            "You must think I have absolutely no self-respect."
+          ],
+          "zh": "你一定觉得我一点自尊都没有。",
+          "cues": [],
+          "start": 338.675,
+          "end": 341.68205,
+          "phrases": [
+            {
+              "text": "You must think I have absolutely no self-respect.",
+              "start": 338.675,
+              "end": 341.68205
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Come on, just a cup of coffee."
+          ],
+          "zh": "拜托，只是喝杯咖啡。",
+          "cues": [],
+          "start": 341.68205,
+          "end": 343.6485,
+          "phrases": [
+            {
+              "text": "Come on, just a cup of coffee.",
+              "start": 341.68205,
+              "end": 343.6485
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Please, Natalie. Give the guy a chance."
+          ],
+          "zh": "求你了，娜塔莉，给这家伙一次机会吧。",
+          "cues": [],
+          "start": 346.175,
+          "end": 349.0926,
+          "phrases": [
+            {
+              "text": "Please, Natalie. Give the guy a chance.",
+              "start": 346.175,
+              "end": 349.0926
+            }
+          ]
+        },
+        {
+          "parts": [
+            "Self-respect is overrated."
+          ],
+          "zh": "自尊也没那么重要。",
+          "cues": [],
+          "start": 349.645,
+          "end": 352.25,
+          "phrases": [
+            {
+              "text": "Self-respect is overrated.",
+              "start": 349.645,
+              "end": 352.25
+            }
+          ]
+        }
+      ],
+      "artwork": {
+        "sourcePage": "https://tv.apple.com/us/episode/return-of-the-shirt/umc.cmc.6d8i1jhgd765fjs4cx559hgm0",
+        "sourceImage": "https://is1-ssl.mzstatic.com/image/thumb/j2xUfZ3o_kI2Xc1ZHM7dDg/1200x675.jpg",
+        "episode": "S01E04",
+        "scene": "Ted apologizes at Natalie's door carrying a giant sock monkey; within the approved selection",
+        "crop": [
+          0,
+          0,
+          1200,
+          675
+        ],
+        "originalSha256": "52754c84eda3e02959713899624fb7bfab40d9bb2681a027e985c00a210defc6",
+        "sha256": "a525f909b3cdb2181ff8d56f90f27df05d419cb6a03ddb9bdb6c29523e5b72a2"
+      },
+      "duration": 352.25
+    }
+  ]
+}

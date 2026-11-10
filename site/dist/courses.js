@@ -1,5 +1,19 @@
 window.COURSES = [
   {
+    "id": "HIMYM010402",
+    "title": "寻妈记 · 重新联系与道歉",
+    "label": "S01E04 · 剧集对白",
+    "videoTitle": "How I Met Your Mother · S01E04 · Return of the Shirt",
+    "excerpt": "Found it! I found Natalie's number.",
+    "added": "2026-11-10",
+    "sourceSeconds": 352.254,
+    "sourceStartSeconds": 4270.5,
+    "sourceUrl": "https://www.bilibili.com/video/BV1PeWczpEUC/?t=4270",
+    "groupCount": 84,
+    "drillSeconds": 1431.267,
+    "cover": "covers/HIMYM010402-scene.webp"
+  },
+  {
     "id": "HIMYM010201",
     "title": "寻妈记 · 自然邀约",
     "label": "S01E02 · 剧集对白",
