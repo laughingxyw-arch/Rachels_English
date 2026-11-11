@@ -2,5 +2,5 @@
 const ticket=location.hash.slice(1);history.replaceState(null,'',location.pathname);
 const button=document.getElementById('open');
 if(!/^[a-f0-9]{64}$/.test(ticket)){button.hidden=true;document.getElementById('status').textContent='请使用私有绑定链接打开此页面。'}
-else button.onclick=()=>{location.href='intent://rachels-english.pages.dev/passkey-probe/#Intent;scheme=https;package=com.rachelsenglish.passkeyprobe;S.enrollment='+ticket+';end'};
+else button.onclick=()=>{location.href='intent://rachels-english.pages.dev/passkey-probe/#'+ticket+'#Intent;scheme=https;package=com.rachelsenglish.passkeyprobe;S.enrollment='+ticket+';end'};
 </script></html>
