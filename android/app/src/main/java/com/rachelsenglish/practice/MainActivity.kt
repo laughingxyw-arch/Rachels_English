@@ -17,9 +17,10 @@ class MainActivity: ComponentActivity() {
         setContent { PracticeApp(model) }
     }
     private fun handleSetup(incoming: android.content.Intent){
+        if(incoming.getBooleanExtra("passkey-setup-consumed",false))return
         val ticket=passkeySetupTicket(incoming)
         if(ticket!=null){
-            incoming.data=null;incoming.removeExtra("enrollment")
+            incoming.removeExtra("enrollment");incoming.putExtra("passkey-setup-consumed",true)
             window.decorView.post {model.restoreWithPasskey(this,ticket)}
         }
     }

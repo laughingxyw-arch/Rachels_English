@@ -150,8 +150,12 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             try {
                 previous?.join()
                 while(!studyReady)delay(25)
-                studySyncJob?.cancel();studySyncJob?.join()
+                val interruptedSync=studySyncJob
+                interruptedSync?.cancel()
+                // Open the system prompt without waiting for unrelated statistics IO.
                 val session=passkeyOperation(activity,ticket)
+                // Old cache writes must finish before adopting the verified identity.
+                interruptedSync?.join()
                 // Persist before adopting the identity. A cancelled prompt never changes the cache.
                 withContext(Dispatchers.IO){check(prefs.edit().putString("study-session",session.token).putString("study-account",session.account).putLong("study-session-expires",session.expires).commit())}
                 studySession=session.token;studyAccount=session.account

@@ -43,8 +43,9 @@ class ProbeActivity: ComponentActivity() {
     }
     override fun onNewIntent(intent: Intent){super.onNewIntent(intent);setIntent(intent);setup(intent)}
     private fun setup(intent: Intent){
+        if(intent.getBooleanExtra("passkey-setup-consumed",false))return
         val value=passkeySetupTicket(intent,"/passkey-probe/")
-        if(value!=null){ticket=value;intent.data=null;intent.removeExtra("enrollment");window.decorView.post {verify()}}
+        if(value!=null){ticket=value;intent.removeExtra("enrollment");intent.putExtra("passkey-setup-consumed",true);window.decorView.post {verify()}}
     }
     private fun verify(){
         if(busy)return;busy=true
