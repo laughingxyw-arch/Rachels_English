@@ -43,9 +43,8 @@ class ProbeActivity: ComponentActivity() {
     }
     override fun onNewIntent(intent: Intent){super.onNewIntent(intent);setIntent(intent);setup(intent)}
     private fun setup(intent: Intent){
-        val uri=intent.data
-        val value=if(uri?.scheme=="https"&&uri.host=="rachels-english.pages.dev"&&uri.path=="/passkey-probe/")uri.fragment else intent.getStringExtra("enrollment")
-        if(value?.matches(Regex("[a-f0-9]{64}"))==true){ticket=value;intent.data=null;intent.removeExtra("enrollment");window.decorView.post {verify()}}
+        val value=passkeySetupTicket(intent,"/passkey-probe/")
+        if(value!=null){ticket=value;intent.data=null;intent.removeExtra("enrollment");window.decorView.post {verify()}}
     }
     private fun verify(){
         if(busy)return;busy=true

@@ -128,29 +128,38 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     var passkeyBusy by mutableStateOf(false);private set
     private var autoRestoreAttempted=false
     private val passkeys=PasskeyClient(BuildConfig.CONTENT_BASE_URL)
+    private var passkeyJob: Job?=null
+    private var passkeyRequestId=0L
+    internal var passkeyOperation: suspend (android.app.Activity,String?)->StudySession={activity,ticket->
+        if(ticket!=null)passkeys.register(activity,ticket) else try {
+            passkeys.restore(activity)
+        }catch(e: Exception){
+            // A privately provisioned legacy alias proves this existing installation
+            // owns the recovered profile. Unknown/fresh installs cannot enroll here.
+            if(!passkeyLinked&&(e is androidx.credentials.exceptions.NoCredentialException||e is PasskeyUnavailable&&e.status==404))passkeys.register(activity,token=studyKey)
+            else throw e
+        }
+    }
     fun restoreWithPasskey(activity: android.app.Activity,ticket: String?=null,automatic: Boolean=false){
-        if(passkeyBusy||automatic&&(autoRestoreAttempted||passkeyLinked&&studySession!=null))return
+        if(automatic&&(passkeyBusy||autoRestoreAttempted||passkeyLinked&&studySession!=null))return
+        if(passkeyBusy&&ticket==null)return
+        val previous=passkeyJob;val requestId=++passkeyRequestId
         autoRestoreAttempted=true;passkeyBusy=true
-        viewModelScope.launch {
+        previous?.cancel()
+        passkeyJob=viewModelScope.launch {
             try {
+                previous?.join()
                 while(!studyReady)delay(25)
                 studySyncJob?.cancel();studySyncJob?.join()
-                val session=if(ticket!=null)passkeys.register(activity,ticket) else try {
-                    passkeys.restore(activity)
-                }catch(e: Exception){
-                    // A privately provisioned legacy alias proves this existing installation
-                    // owns the recovered profile. Unknown/fresh installs cannot enroll here.
-                    if(!passkeyLinked&&(e is androidx.credentials.exceptions.NoCredentialException||e is PasskeyUnavailable&&e.status==404))passkeys.register(activity,token=studyKey)
-                    else throw e
-                }
+                val session=passkeyOperation(activity,ticket)
                 // Persist before adopting the identity. A cancelled prompt never changes the cache.
                 withContext(Dispatchers.IO){check(prefs.edit().putString("study-session",session.token).putString("study-account",session.account).putLong("study-session-expires",session.expires).commit())}
                 studySession=session.token;studyAccount=session.account
                 remoteStudy=withContext(Dispatchers.IO){studyStore.readRemote(studyCacheIdentity)}
                 studyRevision++;passkeyBusy=false;syncStudy(true)
             }catch(e: kotlinx.coroutines.CancellationException){throw e}
-            catch(e: Exception){if(!automatic)notify(passkeyMessage(e),true)}
-            finally {passkeyBusy=false}
+            catch(e: Exception){if(!automatic&&requestId==passkeyRequestId)notify(passkeyMessage(e),true)}
+            finally {if(requestId==passkeyRequestId)passkeyBusy=false}
         }
     }
     var studySyncing by mutableStateOf(false);private set

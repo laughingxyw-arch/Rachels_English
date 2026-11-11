@@ -17,9 +17,8 @@ class MainActivity: ComponentActivity() {
         setContent { PracticeApp(model) }
     }
     private fun handleSetup(incoming: android.content.Intent){
-        val uri=incoming.data
-        val ticket=if(uri?.scheme=="https"&&uri.host=="rachels-english.pages.dev"&&uri.path=="/passkey-setup/")uri.fragment else incoming.getStringExtra("enrollment")
-        if(ticket?.matches(Regex("[a-f0-9]{64}"))==true){
+        val ticket=passkeySetupTicket(incoming)
+        if(ticket!=null){
             incoming.data=null;incoming.removeExtra("enrollment")
             window.decorView.post {model.restoreWithPasskey(this,ticket)}
         }
