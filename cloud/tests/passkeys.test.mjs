@@ -68,3 +68,6 @@ test('only provisioned legacy aliases route old uploads to their recovered owner
  const r=await study({env,request:new Request('https://example.com/api/study',{headers:{Authorization:'Bearer '+legacy}})});assert.equal(r.status,200);assert.equal((await r.json()).rows[0].audioMs,120000);
  const unknown=await study({env,request:new Request('https://example.com/api/study',{headers:{Authorization:'Bearer '+'f'.repeat(64)}})});assert.equal(unknown.status,404);
 });
+test('a private probe setup link cannot accidentally bind the production application',async()=>{
+ const {env,db}=await setup('probe');assert.equal((await call(env,'register/options',{ticket,mode:'owner'})).status,401);assert.equal((await call(env,'register/options',{ticket,mode:'probe'})).status,200);assert.equal((await db.prepare('SELECT used FROM passkey_enrollments').first()).used,0);
+});

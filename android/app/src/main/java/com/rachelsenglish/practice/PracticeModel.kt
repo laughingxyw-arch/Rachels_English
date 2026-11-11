@@ -363,7 +363,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         }
     }
 
-    fun updateDrill(value: Boolean){if(drill==value)return;val resume=playback.running;val paused=playback.paused;stopPlayback();drill=value;mediaChanged?.invoke();playback=playback.copy(progress=0f);if(resume){start();if(paused)pause()}}
+    fun updateDrill(value: Boolean){if(drill==value)return;val resume=playback.running;val paused=playback.paused;stopPlayback();drill=value;mediaChanged?.invoke();playback=playback.copy(progress=0f);if(resume)start(playWhenReady=!paused)}
     fun updateRepeatCount(value: Int){
         val count=value.coerceIn(2,5);if(count==repeatCount)return
         sampleStudy();repeatCount=count;prefs.edit().putInt("repeats",count).apply()
@@ -404,7 +404,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     }
     private fun restartAtSource(source: Double,paused: Boolean){
         val selected=playback.selected;val all=playAll
-        start(selected,all)
+        start(selected,all,playWhenReady=!paused)
         val clip=queue.getOrNull(index)?:return
         if(continuousActive){
             val offset=((source-opened!!.lesson.continuous!!.sourceStart)*1000).toLong().coerceAtLeast(0)
@@ -431,8 +431,8 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         continuousActive=canUseContinuous();queue=makeQueue(data.lesson,taskStart);index=queue.indexOfFirst {it.group==selected}.coerceAtLeast(0);refreshTimeline()
         if(queue.isNotEmpty()){if(playWhenReady){ensurePlaybackService();checkListening()};begin(!playWhenReady);prepareNextCourse()}
     }
-    fun previous(){start((playback.selected-1).coerceAtLeast(0))}
-    fun next(){val last=opened?.lesson?.groups?.lastIndex?:return;start((playback.selected+1).coerceAtMost(last))}
+    fun previous(){start((playback.selected-1).coerceAtLeast(0),playWhenReady=!playback.running||!playback.paused)}
+    fun next(){val last=opened?.lesson?.groups?.lastIndex?:return;start((playback.selected+1).coerceAtMost(last),playWhenReady=!playback.running||!playback.paused)}
     fun toggle(){if(courseChanging){val playing=playback.running&&!playback.paused;playback=playback.copy(running=true,paused=playing);if(playing)releaseWaitLock() else {ensurePlaybackService();if(!waitLock.isHeld)waitLock.acquire(120_000)};return};when{!playback.running->start();playback.paused->{sampleStudy();studyMeter.reset(player.currentPosition);studyWaitRemaining=playback.waitSeconds;checkListening();ensurePlaybackService();playback=playback.copy(paused=false);if(playback.waiting)scheduleWait() else playAudio()};else->pause()}}
     fun pause(){sampleStudy();flushStudy();syncStudy();audioStartToken++;if(playback.running&&!playback.paused){
         val remaining=if(playback.waiting&&!courseChanging)waitClock.remaining(android.os.SystemClock.elapsedRealtime()) else playback.waitSeconds
@@ -456,7 +456,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         }
         audioStartToken++;releaseWaitLock();player.pause()
         index=mediaOffset+point.index
-        begin()
+        begin(paused)
         val clip=queue[index]
         player.seekTo((point.clipSeconds*1000).toLong())
         studyMeter.reset((point.clipSeconds*1000).toLong())

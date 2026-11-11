@@ -63,7 +63,9 @@ jobs:
           disable-animations: true
           script: bash scripts/check_android_device.sh
       - name: Verify APK signature
-        run: '"$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk'
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/passkey-probe/build/outputs/apk/release/passkey-probe-release.apk
       - name: Save lint reports
         if: always()
         uses: actions/upload-artifact@v4

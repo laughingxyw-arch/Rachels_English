@@ -35,7 +35,10 @@ class PracticePlaybackService: MediaSessionService() {
     }
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo)=session
     override fun onDestroy(){
-        (application as PracticeApplication).model.stop()
+        // The app owns the logical task. An idle/paused service can be reclaimed
+        // during a queue rebuild; keep the position and paused task available.
+        // Explicit notification stop already calls handleStop -> model.stop().
+        (application as PracticeApplication).model.pause()
         session?.release();session=null
         sessionPlayer?.release();sessionPlayer=null
         super.onDestroy()

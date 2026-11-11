@@ -51,7 +51,7 @@ class CoursePlaybackInstrumentedTest {
    rule.onAllNodesWithTag("lesson").assertCountEquals(0)
    rule.runOnUiThread {model.updateDrill(true);model.updateRepeatCount(2);model.changeCourse(-1)}
    awaitCourse("epfQlb_Tgco")
-   rule.runOnUiThread {assertTrue(model.drill);assertEquals(2,model.repeatCount);assertEquals(0,model.playback.selected);assertTrue(model.playback.paused);assertNull(model.readingLesson)}
+   rule.runOnUiThread {assertTrue("Drill retained: ${model.playback}",model.drill);assertEquals(2,model.repeatCount);assertEquals(0,model.playback.selected);assertTrue("Course switch stays paused: ${model.playback}",model.playback.paused);assertNull(model.readingLesson)}
    // The last lesson wraps to the captured first course, including a paused Drill task.
    rule.runOnUiThread {model.changeCourse(1)}
    awaitCourse(next.id)

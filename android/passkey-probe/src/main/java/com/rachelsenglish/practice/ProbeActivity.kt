@@ -51,7 +51,7 @@ class ProbeActivity: ComponentActivity() {
         if(busy)return;busy=true
         lifecycleScope.launch {
             try {
-                val session=ticket?.let {client.register(this@ProbeActivity,it)}?:client.restore(this@ProbeActivity,probe=true)
+                val session=ticket?.let {client.register(this@ProbeActivity,it,probe=true)}?:client.restore(this@ProbeActivity,probe=true)
                 ticket=null
                 val seconds=withContext(Dispatchers.IO){
                     val c=URI("https://rachels-english.pages.dev/api/study").toURL().openConnection() as HttpURLConnection

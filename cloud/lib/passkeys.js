@@ -36,10 +36,12 @@ async function registrationIdentity(db,request,body){
   const e=await db.prepare('SELECT account,hash FROM passkey_enrollments WHERE hash=? AND used=0 AND expires>?').bind(hash,Date.now()).first();
   if(!e)throw new ApiError(401,'Setup link unavailable');
   const p=await db.prepare('SELECT mode FROM passkey_profiles WHERE account=?').bind(e.account).first();
+  if(body.mode&&body.mode!==p.mode)throw new ApiError(401,'Wrong profile');
   return {account:e.account,mode:p.mode,enrollment:hash};
  }
  const account=await existingIdentity(db,request);const p=await db.prepare('SELECT mode FROM passkey_profiles WHERE account=?').bind(account).first();
- if(!p)throw new ApiError(401,'Setup required');return {account,mode:p.mode,enrollment:null};
+ if(!p)throw new ApiError(401,'Setup required');
+ if(body.mode&&body.mode!==p.mode)throw new ApiError(401,'Wrong profile');return {account,mode:p.mode,enrollment:null};
 }
 function sessionData(account){const token='session.'+randomHex();return {token,account,expires:Date.now()+SESSION_TTL}}
 async function registerOptions(db,request,body,cfg){

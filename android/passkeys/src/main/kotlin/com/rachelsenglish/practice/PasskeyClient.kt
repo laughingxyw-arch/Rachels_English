@@ -30,8 +30,8 @@ class PasskeyClient(private val base: String) {
         check(token.matches(Regex("session\\.[a-f0-9]{64}"))&&account.matches(Regex("[a-f0-9]{64}")))
         return StudySession(token,account,body.getLong("expires"))
     }
-    suspend fun register(activity: Activity,ticket: String?=null,token: String?=null): StudySession {
-        val body=JSONObject();ticket?.let {body.put("ticket",it)}
+    suspend fun register(activity: Activity,ticket: String?=null,token: String?=null,probe: Boolean=false): StudySession {
+        val body=JSONObject().put("mode",if(probe)"probe" else "owner");ticket?.let {body.put("ticket",it)}
         val challenge=post("register/options",body,token)
         val response=CredentialManager.create(activity).createCredential(activity,CreatePublicKeyCredentialRequest(challenge.getJSONObject("options").toString())) as CreatePublicKeyCredentialResponse
         body.put("challengeId",challenge.getString("challengeId")).put("credential",JSONObject(response.registrationResponseJson))
