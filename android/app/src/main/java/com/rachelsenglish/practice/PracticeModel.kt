@@ -135,7 +135,14 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             try {
                 while(!studyReady)delay(25)
                 studySyncJob?.cancel();studySyncJob?.join()
-                val session=if(ticket!=null)passkeys.register(activity,ticket) else passkeys.restore(activity)
+                val session=if(ticket!=null)passkeys.register(activity,ticket) else try {
+                    passkeys.restore(activity)
+                }catch(e: Exception){
+                    // A privately provisioned legacy alias proves this existing installation
+                    // owns the recovered profile. Unknown/fresh installs cannot enroll here.
+                    if(!passkeyLinked&&(e is androidx.credentials.exceptions.NoCredentialException||e is PasskeyUnavailable&&e.status==404))passkeys.register(activity,token=studyKey)
+                    else throw e
+                }
                 // Persist before adopting the identity. A cancelled prompt never changes the cache.
                 withContext(Dispatchers.IO){check(prefs.edit().putString("study-session",session.token).putString("study-account",session.account).putLong("study-session-expires",session.expires).commit())}
                 studySession=session.token;studyAccount=session.account

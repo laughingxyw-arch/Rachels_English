@@ -71,3 +71,11 @@ test('only provisioned legacy aliases route old uploads to their recovered owner
 test('a private probe setup link cannot accidentally bind the production application',async()=>{
  const {env,db}=await setup('probe');assert.equal((await call(env,'register/options',{ticket,mode:'owner'})).status,401);assert.equal((await call(env,'register/options',{ticket,mode:'probe'})).status,200);assert.equal((await db.prepare('SELECT used FROM passkey_enrollments').first()).used,0);
 });
+test('an authorized existing install can enroll without a link; a fresh install cannot claim its history',async()=>{
+ const {env,db}=await setup();const legacy='e'.repeat(64),source=await sha(legacy);
+ await db.prepare('INSERT INTO accounts VALUES(?,?)').bind(source,Date.now()).run();await db.prepare('INSERT INTO study_aliases VALUES(?,?)').bind(source,account).run();
+ assert.equal((await call(env,'register/options',{mode:'owner'},'f'.repeat(64))).status,401);
+ const c=await call(env,'register/options',{mode:'owner'},legacy);assert.equal(c.status,200);
+ const a=await authenticator(),r=await call(env,'register/finish',{mode:'owner',challengeId:c.challengeId,credential:await a.register(c.options)},legacy);assert.equal(r.status,200);assert.equal(r.account,account);
+ const fresh=await call(env,'authenticate/options');assert.equal((await call(env,'authenticate/finish',{challengeId:fresh.challengeId,credential:await a.login(fresh.options)})).account,account);
+});
