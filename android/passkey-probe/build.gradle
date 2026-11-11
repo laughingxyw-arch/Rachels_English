@@ -1,0 +1,39 @@
+plugins {
+ id 'com.android.application'
+ id 'org.jetbrains.kotlin.android'
+ id 'org.jetbrains.kotlin.plugin.compose'
+}
+def releaseVersion = new Properties()
+file('../../release/version.properties').withInputStream { releaseVersion.load(it) }
+android {
+ namespace 'com.rachelsenglish.passkeyprobe'
+ compileSdk 36
+ defaultConfig {
+  applicationId 'com.rachelsenglish.passkeyprobe'
+  minSdk 26
+  targetSdk 36
+  versionCode releaseVersion.getProperty('versionCode').toInteger()
+  versionName releaseVersion.getProperty('versionName')
+ }
+ signingConfigs {
+  release {
+   storeFile file('../app/release.jks')
+   storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+   keyAlias 'practice'
+   keyPassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+  }
+ }
+ buildTypes { release { signingConfig signingConfigs.release; minifyEnabled false } }
+ buildFeatures { compose true }
+ sourceSets { main.java.srcDirs += '../passkeys/src/main/kotlin' }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+kotlin { jvmToolchain(17) }
+dependencies {
+ implementation platform('androidx.compose:compose-bom:2025.10.01')
+ implementation 'androidx.activity:activity-compose:1.11.0'
+ implementation 'androidx.compose.material3:material3'
+ implementation 'androidx.compose.foundation:foundation'
+ implementation 'androidx.credentials:credentials:1.6.0'
+ implementation 'androidx.credentials:credentials-play-services-auth:1.6.0'
+}

@@ -1,0 +1,28 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.rachelsenglish.practice",
+      "sha256_cert_fingerprints": [
+        "59:06:81:12:07:79:9B:4D:0B:5C:98:1B:5B:09:70:AE:82:9D:DE:E2:FC:A8:57:C7:BB:FA:7C:6C:0C:E7:95:0D"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.rachelsenglish.passkeyprobe",
+      "sha256_cert_fingerprints": [
+        "59:06:81:12:07:79:9B:4D:0B:5C:98:1B:5B:09:70:AE:82:9D:DE:E2:FC:A8:57:C7:BB:FA:7C:6C:0C:E7:95:0D"
+      ]
+    }
+  }
+]

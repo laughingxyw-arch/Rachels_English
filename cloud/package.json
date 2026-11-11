@@ -1,0 +1,8 @@
+{
+  "name": "rachels-english-cloud",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test --experimental-test-isolation=none tests/*.test.mjs"},
+  "dependencies": {"@simplewebauthn/server": "14.1.0"},
+  "engines": {"node": ">=22"}
+}

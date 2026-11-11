@@ -15,6 +15,7 @@ fun mergeStudy(localDevice: String,local: List<StudyDay>,remote: List<StudyContr
     return shards.values.groupBy {it.row.day to it.row.course}.map {(key,items)->StudyDay(key.first,key.second,items.sumOf {it.row.audioMs},items.sumOf {it.row.shadowMs})}
 }
 fun studySecret(): String=ByteArray(32).also {SecureRandom().nextBytes(it)}.joinToString(""){"%02x".format(it.toInt() and 255)}
+class StudyAuthenticationRequired: Exception("Authentication required")
 class StudyCloud(private val base: String=BuildConfig.CONTENT_BASE_URL) {
     private fun request(secret: String,method: String,body: JSONObject?=null,offset: Int=0): JSONObject {
         val connection=URI(base.trimEnd('/')+"/api/study?offset=$offset").toURL().openConnection() as HttpURLConnection
@@ -22,6 +23,7 @@ class StudyCloud(private val base: String=BuildConfig.CONTENT_BASE_URL) {
             connection.connectTimeout=15_000;connection.readTimeout=20_000;connection.instanceFollowRedirects=false
             connection.requestMethod=method;connection.setRequestProperty("Authorization","Bearer $secret")
             if(body!=null){connection.doOutput=true;connection.setRequestProperty("Content-Type","application/json");connection.outputStream.use {it.write(body.toString().toByteArray(Charsets.UTF_8))}}
+            if(connection.responseCode==401)throw StudyAuthenticationRequired()
             check(connection.responseCode==200){"Sync unavailable"}
             return JSONObject(connection.inputStream.bufferedReader().use {it.readText()})
         }finally{connection.disconnect()}

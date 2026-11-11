@@ -50,6 +50,25 @@ class NativePracticeTest {
  @org.junit.Before fun resetSession(){rule.runOnUiThread {(rule.activity.application as PracticeApplication).model.apply {back();consumeMessage()}}}
  @org.junit.After fun closeSession(){rule.runOnUiThread {(rule.activity.application as PracticeApplication).model.back()}}
  @get:Rule val rule=createAndroidComposeRule<MainActivity>()
+ @Test fun homePlayerRetainsTaskAndReturnsToTheSameSentence(){
+  val model=(rule.activity.application as PracticeApplication).model
+  try {
+   showCourse("epfQlb_Tgco");rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
+   rule.waitUntil(15000){model.readingLesson?.course?.id=="epfQlb_Tgco"}
+   rule.runOnUiThread {model.updateLoopMode(PracticeLoop.ALL_COURSES);model.updateDrill(true);model.start(3,playWhenReady=false);model.leaveReading()}
+   rule.waitForIdle()
+   rule.onNodeWithTag("home-player-course").assertIsDisplayed()
+   rule.onNodeWithContentDescription("播放").assertIsDisplayed()
+   rule.runOnIdle {assertTrue(model.playback.paused);assertNull(model.readingLesson);assertEquals(3,model.playback.selected)}
+   rule.onNodeWithContentDescription("下一句").performClick()
+   rule.runOnIdle {assertEquals(4,model.playback.selected);assertTrue(model.playback.paused)}
+   screenshot("home-player")
+   rule.onNodeWithTag("home-player-course").performClick()
+   rule.waitUntil(10000){model.readingLesson!=null}
+   rule.runOnIdle {assertEquals(4,model.playback.selected);assertTrue(model.playback.paused);assertTrue(model.drill)}
+   rule.onNodeWithTag("home-player-course").assertDoesNotExist()
+  }finally{rule.runOnUiThread {model.back();model.updateLoopMode(PracticeLoop.OFF)}}
+ }
  @Test fun longPressChangesCourseWithoutMovingTheTransportOrStartingPausedAudio(){
   val model=(rule.activity.application as PracticeApplication).model
   val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation

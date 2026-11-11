@@ -1,3 +1,4 @@
+import {studyIdentity,tokenFrom,ApiError} from '../../lib/study-auth.js';
 const headers = {'Content-Type':'application/json', 'Cache-Control':'no-store'};
 const reply=(value,status=200)=>new Response(JSON.stringify(value),{status,headers});
 export function validate(body) {
@@ -11,11 +12,10 @@ export function validate(body) {
  return body;
 }
 export async function onRequest({request,env}) {
- const token=request.headers.get('Authorization')?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
+ const token=tokenFrom(request);
  if(!token)return reply({error:'Unauthorized'},401);
- const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token));
- const account=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
  try {
+  const account=await studyIdentity(env.STUDY_DB,token);
   if(request.method==='PUT'){
    if(Number(request.headers.get('Content-Length')||0)>65536)return reply({error:'Too large'},413);
    const raw=await request.text();if(raw.length>65536)return reply({error:'Too large'},413);
@@ -35,5 +35,5 @@ export async function onRequest({request,env}) {
   if(!Number.isSafeInteger(offset)||offset<0)return reply({error:'Invalid offset'},400);
   const result=await env.STUDY_DB.prepare('SELECT device,day,course,audio AS audioMs,shadow AS shadowMs FROM study WHERE account=? ORDER BY device,day,course LIMIT 1000 OFFSET ?').bind(account,offset).all();
   return reply({rows:result.results,next:result.results.length===1000?offset+1000:null});
- }catch{return reply({error:'Sync unavailable'},503)}
+ }catch(error){return reply({error:error instanceof ApiError?error.message:'Sync unavailable'},error instanceof ApiError?error.status:503)}
 }

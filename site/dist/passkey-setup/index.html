@@ -1,0 +1,6 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark"><title>关联学习记录 · 原声练习</title><style>body{font:17px/1.65 system-ui;max-width:28rem;margin:16vh auto;padding:24px}h1{font-size:27px;font-weight:550}a{display:inline-block;color:#2484cd;padding:12px 0;text-decoration:none}p{opacity:.7}button{font:inherit;border:0;background:transparent;color:#2484cd;padding:12px 0;cursor:pointer}</style><h1>关联学习记录</h1><p id="status">在已安装的应用中继续，使用系统通行密钥完成验证。</p><button id="open">打开应用</button><script>
+const ticket=location.hash.slice(1);history.replaceState(null,'',location.pathname);
+const button=document.getElementById('open');
+if(!/^[a-f0-9]{64}$/.test(ticket)){button.hidden=true;document.getElementById('status').textContent='请使用私有绑定链接打开此页面。'}
+else button.onclick=()=>{location.href='intent://rachels-english.pages.dev/passkey-setup/#Intent;scheme=https;package=com.rachelsenglish.practice;S.enrollment='+ticket+';end'};
+</script></html>

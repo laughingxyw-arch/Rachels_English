@@ -120,16 +120,43 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     private val studyCloud=StudyCloud()
     private val studyDevice=prefs.getString("study-device",null)?:java.util.UUID.randomUUID().toString().replace("-","").also {prefs.edit().putString("study-device",it).apply()}
     private var studyKey=prefs.getString("study-key",null)?:studySecret().also {prefs.edit().putString("study-key",it).apply()}
-    val recoveryCode: String get()=studyKey.chunked(8).joinToString("-")
+    private var studySession=prefs.getString("study-session",null)
+    private var studyAccount by mutableStateOf(prefs.getString("study-account",null))
+    val passkeyLinked: Boolean get()=studyAccount!=null
+    private val studyCacheIdentity: String get()=studyAccount?.let {"account:$it"}?:studyKey
+    private val studyAuthorization: String get()=studySession?:studyKey
+    var passkeyBusy by mutableStateOf(false);private set
+    private var autoRestoreAttempted=false
+    private val passkeys=PasskeyClient(BuildConfig.CONTENT_BASE_URL)
+    fun restoreWithPasskey(activity: android.app.Activity,ticket: String?=null,automatic: Boolean=false){
+        if(passkeyBusy||automatic&&(autoRestoreAttempted||passkeyLinked&&studySession!=null))return
+        autoRestoreAttempted=true;passkeyBusy=true
+        viewModelScope.launch {
+            try {
+                while(!studyReady)delay(25)
+                studySyncJob?.cancel();studySyncJob?.join()
+                val session=if(ticket!=null)passkeys.register(activity,ticket) else passkeys.restore(activity)
+                // Persist before adopting the identity. A cancelled prompt never changes the cache.
+                withContext(Dispatchers.IO){check(prefs.edit().putString("study-session",session.token).putString("study-account",session.account).putLong("study-session-expires",session.expires).commit())}
+                studySession=session.token;studyAccount=session.account
+                remoteStudy=withContext(Dispatchers.IO){studyStore.readRemote(studyCacheIdentity)}
+                studyRevision++;passkeyBusy=false;syncStudy(true)
+            }catch(e: kotlinx.coroutines.CancellationException){throw e}
+            catch(e: Exception){if(!automatic)notify(passkeyMessage(e),true)}
+            finally {passkeyBusy=false}
+        }
+    }
     var studySyncing by mutableStateOf(false);private set
     var studySyncStatus by mutableStateOf("待同步");private set
     var studyRevision by mutableIntStateOf(0);private set
     private var remoteStudy=emptyList<StudyContribution>()
     private var studySyncJob: Job?=null
     fun syncStudy(explicit: Boolean=false,restore: String?=null){
-        if(!studyReady||studySyncing)return
-        val key=restore?.lowercase()?.filterNot {it=='-'||it.isWhitespace()}?:studyKey
-        if(!key.matches(Regex("[a-f0-9]{64}"))){notify("恢复码格式不正确",true);return}
+        if(!studyReady||studySyncing||passkeyBusy)return
+        if(passkeyLinked&&studySession==null){studySyncStatus="请验证身份";return}
+        val key=restore?.lowercase()?.filterNot {it=='-'||it.isWhitespace()}?:studyAuthorization
+        if(!key.matches(Regex("(?:session\\.)?[a-f0-9]{64}"))){notify("同步凭据不可用",true);return}
+        val cacheIdentity=if(restore!=null)key else studyCacheIdentity
         sampleStudy();flushStudy();val local=studyLedger.snapshot()
         studySyncing=true;studySyncStatus="同步中"
         studySyncJob=viewModelScope.launch {
@@ -139,12 +166,16 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
                     if(restore!=null)studyCloud.download(key)
                     studyStore.write(local)
                     studyCloud.upload(key,studyDevice,local)
-                    studyCloud.download(key).also {studyStore.cacheRemote(key,it)}
+                    studyCloud.download(key).also {studyStore.cacheRemote(cacheIdentity,it)}
                 }
                 if(restore!=null){withContext(Dispatchers.IO){check(prefs.edit().putString("study-key",key).commit())};studyKey=key}
                 remoteStudy=rows;studyRevision++;studySyncStatus=if(studyLedger.snapshot()==local)"已同步" else "待同步"
                 if(explicit)notify(if(restore!=null)"学习记录已恢复" else "学习记录已同步")
             }catch(e: kotlinx.coroutines.CancellationException){throw e}
+            catch(e: StudyAuthenticationRequired){
+                if(studyAccount!=null){studySession=null;withContext(Dispatchers.IO){prefs.edit().remove("study-session").commit()}}
+                studySyncStatus="请验证身份";if(explicit)notify("请用通行密钥验证后继续同步")
+            }
             catch(e: Exception){studySyncStatus="待同步";if(explicit)notify(if(restore!=null)"恢复失败，请检查恢复码和网络" else "暂未同步，记录已保存在本机",true)}
             finally{studySyncing=false}
         }
@@ -189,7 +220,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            studyLedger=StudyLedger(withContext(Dispatchers.IO){check(prefs.edit().putString("study-device",studyDevice).putString("study-key",studyKey).commit());studyStore.read()});remoteStudy=withContext(Dispatchers.IO){studyStore.readRemote(studyKey)};studyReady=true;studyRevision++;syncStudy()
+            studyLedger=StudyLedger(withContext(Dispatchers.IO){check(prefs.edit().putString("study-device",studyDevice).putString("study-key",studyKey).commit());studyStore.read()});remoteStudy=withContext(Dispatchers.IO){studyStore.readRemote(studyCacheIdentity)};studyReady=true;studyRevision++;syncStudy()
             for(rows in studyWrites)withContext(Dispatchers.IO){studyStore.write(rows)}
         }
         viewModelScope.launch {while(true){delay(60_000);syncStudy()}}

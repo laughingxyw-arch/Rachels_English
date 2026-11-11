@@ -1,6 +1,9 @@
 {
   "name": "rachels-english",
   "compatibility_date": "2026-10-02",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "pages_build_output_dir": "./dist",
   "d1_databases": [
     {
@@ -9,5 +12,9 @@
       "database_id": "bd105847-d726-4687-bb9b-5d3a2c97e799",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "vars": {
+    "PASSKEY_RP_ID": "rachels-english.pages.dev",
+    "PASSKEY_ALLOWED_ORIGINS": "[\"https://rachels-english.pages.dev\",\"android:apk-key-hash:WQaBEgd5m00LXJgbWwlwroKd3uL8qFfHu_p8bAznlQ0\"]"
+  }
 }

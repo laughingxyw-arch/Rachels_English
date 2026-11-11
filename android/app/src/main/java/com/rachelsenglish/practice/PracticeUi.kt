@@ -78,6 +78,7 @@ val ReadingFirstOffsetKey=SemanticsPropertyKey<Int>("ReadingFirstOffset")
 val CourseTitleLineCountKey=SemanticsPropertyKey<Int>("CourseTitleLineCount")
 val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 @Composable fun PracticeApp(model: PracticeModel) {
+    val homePlayback by remember(model){derivedStateOf {model.opened!=null&&model.playback.running}}
     val environment=rememberVisualEnvironment()
     val style=materialStyle(environment,model.reduceTransparency,model.enhanceContrast)
     val dark=androidx.compose.foundation.isSystemInDarkTheme()
@@ -194,10 +195,10 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                         else LessonScreen(model,open,shared,this)
                     }
                 }
-                AnimatedVisibility(model.readingLesson!=null,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp).then(if(utilityPage!=null)Modifier.clearAndSetSemantics {} else Modifier).graphicsLayer {alpha=if(seeking||model.opened==null)(1f-gesture.value).coerceIn(0f,1f) else 1f},
+                AnimatedVisibility(model.readingLesson!=null||homePlayback,modifier=Modifier.align(Alignment.BottomCenter).padding(bottom=16.dp).then(if(utilityPage!=null)Modifier.clearAndSetSemantics {} else Modifier).graphicsLayer {alpha=if((seeking||model.opened==null)&&!homePlayback)(1f-gesture.value).coerceIn(0f,1f) else 1f},
                     enter=if(reduced)EnterTransition.None else fadeIn(tween(140))+slideInVertically(spring(1f,600f)){it/3},
                     exit=if(reduced)ExitTransition.None else fadeOut(tween(100))) {
-                    CompositionLocalProvider(LocalBackdropSource provides backdrop){Transport(model,{settings=true},Modifier.padding(horizontal=28.dp),interactive=transition.targetState!=null&&utilityPage==null)}
+                    CompositionLocalProvider(LocalBackdropSource provides backdrop){Transport(model,{settings=true},Modifier.padding(horizontal=28.dp),interactive=(transition.targetState!=null||homePlayback)&&utilityPage==null,home=transition.targetState==null&&homePlayback)}
                 }
                 if(utilityPage!=null) {
                     Box(Modifier.fillMaxSize().captureBackdrop(recordsBackdrop).graphicsLayer {
@@ -209,7 +210,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                         UtilityPage(model,closeRecords,{settings=true},{course->closeRecords();model.open(course)})
                     }
                 }
-                NoticePill(model,Modifier.align(Alignment.BottomCenter).padding(horizontal=24.dp).padding(bottom=if(model.readingLesson!=null)88.dp else 24.dp))
+                NoticePill(model,Modifier.align(Alignment.BottomCenter).padding(horizontal=24.dp).padding(bottom=if(homePlayback&&model.readingLesson==null)132.dp else if(model.readingLesson!=null)88.dp else 24.dp))
             }
             if(settings&&(model.opened!=null||utilityPage!=null))SettingsSheet(model,environment.highContrast,settingsSheet,{sheetHeight=it},{settings=false},generalOnly=utilityPage!=null)
         }
@@ -259,6 +260,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     }
 }
 @Composable private fun Library(model: PracticeModel,shared: SharedTransitionScope,visibility: AnimatedVisibilityScope,list: LazyGridState,query: String,changeQuery: (String)->Unit,records: ()->Unit) {
+    val activeCourse by remember(model){derivedStateOf {model.opened?.course?.id.takeIf {model.playback.running}}}
     val courses=model.courses.filter { "${it.title} ${it.label}".contains(query,true) }
     val refreshState=remember {RefreshMotion()}
     val scope=rememberCoroutineScope()
@@ -306,7 +308,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     }}
     Box(Modifier.fillMaxSize().nestedScroll(connection)
         .testTag("library-refresh").semantics {this[LibraryPullKey]=refreshState.distanceFraction;customActions=listOf(CustomAccessibilityAction("更新课程"){latestRequest();true})}) {
-    LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,24.dp),
+    LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,if(activeCourse!=null)136.dp else 24.dp),
         horizontalArrangement=Arrangement.spacedBy(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.graphicsLayer {translationY=72.dp.toPx()*refreshState.distanceFraction}.testTag("library")) {
         item(span={GridItemSpan(maxLineSpan)}) {
             Column {
@@ -322,10 +324,10 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         items(courses,key={it.id}) {course ->
             val interaction=remember {MutableInteractionSource()};val pressed by interaction.collectIsPressedAsState()
             val scale by animateFloatAsState(if(pressed).978f else 1f,if(LocalReduced.current)snap() else spring(1f,900f),label="card-pressure")
-            Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale;scaleY=scale}.clip(RoundedCornerShape(18.dp)).background(Surface)
+            Row(with(shared){containerModifier(course,visibility)}.graphicsLayer {scaleX=scale;scaleY=scale}.clip(RoundedCornerShape(18.dp)).background(if(activeCourse==course.id)Tint else Surface)
                 .then(with(shared){Modifier.skipToLookaheadSize()})
                 .clickable(interactionSource=interaction,indication=null,role=Role.Button,onClick={model.open(course)})
-                .testTag("course-${course.id}").semantics {stateDescription="${course.seconds} 秒 · ${course.count} 句"}.fillMaxWidth().heightIn(min=88.dp).padding(vertical=8.dp),
+                .testTag("course-${course.id}").semantics {stateDescription=if(activeCourse==course.id)"当前播放 · ${course.seconds} 秒 · ${course.count} 句" else "${course.seconds} 秒 · ${course.count} 句"}.fillMaxWidth().heightIn(min=88.dp).padding(vertical=8.dp),
                 verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
                 Box {
                     Cover(course,model.repository,with(shared){coverModifier(course,visibility)}.size(112.dp,70.dp),coverBadge(visibility,true))
@@ -477,7 +479,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         }
     }
 }
-@Composable private fun Transport(model: PracticeModel,settings: ()->Unit,modifier: Modifier,interactive: Boolean=true) {
+@Composable private fun Transport(model: PracticeModel,settings: ()->Unit,modifier: Modifier,interactive: Boolean=true,home: Boolean=false) {
     val p=model.playback
     val previousCourse by remember(model){derivedStateOf {model.canChangeCourse(-1)}}
     val nextCourse by remember(model){derivedStateOf {model.canChangeCourse(1)}}
@@ -485,10 +487,18 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val accent=Accent
     val progress=animateFloatAsState(p.taskProgress?:0f,if(LocalReduced.current||p.taskProgress==0f)snap() else tween(45,easing=LinearEasing),label="transport-light")
     Column(modifier.animateContentSize(if(LocalReduced.current)snap() else spring(1f,600f)),horizontalAlignment=Alignment.CenterHorizontally) {
-        FrostedSurface(Modifier.testTag("player-surface").semantics {p.taskProgress?.let {progressBarRangeInfo=ProgressBarRangeInfo(it,0f..1f)}},radius=32.dp) {
+        FrostedSurface(Modifier.widthIn(max=360.dp).testTag("player-surface").semantics {p.taskProgress?.let {progressBarRangeInfo=ProgressBarRangeInfo(it,0f..1f)}},radius=32.dp) {
             if(p.taskProgress!=null)Canvas(Modifier.matchParentSize()){
                 val colors=if(style.highContrast)listOf(accent.copy(alpha=.12f),accent.copy(alpha=.12f)) else listOf(accent.copy(alpha=.025f),Color(0xff69b5ff).copy(alpha=.18f))
                 drawRect(Brush.horizontalGradient(colors),size=androidx.compose.ui.geometry.Size(size.width*progress.value,size.height))
+            }
+            Column(horizontalAlignment=Alignment.CenterHorizontally) {
+            if(home) {
+                val label=model.opened?.course?.title.orEmpty()
+                Row(Modifier.fillMaxWidth().heightIn(min=48.dp).then(if(interactive)Modifier.clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={model.opened?.course?.let(model::open)}) else Modifier).testTag("home-player-course").padding(horizontal=22.dp),verticalAlignment=Alignment.CenterVertically){
+                    Text(label,fontSize=13.sp,fontWeight=FontWeight.Medium,maxLines=1,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis,modifier=Modifier.weight(1f))
+                    Text("›",color=Muted,modifier=Modifier.padding(start=12.dp))
+                }
             }
             Row(Modifier.padding(6.dp,4.dp),verticalAlignment=Alignment.CenterVertically) {
                 GlyphButton("上一句","previous",model::previous,enabled=p.selected>0,longClick=if(previousCourse)({model.changeCourse(-1)}) else null,longLabel="上一课",interactive=interactive)
@@ -496,6 +506,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                 GlyphButton("下一句","next",model::next,enabled=p.selected<(model.opened?.lesson?.groups?.lastIndex?:0),longClick=if(nextCourse)({model.changeCourse(1)}) else null,longLabel="下一课",interactive=interactive)
                 ModeRoller(model.drill,model::updateDrill,interactive)
                 GlyphButton("练习设置","more",settings,interactive=interactive)
+            }
             }
         }
         if(p.running&&p.waiting&&model.shadow)Text("跟读 · %.1f 秒".format(p.waitSeconds),fontSize=11.sp,color=Muted,modifier=Modifier.padding(top=5.dp))
