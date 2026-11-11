@@ -12,7 +12,7 @@
 
 离线继续本地计时；联网启动、前后台切换、暂停/结束及每分钟补传。未成功同步的本机数据随卸载仍可能丢失。既有版本的恢复凭据继续用于旧安装上传；明确配置的私有身份别名将历史安装上传关联到同一账户，原记录保留，不开放公开认领接口。
 
-接口：`/api/study`（HTTPS Bearer，单批最多 100 行、读取每页 1000 行）、`/api/passkey/register/options`、`/api/passkey/register/finish`、`/api/passkey/authenticate/options`、`/api/passkey/authenticate/finish`。通行密钥接口仅接受 POST、限制输入体积且禁止缓存。域名关联通过 `/.well-known/assetlinks.json` 声明应用包名和签名证书。首次关联链接在 URL fragment 中携带能力值，不放查询参数；页面不加载第三方资源，并移除地址栏片段。
+接口：`/api/study`（HTTPS Bearer，单批最多 100 行、读取每页 1000 行）、`/api/passkey/register/options`、`/api/passkey/register/finish`、`/api/passkey/authenticate/options`、`/api/passkey/authenticate/finish`。通行密钥接口仅接受 POST、限制输入体积且禁止缓存。域名关联通过 `/.well-known/assetlinks.json` 声明应用包名和签名证书。首次关联链接在 URL fragment 中携带能力值，不放查询参数；页面不加载第三方资源；保留片段以支持刷新，并在当前标签页的 sessionStorage 临时保存绑定信息 30 分钟，不放入查询参数或永久本地存储。
 
 发布需先完成 D1 迁移再部署 Functions 和静态域名关联文件。GitHub 工作流仅在配置 Cloudflare 部署凭据时执行部署；缺少凭据时，需使用已授权本机 CLI 部署并实测线上接口，不能将内容检查通过当作部署完成。
 
