@@ -30,7 +30,7 @@ if args.bundle_android:
   target=APP/'lessons'/f'{c["id"]}.json';target.parent.mkdir(parents=True,exist_ok=True);target.write_text(json.dumps(data(SITE/'lessons'/f'{c["id"]}.js'),ensure_ascii=False))
 catalog=json.dumps(dict(schemaVersion=1,courses=courses),ensure_ascii=False,indent=2)
 for base in bases:(base/'catalog.json').write_text(catalog)
-(OUT/'_headers').write_text('/passkey-*/*\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n/.well-known/assetlinks.json\n  Content-Type: application/json\n  Cache-Control: max-age=300\n/catalog.json\n  Cache-Control: no-cache\n/packages/*\n  Cache-Control: public, max-age=31536000, immutable\n')
+(OUT/'_headers').write_text('/passkey-setup/*\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n/passkey-probe/*\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n/.well-known/assetlinks.json\n  Content-Type: application/json\n  Cache-Control: max-age=300\n/catalog.json\n  Cache-Control: no-cache\n/packages/*\n  Cache-Control: public, max-age=31536000, immutable\n')
 apk=ROOT/'downloads/rachels-english.apk'
 if apk.exists():shutil.copy2(apk,OUT/'rachels-english.apk')
 assets=list(OUT.rglob('*'));files=[f for f in assets if f.is_file()]
