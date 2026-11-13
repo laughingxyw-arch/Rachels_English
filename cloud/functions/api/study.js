@@ -13,9 +13,11 @@ export function validate(body) {
 }
 export async function onRequest({request,env}) {
  const token=tokenFrom(request);
- if(!token)return reply({error:'Unauthorized'},401);
+ if(env.SINGLE_USER_STUDY!=='true'&&!token)return reply({error:'Unauthorized'},401);
  try {
-  const account=await studyIdentity(env.STUDY_DB,token);
+  const single=env.SINGLE_USER_STUDY==='true';
+  const account=single?(await env.STUDY_DB.prepare('SELECT account FROM single_study_profile WHERE id=1').first())?.account:await studyIdentity(env.STUDY_DB,token);
+  if(!account)return reply({error:'Study profile unavailable'},503);
   if(request.method==='PUT'){
    if(Number(request.headers.get('Content-Length')||0)>65536)return reply({error:'Too large'},413);
    const raw=await request.text();if(raw.length>65536)return reply({error:'Too large'},413);
@@ -31,7 +33,12 @@ export async function onRequest({request,env}) {
   const exists=await env.STUDY_DB.prepare('SELECT id FROM accounts WHERE id=?').bind(account).first();
   if(!exists)return reply({error:'Not found'},404);
   // Bound each response; clients fetch older pages when records grow.
-  const url=new URL(request.url);const offset=Number(url.searchParams.get('offset')||0);
+  const url=new URL(request.url);
+  if(single&&url.searchParams.get('backup')==='1'){
+   const result=await env.STUDY_DB.prepare('SELECT device,day,course,audio AS audioMs,shadow AS shadowMs FROM study WHERE account=? ORDER BY device,day,course').bind(account).all();
+   return reply({schemaVersion:1,exportedAt:new Date().toISOString(),rows:result.results});
+  }
+  const offset=Number(url.searchParams.get('offset')||0);
   if(!Number.isSafeInteger(offset)||offset<0)return reply({error:'Invalid offset'},400);
   const result=await env.STUDY_DB.prepare('SELECT device,day,course,audio AS audioMs,shadow AS shadowMs FROM study WHERE account=? ORDER BY device,day,course LIMIT 1000 OFFSET ?').bind(account,offset).all();
   return reply({rows:result.results,next:result.results.length===1000?offset+1000:null});

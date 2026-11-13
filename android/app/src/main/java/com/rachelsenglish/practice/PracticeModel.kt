@@ -117,84 +117,30 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     }
     private val feedback=ListeningFeedback()
     private var foreground=false
-    private val studyCloud=StudyCloud()
+    // Debug/emulator runs must never write synthetic counters into the personal profile.
+    private val studyCloud=StudyCloud(if(BuildConfig.DEBUG)"https://study.invalid/" else BuildConfig.CONTENT_BASE_URL)
     private val studyDevice=prefs.getString("study-device",null)?:java.util.UUID.randomUUID().toString().replace("-","").also {prefs.edit().putString("study-device",it).apply()}
-    private var studyKey=prefs.getString("study-key",null)?:studySecret().also {prefs.edit().putString("study-key",it).apply()}
-    private var studySession=prefs.getString("study-session",null)
-    private var studyAccount by mutableStateOf(prefs.getString("study-account",null))
-    val passkeyLinked: Boolean get()=studyAccount!=null
-    private val studyCacheIdentity: String get()=studyAccount?.let {"account:$it"}?:studyKey
-    private val studyAuthorization: String get()=studySession?:studyKey
-    var passkeyBusy by mutableStateOf(false);private set
-    private var autoRestoreAttempted=false
-    private val passkeys=PasskeyClient(BuildConfig.CONTENT_BASE_URL)
-    private var passkeyJob: Job?=null
-    private var passkeyRequestId=0L
-    internal var passkeyOperation: suspend (android.app.Activity,String?)->StudySession={activity,ticket->
-        if(ticket!=null)passkeys.register(activity,ticket) else recoverOrEnrollPasskey(
-            linked=passkeyLinked,bootstrapTicket=BuildConfig.INITIAL_SETUP_TICKET,
-            restore={passkeys.restore(activity)},
-            register={bootstrap->passkeys.register(activity,ticket=bootstrap,token=if(bootstrap==null)studyKey else null)}
-        )
-    }
-
-    fun restoreWithPasskey(activity: android.app.Activity,ticket: String?=null,automatic: Boolean=false){
-        if(automatic&&(passkeyBusy||autoRestoreAttempted||passkeyLinked&&studySession!=null))return
-        if(passkeyBusy&&ticket==null)return
-        val previous=passkeyJob;val requestId=++passkeyRequestId
-        autoRestoreAttempted=true;passkeyBusy=true
-        previous?.cancel()
-        passkeyJob=viewModelScope.launch {
-            try {
-                previous?.join()
-                while(!studyReady)delay(25)
-                val interruptedSync=studySyncJob
-                interruptedSync?.cancel()
-                // Open the system prompt without waiting for unrelated statistics IO.
-                val session=passkeyOperation(activity,ticket)
-                // Old cache writes must finish before adopting the verified identity.
-                interruptedSync?.join()
-                // Persist before adopting the identity. A cancelled prompt never changes the cache.
-                withContext(Dispatchers.IO){check(prefs.edit().putString("study-session",session.token).putString("study-account",session.account).putLong("study-session-expires",session.expires).commit())}
-                studySession=session.token;studyAccount=session.account
-                remoteStudy=withContext(Dispatchers.IO){studyStore.readRemote(studyCacheIdentity)}
-                studyRevision++;passkeyBusy=false;syncStudy(true)
-            }catch(e: kotlinx.coroutines.CancellationException){throw e}
-            catch(e: Exception){if((!automatic||!passkeyLinked&&BuildConfig.INITIAL_SETUP_TICKET.isNotEmpty())&&requestId==passkeyRequestId)notify(passkeyMessage(e),true)}
-            finally {if(requestId==passkeyRequestId)passkeyBusy=false}
-        }
-    }
+    private val studyCacheIdentity="single-study-v1"
     var studySyncing by mutableStateOf(false);private set
     var studySyncStatus by mutableStateOf("待同步");private set
     var studyRevision by mutableIntStateOf(0);private set
     private var remoteStudy=emptyList<StudyContribution>()
     private var studySyncJob: Job?=null
-    fun syncStudy(explicit: Boolean=false,restore: String?=null){
-        if(!studyReady||studySyncing||passkeyBusy)return
-        if(passkeyLinked&&studySession==null){studySyncStatus="请验证身份";return}
-        val key=restore?.lowercase()?.filterNot {it=='-'||it.isWhitespace()}?:studyAuthorization
-        if(!key.matches(Regex("(?:session\\.)?[a-f0-9]{64}"))){notify("同步凭据不可用",true);return}
-        val cacheIdentity=if(restore!=null)key else studyCacheIdentity
+    fun syncStudy(explicit: Boolean=false){
+        if(!studyReady||studySyncing)return
         sampleStudy();flushStudy();val local=studyLedger.snapshot()
         studySyncing=true;studySyncStatus="同步中"
         studySyncJob=viewModelScope.launch {
             try {
                 val rows=withContext(Dispatchers.IO){
-                    // Restoration must find an existing account before registering/uploading anything.
-                    if(restore!=null)studyCloud.download(key)
                     studyStore.write(local)
-                    studyCloud.upload(key,studyDevice,local)
-                    studyCloud.download(key).also {studyStore.cacheRemote(cacheIdentity,it)}
+                    if(local.isNotEmpty())studyCloud.upload(studyDevice,local)
+                    studyCloud.download().also {studyStore.cacheRemote(studyCacheIdentity,it)}
                 }
-                if(restore!=null){withContext(Dispatchers.IO){check(prefs.edit().putString("study-key",key).commit())};studyKey=key}
                 remoteStudy=rows;studyRevision++;studySyncStatus=if(studyLedger.snapshot()==local)"已同步" else "待同步"
-                if(explicit)notify(if(restore!=null)"学习记录已恢复" else "学习记录已同步")
+                if(explicit)notify("学习记录已同步")
             }catch(e: kotlinx.coroutines.CancellationException){throw e}
-            catch(e: StudyAuthenticationRequired){
-                if(studyAccount!=null){studySession=null;withContext(Dispatchers.IO){prefs.edit().remove("study-session").commit()}}
-                studySyncStatus="请验证身份";if(explicit)notify("请用通行密钥验证后继续同步")
-            }
-            catch(e: Exception){studySyncStatus="待同步";if(explicit)notify(if(restore!=null)"恢复失败，请检查恢复码和网络" else "暂未同步，记录已保存在本机",true)}
+            catch(e: Exception){studySyncStatus="待同步";if(explicit)notify("暂未同步，记录已保存在本机",true)}
             finally{studySyncing=false}
         }
     }
@@ -238,7 +184,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            studyLedger=StudyLedger(withContext(Dispatchers.IO){check(prefs.edit().putString("study-device",studyDevice).putString("study-key",studyKey).commit());studyStore.read()});remoteStudy=withContext(Dispatchers.IO){studyStore.readRemote(studyCacheIdentity)};studyReady=true;studyRevision++;syncStudy()
+            studyLedger=StudyLedger(withContext(Dispatchers.IO){check(prefs.edit().putString("study-device",studyDevice).remove("study-session").remove("study-account").remove("study-session-expires").commit());studyStore.read()});remoteStudy=withContext(Dispatchers.IO){studyStore.readRemote(studyCacheIdentity)};studyReady=true;studyRevision++;syncStudy()
             for(rows in studyWrites)withContext(Dispatchers.IO){studyStore.write(rows)}
         }
         viewModelScope.launch {while(true){delay(60_000);syncStudy()}}

@@ -96,6 +96,7 @@ async function authFinish(db,body,cfg){
  if(result[0].meta.changes!==1)throw new ApiError(401,'Challenge expired');return session;
 }
 export async function handlePasskey({request,env}){
+ if(env.SINGLE_USER_STUDY==='true')return reply({error:'Passkey setup retired'},410);
  if(request.method!=='POST')return reply({error:'Method not allowed'},405);
  try{
   const body=await readBody(request),db=env.STUDY_DB,cfg=config(env),path=new URL(request.url).pathname.replace(/^\/api\/passkey\//,'');

@@ -14,6 +14,7 @@
     }
   ],
   "vars": {
+    "SINGLE_USER_STUDY": "true",
     "PASSKEY_RP_ID": "rachels-english.pages.dev",
     "PASSKEY_ALLOWED_ORIGINS": "[\"https://rachels-english.pages.dev\",\"android:apk-key-hash:WQaBEgd5m00LXJgbWwlwroKd3uL8qFfHu_p8bAznlQ0\"]"
   }

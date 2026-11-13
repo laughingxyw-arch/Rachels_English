@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS study_backups (
+ day TEXT PRIMARY KEY,
+ created INTEGER NOT NULL,
+ payload TEXT NOT NULL,
+ sha256 TEXT NOT NULL
+);
