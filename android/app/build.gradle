@@ -25,7 +25,15 @@ android {
    keyPassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
   }
  }
- buildTypes { release { signingConfig signingConfigs.release; minifyEnabled false } }
+ buildTypes {
+  debug { buildConfigField 'String', 'INITIAL_SETUP_TICKET', '""' }
+  release {
+   signingConfig signingConfigs.release; minifyEnabled false
+   def setupTicket = System.getenv('INITIAL_SETUP_TICKET') ?: ''
+   if (setupTicket && !(setupTicket ==~ /[a-f0-9]{64}/)) throw new GradleException('Invalid private setup configuration')
+   buildConfigField 'String', 'INITIAL_SETUP_TICKET', '"' + setupTicket + '"'
+  }
+ }
  buildFeatures { buildConfig true; compose true }
  sourceSets { main.java.srcDirs += '../passkeys/src/main/kotlin' }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }

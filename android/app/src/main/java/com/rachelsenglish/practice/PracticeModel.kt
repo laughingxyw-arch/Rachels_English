@@ -131,15 +131,13 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     private var passkeyJob: Job?=null
     private var passkeyRequestId=0L
     internal var passkeyOperation: suspend (android.app.Activity,String?)->StudySession={activity,ticket->
-        if(ticket!=null)passkeys.register(activity,ticket) else try {
-            passkeys.restore(activity)
-        }catch(e: Exception){
-            // A privately provisioned legacy alias proves this existing installation
-            // owns the recovered profile. Unknown/fresh installs cannot enroll here.
-            if(!passkeyLinked&&(e is androidx.credentials.exceptions.NoCredentialException||e is PasskeyUnavailable&&e.status==404))passkeys.register(activity,token=studyKey)
-            else throw e
-        }
+        if(ticket!=null)passkeys.register(activity,ticket) else recoverOrEnrollPasskey(
+            linked=passkeyLinked,bootstrapTicket=BuildConfig.INITIAL_SETUP_TICKET,
+            restore={passkeys.restore(activity)},
+            register={bootstrap->passkeys.register(activity,ticket=bootstrap,token=if(bootstrap==null)studyKey else null)}
+        )
     }
+
     fun restoreWithPasskey(activity: android.app.Activity,ticket: String?=null,automatic: Boolean=false){
         if(automatic&&(passkeyBusy||autoRestoreAttempted||passkeyLinked&&studySession!=null))return
         if(passkeyBusy&&ticket==null)return
@@ -162,7 +160,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
                 remoteStudy=withContext(Dispatchers.IO){studyStore.readRemote(studyCacheIdentity)}
                 studyRevision++;passkeyBusy=false;syncStudy(true)
             }catch(e: kotlinx.coroutines.CancellationException){throw e}
-            catch(e: Exception){if(!automatic&&requestId==passkeyRequestId)notify(passkeyMessage(e),true)}
+            catch(e: Exception){if((!automatic||!passkeyLinked&&BuildConfig.INITIAL_SETUP_TICKET.isNotEmpty())&&requestId==passkeyRequestId)notify(passkeyMessage(e),true)}
             finally {if(requestId==passkeyRequestId)passkeyBusy=false}
         }
     }
