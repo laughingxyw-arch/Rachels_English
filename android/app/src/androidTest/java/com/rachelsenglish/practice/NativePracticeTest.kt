@@ -47,7 +47,15 @@ class NativePracticeTest {
   bitmap.recycle()
  }
 
- @org.junit.Before fun resetSession(){rule.runOnUiThread {(rule.activity.application as PracticeApplication).model.apply {back();consumeMessage()}}}
+ @org.junit.Before fun resetSession(){
+  val model=(rule.activity.application as PracticeApplication).model
+  // Orchestrator starts with an empty cache. Let the initial catalog update finish
+  // before scrolling: replacing the bundled two-course list otherwise moves the
+  // fixture's target while it is being clicked or used for shared bounds checks.
+  rule.waitUntil(120000){!model.syncing}
+  rule.runOnUiThread {model.apply {back();consumeMessage()}}
+  rule.waitForIdle()
+ }
  @org.junit.After fun closeSession(){rule.runOnUiThread {(rule.activity.application as PracticeApplication).model.back()}}
  @get:Rule val rule=createAndroidComposeRule<MainActivity>()
  @Test fun homePlayerRetainsTaskAndReturnsToTheSameSentence(){
@@ -74,7 +82,7 @@ class NativePracticeTest {
   val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
   fun scale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
   try {
-   scale("1");rule.activityRule.scenario.recreate()
+   scale("1");rule.activityRule.scenario.recreate();rule.waitForIdle()
    showCourse("epfQlb_Tgco");rule.onNodeWithTag("course-epfQlb_Tgco").performClick()
    rule.waitUntil(15000){model.opened?.course?.id=="epfQlb_Tgco"}
    rule.runOnUiThread {model.updateLoopMode(PracticeLoop.ALL_COURSES);model.updateDrill(true);model.updateRepeatCount(2);model.start(model.opened!!.lesson.groups.lastIndex,playWhenReady=false)}
@@ -423,7 +431,7 @@ class NativePracticeTest {
   fun badgeValues()=rule.onAllNodesWithTag("cover-duration-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().map {it.config[CoverBadgeOpacityKey]}
   try {
    rule.activity.getSharedPreferences("practice-native",0).edit().putInt("position.epfQlb_Tgco",0).commit()
-   scale("1");rule.activityRule.scenario.recreate()
+   scale("1");rule.activityRule.scenario.recreate();rule.waitForIdle()
    showCourse("epfQlb_Tgco")
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    val model=(rule.activity.application as PracticeApplication).model
@@ -486,7 +494,7 @@ class NativePracticeTest {
   fun animationScale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
   fun frames(ms: Long){repeat((ms/16).toInt()){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(20)}}
   try {
-   animationScale("1");rule.activityRule.scenario.recreate()
+   animationScale("1");rule.activityRule.scenario.recreate();rule.waitForIdle()
    showCourse("4dXbgvm4_7g")
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    val course=rule.onNodeWithTag("course-4dXbgvm4_7g").fetchSemanticsNode().boundsInRoot
@@ -542,7 +550,7 @@ class NativePracticeTest {
   fun animationScale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
   fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(10)}
   try {
-   animationScale("1");rule.activityRule.scenario.recreate()
+   animationScale("1");rule.activityRule.scenario.recreate();rule.waitForIdle()
    showCourse("4dXbgvm4_7g")
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    val target=rule.onNodeWithTag("course-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
@@ -588,7 +596,7 @@ class NativePracticeTest {
   fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(10)}
   try {
    rule.activity.getSharedPreferences("practice-native",0).edit().putInt("position.epfQlb_Tgco",0).commit()
-   scale("1");rule.activityRule.scenario.recreate()
+   scale("1");rule.activityRule.scenario.recreate();rule.waitForIdle()
    showCourse("epfQlb_Tgco")
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-epfQlb_Tgco",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    val model=(rule.activity.application as PracticeApplication).model
@@ -670,7 +678,7 @@ class NativePracticeTest {
   fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(10)}
   try {
    rule.activity.getSharedPreferences("practice-native",0).edit().putInt("position.4dXbgvm4_7g",2).commit()
-   scale("1");rule.activityRule.scenario.recreate()
+   scale("1");rule.activityRule.scenario.recreate();rule.waitForIdle()
    showCourse("4dXbgvm4_7g")
    rule.waitUntil(10000){rule.onAllNodesWithTag("cover-ready-4dXbgvm4_7g",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()}
    rule.mainClock.autoAdvance=false
@@ -703,7 +711,7 @@ class NativePracticeTest {
   fun scale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
   fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(15)}
   try {
-   scale("1");rule.activityRule.scenario.recreate()
+   scale("1");rule.activityRule.scenario.recreate();rule.waitForIdle()
    showCourse("4dXbgvm4_7g")
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
    rule.waitUntil(10000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
@@ -749,9 +757,10 @@ class NativePracticeTest {
   fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(15)}
   fun width()=rule.onNodeWithTag("reading-space",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot.width
   try {
-   animationScale("1");rule.activityRule.scenario.recreate()
+   animationScale("1");rule.activityRule.scenario.recreate();rule.waitForIdle()
    showCourse("4dXbgvm4_7g")
    rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
+   rule.waitUntil(15000){rule.onAllNodesWithTag("lesson").fetchSemanticsNodes().isNotEmpty()}
    rule.onNodeWithTag("lesson").assertExists()
    rule.waitForIdle()
    val full=width()
