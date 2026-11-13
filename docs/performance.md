@@ -57,3 +57,7 @@
 参考：[Android 慢渲染与帧预算](https://developer.android.com/topic/performance/issues/render)、[Macrobenchmark 指标](https://developer.android.com/topic/performance/benchmarking/macrobenchmark-metrics)。
 
 2.1.18 已通过云端 Release 编译、Lint（无错误）、53 项单元测试、29 项原生模拟器回归与两个 APK 的签名校验（[构建 42992796295](https://github.com/laughingxyw-arch/Rachels_English/actions/runs/42992796295)，源码 bc7b183）。首页回归确认暂停后切句保留暂停、当前课程可见、点击播放器名称回到原句和 Drill 模式；既有后台跨课、返回落地首帧及长按回归继续通过。后端 13 项验证、浏览器 WebAuthn 与 Cloudflare 生产原生来源签名验证通过，均使用隔离夹具，不能代替小米凭据服务测试。通行密钥与学习记录网络操作在 IO 调度器执行，系统凭据交互由前台 Activity 发起；学习缓存以稳定账户标识区分，不随会话轮换重建。首页复用原播放器和播放任务，当前课程标记通过派生状态观察课程/运行边界，不观察逐帧音频位置；没有新增封面解码或全屏过滤层。首页播放器增加一行课程名称，表面最大 360dp × 104dp，模糊过滤仍仅覆盖可见浮动表面；需实测增加的局部过滤成本。名称只在导航边界切换布局，控制按钮保持底部位置。小米 15 / Android 16 通行密钥凭据服务、卸载后恢复、120Hz 帧时间均未验证。
+
+2.1.20 改为单人固定云端记录，取消通行密钥绑定。云端学习网络请求与本机 SQLite 仍在 IO 调度器执行，按既有一分钟及生命周期边界同步；统计页面只读取同步完成的快照，不新增逐帧订阅。设置继续复用原地展开，减少绑定按钮，没有增加玻璃过滤区域、文字测量或共享转场布局成本。Debug 统计接口与个人生产档案隔离，模拟器数据不进入个人记录。
+
+后端 19 项测试通过；生产旧记录逐行核对、原值重传幂等检查、每日私有快照与隔离 SQLite 恢复验证通过。原生回归启用 Android Test Orchestrator，隔离测试进程及应用数据；空缓存启动先等待在线目录更新结束，再布置滚动位置和测量共享边界，不降低原有动画与播放断言。云端 Release 编译、Lint、53 项单元测试、29 项原生模拟器回归及两个 APK 的签名检查全部通过（[构建 43360134293](https://github.com/laughingxyw-arch/Rachels_English/actions/runs/43360134293)，源码 8cb988d）。小米 15 / Android 16 的实际重装恢复和 120Hz 帧时间均未验证，模拟器检查不能作为真机性能验收。
