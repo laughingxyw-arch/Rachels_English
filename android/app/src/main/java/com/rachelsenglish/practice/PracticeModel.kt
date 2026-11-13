@@ -246,6 +246,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         player.addListener(object: Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {if(state==Player.STATE_ENDED&&playback.running&&!playback.waiting){if(continuousActive)finishContinuous() else enterWait()}}
             override fun onPlayerError(error: PlaybackException) {
+                android.util.Log.w("CoursePlayback","Audio error: ${error.errorCodeName}",error)
                 if(loopMode==PracticeLoop.ALL_COURSES){opened?.course?.id?.let {unavailableCourses.add(it)};changeCourse(1,true)}
                 else {stop();notify("音频播放失败，请重新打开课程。",true)}
             }
@@ -457,7 +458,9 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         playback=playback.copy(paused=true,waitSeconds=remaining);releaseWaitLock();player.pause()
     }}
     fun stop(){cancelCourseSwitch();cancelPrefetch();stopPlayback()}
-    private fun stopPlayback(){sampleStudy();flushStudy();syncStudy();studyMeter.reset();studyWaitRemaining=null;audioStartToken++;releaseWaitLock();playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0,taskProgress=null);player.stop()}
+    private fun stopPlayback(){
+        if(BuildConfig.DEBUG&&loopMode==PracticeLoop.ALL_COURSES&&playback.running)android.util.Log.w("CoursePlayback","Logical task stop: ${opened?.course?.id} selected=${playback.selected} changing=$courseChanging",Throwable("Stop caller"))
+        sampleStudy();flushStudy();syncStudy();studyMeter.reset();studyWaitRemaining=null;audioStartToken++;releaseWaitLock();playback=playback.copy(running=false,paused=false,waiting=false,source=-1.0,repeat=0,taskProgress=null);player.stop()}
     fun seekMedia(positionMs: Long){
         if(queue.isEmpty()||opened==null||mediaTimeline.clipCount==0)return
         sampleStudy();studyMeter.reset();studyWaitRemaining=null

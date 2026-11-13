@@ -18,7 +18,7 @@ class CoursePlaybackInstrumentedTest {
  private fun awaitCourse(id: String){
   try {rule.waitUntil(45000){model.opened?.course?.id==id&&!model.courseChanging}}
   catch(e: androidx.compose.ui.test.ComposeTimeoutException){
-   throw AssertionError("Expected course=$id current=${model.opened?.course?.id} changing=${model.courseChanging} loop=${model.loopMode} drill=${model.drill} playback=${model.playback}",e)
+   throw AssertionError("Expected course=$id current=${model.opened?.course?.id} changing=${model.courseChanging} loop=${model.loopMode} drill=${model.drill} playback=${model.playback} message=${model.message}",e)
   }
  }
  private fun reset(){rule.runOnUiThread {model.back();model.courseOpener=model.repository::open;model.updateLoopMode(PracticeLoop.OFF);model.updateRepeatCount(3);model.updateShadow(false)};rule.mainClock.autoAdvance=true}
