@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark"><title>验证通行密钥 · 原声练习</title><style>body{font:17px/1.65 system-ui;max-width:28rem;margin:16vh auto;padding:24px}h1{font-size:27px;font-weight:550}a{display:inline-block;color:#2484cd;padding:12px 0;text-decoration:none}p{opacity:.7}button{font:inherit;border:0;background:transparent;color:#2484cd;padding:12px 0;cursor:pointer}a[aria-disabled="true"]{opacity:.4;cursor:default}</style><h1>验证通行密钥</h1><p id="status">在已安装的应用中继续，使用系统通行密钥完成验证。</p><a id="open" role="link" aria-disabled="true">打开应用</a><script>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark"><title>验证通行密钥 · 原声练习</title><style>body{font:17px/1.65 system-ui;max-width:28rem;margin:16vh auto;padding:24px}h1{font-size:27px;font-weight:550}a{display:inline-block;color:#2484cd;padding:12px 0;text-decoration:none}p{opacity:.7}button{font:inherit;border:0;background:transparent;color:#2484cd;padding:12px 0;cursor:pointer}button:disabled,a[aria-disabled="true"]{opacity:.4;cursor:default}</style><h1>验证通行密钥</h1><p id="status">直接保存系统通行密钥，再打开 App 恢复学习记录。</p><button id="save" disabled>保存通行密钥</button><br><a id="open" role="link" aria-disabled="true">在 App 中继续</a><script>
 const valid=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 let ticket=location.hash.slice(1);
 const storageKey='pending-'+location.pathname;
@@ -22,4 +22,4 @@ else {
   },1500);
  });
 }
-</script></html>
+</script><script src="/passkey-enroll.js"></script></html>

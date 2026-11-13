@@ -2,6 +2,7 @@
 import {createServer} from 'node:http';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
+import {readFileSync} from 'node:fs';
 import {database} from './fixture-db.mjs';
 import {handlePasskey} from '../lib/passkeys.js';
 import {onRequest} from '../functions/api/study.js';
@@ -16,6 +17,8 @@ await db.prepare('INSERT INTO study VALUES(?,?,?,?,?,?)').bind(account,'a'.repea
 let origin;
 const server=createServer(async(req,res)=>{
  try {
+  if(req.url.startsWith('/passkey-probe/')){res.setHeader('Content-Type','text/html');res.end(readFileSync(new URL('../../site/dist/passkey-probe/index.html',import.meta.url)));return}
+  if(req.url==='/passkey-enroll.js'){res.setHeader('Content-Type','text/javascript');res.end(readFileSync(new URL('../../site/dist/passkey-enroll.js',import.meta.url)));return}
   if(req.url==='/'){res.setHeader('Content-Type','text/html');res.end('<!doctype html><title>Local passkey verification</title>');return}
   const parts=[];for await(const part of req)parts.push(part);
   const request=new Request(origin+req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:Buffer.concat(parts)}:{})});
@@ -28,13 +31,26 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||u
 try {
  const page=await browser.newPage();const cdp=await page.context().newCDPSession(page);await cdp.send('WebAuthn.enable');
  await cdp.send('WebAuthn.addVirtualAuthenticator',{options:{protocol:'ctap2',transport:'internal',hasResidentKey:true,hasUserVerification:true,isUserVerified:true,automaticPresenceSimulation:true}});
- await page.goto(origin);
- const registered=await page.evaluate(async({ticket})=>{
-  const post=async(path,body)=>{const r=await fetch('/api/passkey/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw Error('Registration HTTP '+r.status);return r.json()};
-  const decode=s=>Uint8Array.from(atob(s.replaceAll('-','+').replaceAll('_','/')),c=>c.charCodeAt(0));
-  const c=await post('register/options',{ticket}),o=c.options;o.challenge=decode(o.challenge);o.user.id=decode(o.user.id);o.excludeCredentials=o.excludeCredentials.map(k=>({...k,id:decode(k.id)}));
-  const credential=await navigator.credentials.create({publicKey:o});return post('register/finish',{ticket,challengeId:c.challengeId,credential:credential.toJSON()});
- },{ticket});assert.equal(registered.account,account);
+ await page.goto(origin+'/passkey-probe/#'+ticket);
+ // Cancel before saving: no enrollment is consumed and retry remains available.
+ await page.evaluate(()=>{const original=navigator.credentials.create.bind(navigator.credentials);let first=true;window.createdKeys=0;navigator.credentials.create=async options=>{if(first){first=false;throw new DOMException('Cancelled','NotAllowedError');}window.createdKeys++;return original(options);};});
+ await page.locator('#save').click();
+ await page.waitForFunction(()=>document.getElementById('status').textContent.includes('已取消'));
+ assert.equal((await db.prepare('SELECT used FROM passkey_enrollments WHERE hash=?').bind(await sha(ticket)).first()).used,0);
+ // Lost connection at finish: retry the same assertion, never create another key.
+ let failFinish=true;
+ await page.route('**/api/passkey/register/finish',async route=>{if(failFinish){failFinish=false;await route.abort();}else await route.continue();});
+ await page.locator('#save').click();
+ await page.waitForFunction(()=>document.getElementById('save').textContent==='重试确认绑定');
+ assert.equal(await page.evaluate(()=>window.createdKeys),1);
+ await page.locator('#save').click();
+ await page.waitForFunction(()=>document.getElementById('save').textContent==='已保存');
+ assert.match(await page.locator('#status').textContent(),/通行密钥已关联/);
+ assert.equal(await page.evaluate(()=>location.hash),'');
+ assert.equal(await page.evaluate(()=>sessionStorage.getItem('pending-/passkey-probe/')),null);
+ assert.equal((await db.prepare('SELECT used FROM passkey_enrollments WHERE hash=?').bind(await sha(ticket)).first()).used,1);
+ assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM passkeys WHERE account=?').bind(account).first()).n,1);
+ assert.equal(await page.evaluate(()=>localStorage.length),0);
  // Fresh page, no saved token or app storage; only the system authenticator retains its key.
  await page.goto(origin);
  const restored=await page.evaluate(async()=>{
