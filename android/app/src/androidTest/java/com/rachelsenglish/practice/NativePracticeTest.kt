@@ -80,7 +80,7 @@ class NativePracticeTest {
    rule.onNodeWithTag("loop-"+mode.name).performClick()
    rule.mainClock.autoAdvance=false
    rule.onNodeWithContentDescription("播放").performClick();rule.mainClock.advanceTimeBy(32)
-   rule.waitUntil(10000){model.isAudioPlaying&&model.playback.progress>.03f}
+   rule.waitUntil(10000){model.playback.running&&!model.playback.paused&&model.playback.progress>.03f}
    rule.onNodeWithContentDescription("暂停").performClick();rule.mainClock.advanceTimeBy(32)
    rule.mainClock.autoAdvance=true
    rule.onNodeWithTag("home-player-course").performClick()

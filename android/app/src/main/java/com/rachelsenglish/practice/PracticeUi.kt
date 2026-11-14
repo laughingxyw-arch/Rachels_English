@@ -45,6 +45,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.*
@@ -403,13 +404,14 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         var previous: ReadingFollowRequest?=null
         var suspended=false
         var armed=false
-        snapshotFlow {ReadingFollowRequest(selected,playing,model.mediaTaskId,dragging,focusLine?.takeIf {it.first==selected}?.let {it.second to it.third})}.collectLatest {request->
+        snapshotFlow {ReadingFollowRequest(selected,playing,model.mediaTaskId,dragging,if(playing)focusLine?.takeIf {it.first==selected}?.let {it.second to it.third} else null)}.collectLatest {request->
             val old=previous;previous=request
             if(request.dragging)suspended=true
             if(old==null)return@collectLatest // Keep restored entry in its very first layout.
-            if(request.selected!=old.selected||request.task!=old.task||request.playing&&!old.playing)armed=true
+            val explicitSelection=request.task!=old.task
+            if(request.selected!=old.selected||explicitSelection||request.playing&&!old.playing)armed=true
             if(request.task!=old.task||request.playing&&!old.playing)suspended=false
-            if(!armed||!request.playing||suspended||request.dragging||list.isScrollInProgress)return@collectLatest
+            if(!armed||(!request.playing&&!explicitSelection)||suspended||request.dragging||list.isScrollInProgress)return@collectLatest
             snapshotFlow {list.layoutInfo.totalItemsCount}.first {it>request.selected+1}
             val layout=list.layoutInfo
             val viewport=(layout.viewportEndOffset-layout.viewportStartOffset-followInset).toFloat()
@@ -508,7 +510,14 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val style=LocalMaterialStyle.current
     val accent=Accent
     val progress=animateFloatAsState(p.taskProgress?:0f,if(LocalReduced.current||p.taskProgress==0f)snap() else tween(45,easing=LinearEasing),label="transport-light")
-    Column(modifier.animateContentSize(if(LocalReduced.current)snap() else spring(1f,600f)),horizontalAlignment=Alignment.CenterHorizontally) {
+    val backdrop=Backdrop
+    Column(modifier.drawWithCache {
+        // A bounded, unfiltered scrim keeps the transparent quick controls from
+        // overlapping dialogue. Extend through the caller's horizontal inset.
+        val edge=28.dp.toPx();val top=-32.dp.toPx()
+        val brush=Brush.verticalGradient(0f to Color.Transparent,.28f to backdrop,1f to backdrop,startY=top,endY=size.height)
+        onDrawBehind {drawRect(brush,topLeft=Offset(-edge,top),size=Size(size.width+edge*2,size.height-top))}
+    }.animateContentSize(if(LocalReduced.current)snap() else spring(1f,600f)),horizontalAlignment=Alignment.CenterHorizontally) {
         TransportQuickControls(model,interactive)
         FrostedSurface(Modifier.widthIn(max=360.dp).testTag("player-surface").semantics {p.taskProgress?.let {progressBarRangeInfo=ProgressBarRangeInfo(it,0f..1f)}},radius=32.dp) {
             if(p.taskProgress!=null)Canvas(Modifier.matchParentSize()){
