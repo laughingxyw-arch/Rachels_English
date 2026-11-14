@@ -690,13 +690,13 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     LaunchedEffect(interactive){if(!interactive)expanded=false}
     Row(Modifier.widthIn(max=360.dp).fillMaxWidth(),horizontalArrangement=Arrangement.End,verticalAlignment=Alignment.CenterVertically) {
         Box(Modifier.heightIn(min=48.dp).padding(horizontal=4.dp).testTag("translation-quick")
-            .toggleable(model.translation,enabled=interactive,role=Role.Switch,interactionSource=remember {MutableInteractionSource()},indication=null,onValueChange=model::updateTranslation)
+            .then(if(interactive)Modifier.toggleable(model.translation,role=Role.Switch,interactionSource=remember {MutableInteractionSource()},indication=null,onValueChange=model::updateTranslation) else Modifier)
             .semantics {contentDescription="中文翻译";stateDescription=if(model.translation)"开启" else "关闭"}.padding(horizontal=12.dp),contentAlignment=Alignment.Center) {
             Text(if(model.translation)"中文 开" else "中文 关",fontSize=12.sp,color=if(model.translation)Accent else Muted)
         }
         Box {
             Box(Modifier.heightIn(min=48.dp).testTag("loop-setting")
-                .clickable(enabled=interactive,interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={expanded=!expanded})
+                .then(if(interactive)Modifier.clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={expanded=!expanded}) else Modifier)
                 .semantics {contentDescription="循环范围";stateDescription=model.loopMode.label}.padding(horizontal=12.dp),contentAlignment=Alignment.Center) {
                 Text("循环 ${model.loopMode.label}",fontSize=12.sp,color=if(model.loopMode!=PracticeLoop.OFF)Accent else Muted)
             }
