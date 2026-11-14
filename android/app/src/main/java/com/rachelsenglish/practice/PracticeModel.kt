@@ -67,7 +67,8 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
             // Position is supplied live; do not rebuild the media session on every UI tick.
             if(old.running!=value.running||old.paused!=value.paused||old.selected!=value.selected||old.waiting!=value.waiting)mediaChanged?.invoke()
         }
-    var mediaTaskId=0;private set
+    var mediaTaskId by mutableIntStateOf(0);private set
+    val hasPlaybackTask: Boolean get()=playback.running||mediaEnded
     var mediaDiscontinuity=0;private set
     var mediaArtwork: ByteArray?=null;private set
     private var artworkJob: Job?=null
@@ -233,7 +234,7 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
         }
     }
     fun open(course: Course){
-        if(opened?.course?.id==course.id&&!readingVisible&&playback.running&&!courseChanging){
+        if(opened?.course?.id==course.id&&!readingVisible&&hasPlaybackTask&&!courseChanging){
             openToken++;openJob?.cancel();loadingId=null;readingVisible=true;readingSessionId++;inlineCourseId=null;return
         }
         val wasChanging=courseChanging;cancelCourseSwitch();if(wasChanging)stopPlayback()
@@ -248,11 +249,11 @@ class PracticeModel(application: Application): AndroidViewModel(application) {
     fun back(){openToken++;openJob?.cancel();loadingId=null;stop();readingVisible=false;readingSessionId++;inlineCourseId=null;opened=null;artworkJob?.cancel();mediaArtwork=null;mediaChanged?.invoke()}
     private fun hideReading(){readingVisible=false;readingSessionId++;inlineCourseId=null}
     fun leaveReading(){
-        if(loopMode==PracticeLoop.ALL_COURSES&&opened!=null){openToken++;openJob?.cancel();loadingId=null;hideReading()}
+        if(opened!=null&&(hasPlaybackTask||loopMode==PracticeLoop.ALL_COURSES)){openToken++;openJob?.cancel();loadingId=null;hideReading()}
         else back()
     }
     fun finishBack(origin: OpenLesson?){if(opened===origin){
-        if(loopMode==PracticeLoop.ALL_COURSES)hideReading()
+        if(hasPlaybackTask||loopMode==PracticeLoop.ALL_COURSES)hideReading()
         else {
             // Do not cancel a new manual open which is still downloading while
             // this visual return settles onto the library.

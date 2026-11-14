@@ -10,6 +10,9 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -59,6 +62,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collectLatest
 
 private val Ink: Color @Composable get()=LocalPracticePalette.current.ink
 private val Muted: Color @Composable get()=LocalPracticePalette.current.muted
@@ -78,7 +82,14 @@ val ReadingFirstOffsetKey=SemanticsPropertyKey<Int>("ReadingFirstOffset")
 val CourseTitleLineCountKey=SemanticsPropertyKey<Int>("CourseTitleLineCount")
 val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
 @Composable fun PracticeApp(model: PracticeModel) {
-    val homePlayback by remember(model){derivedStateOf {model.opened!=null&&model.playback.running}}
+    val view=LocalView.current
+    val readingVisible=model.readingLesson!=null
+    DisposableEffect(view,readingVisible){
+        val previous=view.keepScreenOn
+        view.keepScreenOn=readingVisible
+        onDispose {view.keepScreenOn=previous}
+    }
+    val homePlayback by remember(model){derivedStateOf {model.opened!=null&&model.hasPlaybackTask}}
     val environment=rememberVisualEnvironment()
     val style=materialStyle(environment,model.reduceTransparency,model.enhanceContrast)
     val dark=androidx.compose.foundation.isSystemInDarkTheme()
@@ -210,7 +221,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                         UtilityPage(model,closeRecords,{settings=true},{course->closeRecords();model.open(course)})
                     }
                 }
-                NoticePill(model,Modifier.align(Alignment.BottomCenter).padding(horizontal=24.dp).padding(bottom=if(homePlayback&&model.readingLesson==null)132.dp else if(model.readingLesson!=null)88.dp else 24.dp))
+                NoticePill(model,Modifier.align(Alignment.BottomCenter).padding(horizontal=24.dp).padding(bottom=if(homePlayback&&model.readingLesson==null)184.dp else if(model.readingLesson!=null)140.dp else 24.dp))
             }
             if(settings&&(model.opened!=null||utilityPage!=null))SettingsSheet(model,environment.highContrast,settingsSheet,{sheetHeight=it},{settings=false},generalOnly=utilityPage!=null)
         }
@@ -260,7 +271,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     }
 }
 @Composable private fun Library(model: PracticeModel,shared: SharedTransitionScope,visibility: AnimatedVisibilityScope,list: LazyGridState,query: String,changeQuery: (String)->Unit,records: ()->Unit) {
-    val activeCourse by remember(model){derivedStateOf {model.opened?.course?.id.takeIf {model.playback.running}}}
+    val activeCourse by remember(model){derivedStateOf {model.opened?.course?.id.takeIf {model.hasPlaybackTask}}}
     val courses=model.courses.filter { "${it.title} ${it.label}".contains(query,true) }
     val refreshState=remember {RefreshMotion()}
     val scope=rememberCoroutineScope()
@@ -308,7 +319,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     }}
     Box(Modifier.fillMaxSize().nestedScroll(connection)
         .testTag("library-refresh").semantics {this[LibraryPullKey]=refreshState.distanceFraction;customActions=listOf(CustomAccessibilityAction("更新课程"){latestRequest();true})}) {
-    LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,if(activeCourse!=null)136.dp else 24.dp),
+    LazyVerticalGrid(GridCells.Adaptive(360.dp),state=list,contentPadding=PaddingValues(16.dp,20.dp,16.dp,if(activeCourse!=null)192.dp else 24.dp),
         horizontalArrangement=Arrangement.spacedBy(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.graphicsLayer {translationY=72.dp.toPx()*refreshState.distanceFraction}.testTag("library")) {
         item(span={GridItemSpan(maxLineSpan)}) {
             Column {
@@ -378,30 +389,41 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     // Restore before the first measure; entry must not reveal the header then scroll away.
     val entrySelected=remember(open.course.id){selected}
     val list=androidx.compose.foundation.lazy.rememberLazyListState(initialFirstVisibleItemIndex=if(entrySelected==0)0 else entrySelected+1)
-    var followedSelected by remember(open.course.id){mutableIntStateOf(entrySelected)}
+    var focusLine by remember(open.course.id){mutableStateOf<Triple<Int,Int,Int>?>(null)}
+    val playing by remember(model){derivedStateOf {model.playback.running&&!model.playback.paused}}
+    val dragging by list.interactionSource.collectIsDraggedAsState()
     val coverEnd=with(LocalDensity.current){110.dp.roundToPx()}
-    val followInset=with(LocalDensity.current){104.dp.roundToPx()}
+    // Reserve the floating quick settings + player, independently of list padding.
+    val followInset=with(LocalDensity.current){156.dp.roundToPx()}
+    val density=LocalDensity.current
+    val tailSpace=LocalConfiguration.current.screenHeightDp.dp*.3f+156.dp
     val headerVisible by remember(list,coverEnd){derivedStateOf {list.firstVisibleItemIndex==0&&list.firstVisibleItemScrollOffset<coverEnd}}
     val reduced=LocalReduced.current
-    LaunchedEffect(selected) {
-        // Auto-follow only a subsequent sentence change, never the restored entry position.
-        if(selected==followedSelected)return@LaunchedEffect
-        followedSelected=selected
-        snapshotFlow {list.layoutInfo.totalItemsCount}.first {it>0}
-        // Never compete with a user's drag or fling. The next sentence change can follow again.
-        if(list.isScrollInProgress)return@LaunchedEffect
-        val layout=list.layoutInfo
-        val item=layout.visibleItemsInfo.firstOrNull {it.index==selected+1}
-        if(item==null){
-            if(reduced)list.scrollToItem(selected+1) else list.animateScrollToItem(selected+1)
-        }else{
-            val bottom=layout.viewportEndOffset-followInset
-            val delta=when {
-                item.offset<layout.viewportStartOffset->(item.offset-layout.viewportStartOffset).toFloat()
-                item.offset+item.size>bottom->(item.offset+item.size-bottom).toFloat()
-                else->0f
+    LaunchedEffect(open.course.id,reduced) {
+        var previous: ReadingFollowRequest?=null
+        var suspended=false
+        var armed=false
+        snapshotFlow {ReadingFollowRequest(selected,playing,model.mediaTaskId,dragging,focusLine?.takeIf {it.first==selected}?.let {it.second to it.third})}.collectLatest {request->
+            val old=previous;previous=request
+            if(request.dragging)suspended=true
+            if(old==null)return@collectLatest // Keep restored entry in its very first layout.
+            if(request.selected!=old.selected||request.task!=old.task||request.playing&&!old.playing)armed=true
+            if(request.task!=old.task||request.playing&&!old.playing)suspended=false
+            if(!armed||!request.playing||suspended||request.dragging||list.isScrollInProgress)return@collectLatest
+            snapshotFlow {list.layoutInfo.totalItemsCount}.first {it>request.selected+1}
+            val layout=list.layoutInfo
+            val viewport=(layout.viewportEndOffset-layout.viewportStartOffset-followInset).toFloat()
+            val item=layout.visibleItemsInfo.firstOrNull {it.index==request.selected+1}
+            if(item==null){
+                val offset=-(viewport*.2f).toInt()
+                if(reduced)list.scrollToItem(request.selected+1,offset) else list.animateScrollToItem(request.selected+1,offset)
+            }else{
+                val inset=with(density){18.dp.toPx()}
+                val focus=request.focus
+                val delta=readingFollowDelta((item.offset-layout.viewportStartOffset).toFloat(),item.size.toFloat(),viewport,
+                    focus?.first?.plus(inset)?:inset,focus?.second?.plus(inset)?:minOf(item.size.toFloat(),inset+with(density){34.dp.toPx()}))
+                if(kotlin.math.abs(delta)>.5f){if(reduced)list.scroll {scrollBy(delta)} else list.animateScrollBy(delta,spring(1f,280f))}
             }
-            if(delta!=0f){if(reduced)list.scroll {scrollBy(delta)} else list.animateScrollBy(delta,spring(1f,280f))}
         }
     }
     val seeking=LocalSeeking.current
@@ -411,7 +433,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val corner by visibility.transition.animateDp(transitionSpec={if(reduced)snap() else tween(360,easing=LinearEasing)},label="course-corner") {if(it==EnterExitState.Visible)0.dp else 18.dp}
     Box(with(shared){containerModifier(open.course,visibility)}.testTag("lesson").clip(RoundedCornerShape(corner)).background(Backdrop)
         .then(with(shared){Modifier.skipToLookaheadSize()}).fillMaxSize()) {
-        LazyColumn(state=list,modifier=Modifier.graphicsLayer {alpha=.65f+.35f*handoff.value;translationY=handoffDistance*(1f-handoff.value)}.testTag("dialogue-list").semantics {this[ReadingFirstItemKey]=list.firstVisibleItemIndex;this[ReadingFirstOffsetKey]=list.firstVisibleItemScrollOffset},contentPadding=PaddingValues(16.dp,12.dp,16.dp,128.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+        LazyColumn(state=list,modifier=Modifier.graphicsLayer {alpha=.65f+.35f*handoff.value;translationY=handoffDistance*(1f-handoff.value)}.testTag("dialogue-list").semantics {this[ReadingFirstItemKey]=list.firstVisibleItemIndex;this[ReadingFirstOffsetKey]=list.firstVisibleItemScrollOffset},contentPadding=PaddingValues(16.dp,12.dp,16.dp,tailSpace),verticalArrangement=Arrangement.spacedBy(3.dp)) {
             item(key="header") {
                 Column(Modifier.padding(bottom=18.dp)) {
                     Row(verticalAlignment=Alignment.CenterVertically) {GlyphButton("返回课程","back",model::leaveReading);Text("课程",fontSize=12.sp,color=Muted)}
@@ -435,7 +457,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
                     Row(horizontalArrangement=Arrangement.spacedBy(14.dp)) {
                         Text("%02d".format(sentence.id+1),fontSize=11.sp,color=if(active)Accent else Muted,modifier=Modifier.padding(top=6.dp))
                         Column(Modifier.weight(1f)) {
-                            ReadingText(sentence,active,if(active)model.playback.source else -1.0,reduced)
+                            ReadingText(sentence,active,if(active)model.playback.source else -1.0,reduced,onFocusLine=if(active)({top,bottom->focusLine=Triple(sentence.id,top,bottom)}) else null)
                             if(model.translation&&sentence.translation.isNotEmpty())Text(sentence.translation,fontSize=13.sp,lineHeight=21.sp,color=Muted,modifier=Modifier.padding(top=10.dp))
                             if(model.cues&&sentence.cues.isNotEmpty()){
                                 val cueAlpha=animateFloatAsState(if(active)1f else 0f,if(reduced)snap() else tween(200),label="cue-focus")
@@ -487,6 +509,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val accent=Accent
     val progress=animateFloatAsState(p.taskProgress?:0f,if(LocalReduced.current||p.taskProgress==0f)snap() else tween(45,easing=LinearEasing),label="transport-light")
     Column(modifier.animateContentSize(if(LocalReduced.current)snap() else spring(1f,600f)),horizontalAlignment=Alignment.CenterHorizontally) {
+        TransportQuickControls(model,interactive)
         FrostedSurface(Modifier.widthIn(max=360.dp).testTag("player-surface").semantics {p.taskProgress?.let {progressBarRangeInfo=ProgressBarRangeInfo(it,0f..1f)}},radius=32.dp) {
             if(p.taskProgress!=null)Canvas(Modifier.matchParentSize()){
                 val colors=if(style.highContrast)listOf(accent.copy(alpha=.12f),accent.copy(alpha=.12f)) else listOf(accent.copy(alpha=.025f),Color(0xff69b5ff).copy(alpha=.18f))
@@ -524,7 +547,6 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
             Row(Modifier.fillMaxWidth().padding(bottom=8.dp),verticalAlignment=Alignment.CenterVertically){Text(if(generalOnly)"设置" else "练习设置",fontSize=17.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f));GlyphButton("关闭设置","close",close)}
             if(!generalOnly) {
             if(model.drill) RepeatSetting(model)
-            LoopSetting(model)
             Setting("留白跟读",model.shadow,model::updateShadow)
             if(model.shadow){Row(Modifier.fillMaxWidth().padding(vertical=8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                 listOf(1f,1.5f,2f).forEach {factor->Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(if(model.gap==factor)Tint else Color.Transparent)
@@ -537,7 +559,6 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
             }
             AnimatedVisibility(generalOnly||moreExpanded,enter=if(LocalReduced.current)EnterTransition.None else expandVertically(spring(1f,600f))+fadeIn(tween(120)),exit=if(LocalReduced.current)ExitTransition.None else shrinkVertically(tween(160))+fadeOut(tween(100))) {
                 Column(Modifier.testTag("inline-preferences")) {
-                    Setting("中文翻译",model.translation,model::updateTranslation)
                     Setting("发音提示",model.cues,model::updateCues)
                     AppearanceSetting(model,systemContrast)
                     CloudStudySetting(model)
@@ -664,22 +685,26 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     }
 }
 
-@Composable private fun LoopSetting(model: PracticeModel) {
-    var expanded by rememberSaveable {mutableStateOf(false)}
-    Column {
-        Row(Modifier.fillMaxWidth().heightIn(min=56.dp).testTag("loop-setting")
-            .clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={expanded=!expanded})
-            .semantics {stateDescription=model.loopMode.label},verticalAlignment=Alignment.CenterVertically) {
-            Text("循环范围",fontSize=15.sp,modifier=Modifier.weight(1f))
-            Text(model.loopMode.label,fontSize=14.sp,color=Accent);Text("  ›",color=Muted)
+@Composable private fun TransportQuickControls(model: PracticeModel,interactive: Boolean) {
+    var expanded by remember {mutableStateOf(false)}
+    LaunchedEffect(interactive){if(!interactive)expanded=false}
+    Row(Modifier.widthIn(max=360.dp).fillMaxWidth(),horizontalArrangement=Arrangement.End,verticalAlignment=Alignment.CenterVertically) {
+        Box(Modifier.heightIn(min=48.dp).padding(horizontal=4.dp).testTag("translation-quick")
+            .toggleable(model.translation,enabled=interactive,role=Role.Switch,interactionSource=remember {MutableInteractionSource()},indication=null,onValueChange=model::updateTranslation)
+            .semantics {contentDescription="中文翻译";stateDescription=if(model.translation)"开启" else "关闭"}.padding(horizontal=12.dp),contentAlignment=Alignment.Center) {
+            Text(if(model.translation)"中文 开" else "中文 关",fontSize=12.sp,color=if(model.translation)Accent else Muted)
         }
-        AnimatedVisibility(expanded,enter=if(LocalReduced.current)EnterTransition.None else expandVertically(spring(1f,600f))+fadeIn(tween(120)),exit=if(LocalReduced.current)ExitTransition.None else shrinkVertically(tween(160))+fadeOut(tween(100))) {
-            Row(Modifier.fillMaxWidth().selectableGroup().padding(bottom=8.dp)) {
+        Box {
+            Box(Modifier.heightIn(min=48.dp).testTag("loop-setting")
+                .clickable(enabled=interactive,interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={expanded=!expanded})
+                .semantics {contentDescription="循环范围";stateDescription=model.loopMode.label}.padding(horizontal=12.dp),contentAlignment=Alignment.Center) {
+                Text("循环 ${model.loopMode.label}",fontSize=12.sp,color=if(model.loopMode!=PracticeLoop.OFF)Accent else Muted)
+            }
+            DropdownMenu(expanded=expanded&&interactive,onDismissRequest={expanded=false},shape=RoundedCornerShape(20.dp),containerColor=Surface) {
                 PracticeLoop.entries.forEach {mode->
-                    Box(Modifier.weight(1f).heightIn(min=48.dp).testTag("loop-${mode.name}")
-                        .selectable(model.loopMode==mode,interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.RadioButton,onClick={model.updateLoopMode(mode);expanded=false}),contentAlignment=Alignment.Center) {
-                        Text(mode.label,fontSize=14.sp,color=if(model.loopMode==mode)Accent else Muted)
-                    }
+                    DropdownMenuItem(text={Text(mode.label,fontSize=14.sp,color=if(model.loopMode==mode)Accent else Ink)},
+                        modifier=Modifier.testTag("loop-${mode.name}").semantics {selected=model.loopMode==mode},
+                        onClick={model.updateLoopMode(mode);expanded=false})
                 }
             }
         }

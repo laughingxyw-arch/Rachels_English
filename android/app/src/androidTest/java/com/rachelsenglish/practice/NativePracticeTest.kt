@@ -58,6 +58,68 @@ class NativePracticeTest {
  }
  @org.junit.After fun closeSession(){rule.runOnUiThread {(rule.activity.application as PracticeApplication).model.back()}}
  @get:Rule val rule=createAndroidComposeRule<MainActivity>()
+ @Test fun homeRetainsEveryLoopModeAndReadingAloneKeepsScreenAwake(){
+  val model=(rule.activity.application as PracticeApplication).model
+  assertFalse(rule.activity.window.decorView.keepScreenOn)
+  for(mode in listOf(PracticeLoop.OFF,PracticeLoop.SENTENCE,PracticeLoop.LESSON)){
+   showCourse("4dXbgvm4_7g");rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
+   rule.waitUntil(15000){model.readingLesson!=null};rule.waitForIdle()
+   // LocalView is Compose's AndroidComposeView, inside the decor hierarchy.
+   fun screenOn(view: android.view.View): Boolean=view.keepScreenOn||(view is android.view.ViewGroup&&(0 until view.childCount).any {screenOn(view.getChildAt(it))})
+   assertTrue(screenOn(rule.activity.window.decorView))
+   rule.runOnUiThread {model.updateLoopMode(mode);model.start(2,playWhenReady=false)}
+   val task=model.mediaTaskId
+   rule.runOnUiThread {model.leaveReading()};rule.waitForIdle()
+   assertFalse(screenOn(rule.activity.window.decorView))
+   rule.onNodeWithTag("home-player-course").assertIsDisplayed()
+   rule.runOnIdle {assertTrue(model.playback.paused);assertEquals(task,model.mediaTaskId);assertEquals(mode,model.loopMode)}
+   val translation=model.translation
+   rule.onNodeWithTag("translation-quick").performClick()
+   rule.runOnIdle {assertEquals(!translation,model.translation)}
+   rule.onNodeWithTag("loop-setting").performClick()
+   rule.onNodeWithTag("loop-"+mode.name).performClick()
+   rule.mainClock.autoAdvance=false
+   rule.onNodeWithContentDescription("播放").performClick();rule.mainClock.advanceTimeBy(32)
+   rule.waitUntil(10000){model.isAudioPlaying&&model.playback.progress>.03f}
+   rule.onNodeWithContentDescription("暂停").performClick();rule.mainClock.advanceTimeBy(32)
+   rule.mainClock.autoAdvance=true
+   rule.onNodeWithTag("home-player-course").performClick()
+   rule.waitUntil(10000){model.readingLesson!=null};rule.waitForIdle()
+   assertTrue(screenOn(rule.activity.window.decorView))
+   rule.runOnIdle {assertEquals(task,model.mediaTaskId);assertTrue(model.playback.paused)}
+   rule.runOnUiThread {model.back();model.updateTranslation(false);model.updateLoopMode(PracticeLoop.OFF)}
+   rule.waitForIdle()
+  }
+ }
+ @Test fun readingFollowLeavesContextAndPausingOrDraggingStopsAutomaticMotion(){
+  val model=(rule.activity.application as PracticeApplication).model
+  showCourse("4dXbgvm4_7g");rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
+  rule.waitUntil(15000){model.readingLesson!=null};rule.waitForIdle()
+  rule.runOnUiThread {model.updateLoopMode(PracticeLoop.SENTENCE);model.updateCues(false);model.updateTranslation(false)}
+  rule.mainClock.autoAdvance=false
+  try {
+   rule.runOnUiThread {model.start(6)}
+   repeat(90){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(5)}
+   val list=rule.onNodeWithTag("dialogue-list")
+   val viewport=list.fetchSemanticsNode().boundsInRoot
+   val card=rule.onNodeWithTag("sentence-6").fetchSemanticsNode().boundsInRoot
+   val usable=viewport.height-156*rule.activity.resources.displayMetrics.density
+   assertTrue("Current sentence must leave room above",card.top>=viewport.top+usable*.2f-3)
+   assertTrue("Current sentence must leave room for the next one",card.bottom<=viewport.top+usable*.8f+3)
+   rule.runOnUiThread {model.pause()}
+   val position=list.fetchSemanticsNode().config[ReadingFirstOffsetKey]
+   repeat(30){rule.mainClock.advanceTimeByFrame();rule.waitForIdle()}
+   assertEquals(position,list.fetchSemanticsNode().config[ReadingFirstOffsetKey])
+   list.performTouchInput {swipeUp()}
+   repeat(60){rule.mainClock.advanceTimeByFrame();rule.waitForIdle()}
+   val manualIndex=list.fetchSemanticsNode().config[ReadingFirstItemKey]
+   val manualOffset=list.fetchSemanticsNode().config[ReadingFirstOffsetKey]
+   repeat(30){rule.mainClock.advanceTimeByFrame();rule.waitForIdle()}
+   assertEquals(manualIndex,list.fetchSemanticsNode().config[ReadingFirstItemKey])
+   assertEquals(manualOffset,list.fetchSemanticsNode().config[ReadingFirstOffsetKey])
+   screenshot("reading-context-follow")
+  } finally {rule.mainClock.autoAdvance=true;rule.runOnUiThread {model.back();model.updateLoopMode(PracticeLoop.OFF)}}
+ }
  @Test fun homePlayerRetainsTaskAndReturnsToTheSameSentence(){
   val model=(rule.activity.application as PracticeApplication).model
   try {
@@ -97,7 +159,7 @@ class NativePracticeTest {
    val list=rule.onNodeWithTag("dialogue-list").fetchSemanticsNode().config
    assertEquals(0,list[ReadingFirstItemKey])
    screenshot("playlist-course-handoff")
-   rule.onNodeWithContentDescription("练习设置").performClick();rule.onNodeWithTag("loop-setting").performClick()
+   rule.onNodeWithTag("loop-setting").performClick()
    rule.onNodeWithTag("loop-ALL_COURSES").assertExists()
    screenshot("playlist-loop-options")
   }finally{rule.runOnUiThread {model.back();model.updateLoopMode(PracticeLoop.OFF);model.updateRepeatCount(3)};scale("0")}
@@ -158,9 +220,10 @@ class NativePracticeTest {
   rule.runOnIdle {assertFalse(model.reduceTransparency);assertFalse(model.enhanceContrast)}
   rule.onNodeWithTag("appearance-setting").performScrollTo().performClick()
   screenshot("settings")
-  rule.onNodeWithText("中文翻译").performScrollTo().performClick()
-  rule.runOnIdle {assertTrue(model.translation);model.updateTranslation(false)}
+  rule.onNodeWithText("中文翻译").assertDoesNotExist()
   rule.onNodeWithContentDescription("关闭设置").performClick()
+  rule.onNodeWithTag("translation-quick").performClick()
+  rule.runOnIdle {assertTrue(model.translation);model.updateTranslation(false)}
   rule.waitForIdle()
   rule.runOnIdle {model.notify("媒体音量已静音")}
   rule.onNodeWithTag("notice").assertExists()
@@ -730,7 +793,6 @@ class NativePracticeTest {
    repeat(80){frame();val position=mode.fetchSemanticsNode().config[ModeRollPositionKey];assertTrue("Repeated taps must keep rolling down without a reset",position>=previous-.002f);previous=position}
    assertFalse(model.drill);assertEquals(2f,previous,.002f)
    screenshot("player-mode-original")
-   rule.onNodeWithContentDescription("练习设置").performClick();repeat(70){frame()}
    val row=rule.onNodeWithTag("loop-setting",useUnmergedTree=true)
    val before=row.captureToImage().toPixelMap()
    row.performTouchInput {down(androidx.compose.ui.geometry.Offset(10f,center.y))};repeat(15){frame()}
@@ -747,7 +809,6 @@ class NativePracticeTest {
    assertEquals(wasChecked,model.loop)
    rule.onNodeWithTag("loop-"+if(wasChecked)"OFF" else "SENTENCE").performClick();repeat(30){frame()}
    assertEquals(!wasChecked,model.loop)
-   rule.onNodeWithContentDescription("关闭设置").performClick();repeat(70){frame()}
    rule.runOnUiThread {model.back()};repeat(90){frame()}
   } finally {rule.mainClock.autoAdvance=true;scale("0")}
  }

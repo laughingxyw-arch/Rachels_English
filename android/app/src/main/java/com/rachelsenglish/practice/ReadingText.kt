@@ -15,16 +15,18 @@ import kotlin.math.floor
 
 private data class ReadingStroke(val start: Int,val end: Int,val progress: State<Float>,val opacity: State<Float>)
 
-@Composable fun ReadingText(sentence: Sentence,active: Boolean,source: Double,reduced: Boolean) {
+@Composable fun ReadingText(sentence: Sentence,active: Boolean,source: Double,reduced: Boolean,onFocusLine: ((Int,Int)->Unit)?=null) {
     val palette=LocalPracticePalette.current
     val contrast=LocalMaterialStyle.current.highContrast
     var layout by remember(sentence.id) {mutableStateOf<TextLayoutResult?>(null)}
     val strokes=mutableListOf<ReadingStroke>()
+    var spokenOffset=0
     val text=buildAnnotatedString {
         sentence.phrases.forEachIndexed {i,p ->
             if(i>0)append(" ")
             val start=length
             val speaking=active&&source>=p.start&&source<p.end
+            if(active&&source>=p.start)spokenOffset=start+((p.text.length-1).coerceAtLeast(0)*phraseReadProgress(p.start,p.end,source)).toInt()
             val color=key(palette){animateColorAsState(if(speaking)palette.accent else if(contrast||active)palette.ink else palette.muted,if(reduced)snap() else tween(140),label="voice-color-$i").value}
             val retained=remember(sentence.id,i){floatArrayOf(0f)}
             if(active&&source>=0)retained[0]=phraseReadProgress(p.start,p.end,source)
@@ -34,6 +36,10 @@ private data class ReadingStroke(val start: Int,val end: Int,val progress: State
             strokes.add(ReadingStroke(start,length,progress,opacity))
         }
     }
+    val measured=layout
+    val focusLine=measured?.let {it.getLineForOffset(spokenOffset.coerceIn(0,(it.layoutInput.text.length-1).coerceAtLeast(0)))}
+    val report by rememberUpdatedState(onFocusLine)
+    LaunchedEffect(active,focusLine,measured?.getLineTop(focusLine?:0),measured?.getLineBottom(focusLine?:0)){if(active&&focusLine!=null&&measured!=null)report?.invoke(measured.getLineTop(focusLine).toInt(),measured.getLineBottom(focusLine).toInt())}
     Text(text,fontSize=21.sp,lineHeight=34.sp,onTextLayout={layout=it},modifier=Modifier.drawWithContent {
         drawContent()
         val measured=layout?:return@drawWithContent
