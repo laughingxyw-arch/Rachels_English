@@ -39,7 +39,8 @@ private data class ReadingStroke(val start: Int,val end: Int,val progress: State
     val measured=layout
     val focusLine=measured?.let {it.getLineForOffset(spokenOffset.coerceIn(0,(it.layoutInput.text.length-1).coerceAtLeast(0)))}
     val report by rememberUpdatedState(onFocusLine)
-    LaunchedEffect(active,focusLine,measured?.getLineTop(focusLine?:0),measured?.getLineBottom(focusLine?:0)){if(active&&focusLine!=null&&measured!=null)report?.invoke(measured.getLineTop(focusLine).toInt(),measured.getLineBottom(focusLine).toInt())}
+    val sourceReady=active&&source>=0
+    LaunchedEffect(sourceReady,focusLine,measured?.getLineTop(focusLine?:0),measured?.getLineBottom(focusLine?:0)){if(sourceReady&&focusLine!=null&&measured!=null)report?.invoke(measured.getLineTop(focusLine).toInt(),measured.getLineBottom(focusLine).toInt())}
     Text(text,fontSize=21.sp,lineHeight=34.sp,onTextLayout={layout=it},modifier=Modifier.drawWithContent {
         drawContent()
         val measured=layout?:return@drawWithContent
