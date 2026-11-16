@@ -139,6 +139,45 @@ class NativePracticeTest {
    rule.onNodeWithTag("home-player-course").assertDoesNotExist()
   }finally{rule.runOnUiThread {model.back();model.updateLoopMode(PracticeLoop.OFF)}}
  }
+ @Test fun inlineLoopChoicesKeepTransportAnchoredAndBackClosesOnlyChoices(){
+  val model=(rule.activity.application as PracticeApplication).model
+  val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+  fun scale(value: String){automation.executeShellCommand("settings put global animator_duration_scale $value").use {fd->java.io.FileInputStream(fd.fileDescriptor).use {it.readBytes()}}}
+  fun frame(){rule.mainClock.advanceTimeByFrame();rule.waitForIdle();Thread.sleep(15)}
+  fun player()=rule.onNodeWithTag("player-surface").fetchSemanticsNode().boundsInRoot
+  try {
+   scale("1");rule.activityRule.scenario.recreate();rule.waitForIdle()
+   showCourse("4dXbgvm4_7g");rule.onNodeWithTag("course-4dXbgvm4_7g").performClick()
+   rule.waitUntil(15000){model.readingLesson!=null}
+   rule.runOnUiThread {model.start(0,playWhenReady=false)}
+   rule.waitForIdle()
+   val initial=player()
+   rule.mainClock.autoAdvance=false
+   rule.onNodeWithTag("loop-setting").performClick()
+   repeat(8){frame();assertEquals(initial.top,player().top,.5f)}
+   // Reverse while the spring is still settling, then reopen and select.
+   rule.onNodeWithTag("loop-setting").performClick()
+   repeat(8){frame();assertEquals(initial.top,player().top,.5f)}
+   rule.onNodeWithTag("loop-setting").performClick();repeat(80){frame()}
+   val options=PracticeLoop.entries.map {rule.onNodeWithTag("loop-${it.name}").fetchSemanticsNode().boundsInRoot}
+   options.zipWithNext().forEach {(left,right)->assertEquals(left.top,right.top,.5f);assertTrue(left.right<=right.left+.5f)}
+   screenshot("dock-inline-loop-choices")
+   rule.onNodeWithTag("loop-ALL_COURSES").performClick();repeat(80){frame()}
+   rule.onNodeWithTag("loop-choices").assertDoesNotExist()
+   rule.runOnIdle {assertEquals(PracticeLoop.ALL_COURSES,model.loopMode);assertTrue(model.playback.paused)}
+   assertEquals(initial.top,player().top,.5f)
+   rule.mainClock.autoAdvance=true
+   rule.onNodeWithTag("loop-setting").performClick();rule.waitForIdle()
+   rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()};rule.waitForIdle()
+   rule.onNodeWithTag("loop-choices").assertDoesNotExist()
+   rule.runOnIdle {assertNotNull(model.readingLesson)}
+   rule.runOnUiThread {model.back()};rule.waitForIdle()
+   val home=player()
+   assertEquals(initial.top,home.top,.5f);assertEquals(initial.height,home.height,.5f)
+   rule.onNodeWithTag("home-player-course").assertIsDisplayed()
+   screenshot("dock-home-compact")
+  }finally{rule.mainClock.autoAdvance=true;rule.runOnUiThread {model.back();model.updateLoopMode(PracticeLoop.OFF)};scale("0")}
+ }
  @Test fun longPressChangesCourseWithoutMovingTheTransportOrStartingPausedAudio(){
   val model=(rule.activity.application as PracticeApplication).model
   val automation=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation

@@ -511,37 +511,46 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     val accent=Accent
     val progress=animateFloatAsState(p.taskProgress?:0f,if(LocalReduced.current||p.taskProgress==0f)snap() else tween(45,easing=LinearEasing),label="transport-light")
     val backdrop=Backdrop
-    Column(modifier.drawWithCache {
-        // A bounded, unfiltered scrim keeps the transparent quick controls from
-        // overlapping dialogue. Extend through the caller's horizontal inset.
-        val edge=28.dp.toPx();val top=-32.dp.toPx()
-        val brush=Brush.verticalGradient(0f to Color.Transparent,.28f to backdrop,1f to backdrop,startY=top,endY=size.height)
+    var loopExpanded by remember {mutableStateOf(false)}
+    val reduced=LocalReduced.current
+    // Navigation closes transient choices; returning never resurrects an open tray.
+    LaunchedEffect(interactive,home){loopExpanded=false}
+    androidx.activity.compose.BackHandler(enabled=loopExpanded&&interactive){loopExpanded=false}
+    Column(modifier.widthIn(max=360.dp).drawWithCache {
+        val edge=28.dp.toPx();val top=-24.dp.toPx()
+        val brush=Brush.verticalGradient(0f to Color.Transparent,.4f to backdrop,1f to backdrop,startY=top,endY=size.height)
         onDrawBehind {drawRect(brush,topLeft=Offset(-edge,top),size=Size(size.width+edge*2,size.height-top))}
-    }.animateContentSize(if(LocalReduced.current)snap() else spring(1f,600f)),horizontalAlignment=Alignment.CenterHorizontally) {
-        TransportQuickControls(model,interactive)
-        FrostedSurface(Modifier.widthIn(max=360.dp).testTag("player-surface").semantics {p.taskProgress?.let {progressBarRangeInfo=ProgressBarRangeInfo(it,0f..1f)}},radius=32.dp) {
+    },horizontalAlignment=Alignment.CenterHorizontally) {
+        // Choices grow upwards from the dock, leaving the transport under the finger.
+        // This opaque tray adds no filtered pixels to the glass surface below.
+        AnimatedVisibility(loopExpanded&&interactive,
+            enter=if(reduced)EnterTransition.None else expandVertically(spring(1f,520f),expandFrom=Alignment.Bottom)+fadeIn(tween(160)),
+            exit=if(reduced)ExitTransition.None else shrinkVertically(spring(1f,520f),shrinkTowards=Alignment.Bottom)+fadeOut(tween(100))) {
+            LoopChoices(model,enabled=loopExpanded&&interactive,onChoose={loopExpanded=false})
+        }
+        FrostedSurface(Modifier.fillMaxWidth().testTag("player-surface").semantics {p.taskProgress?.let {progressBarRangeInfo=ProgressBarRangeInfo(it,0f..1f)}},radius=28.dp) {
             if(p.taskProgress!=null)Canvas(Modifier.matchParentSize()){
                 val colors=if(style.highContrast)listOf(accent.copy(alpha=.12f),accent.copy(alpha=.12f)) else listOf(accent.copy(alpha=.025f),Color(0xff69b5ff).copy(alpha=.18f))
                 drawRect(Brush.horizontalGradient(colors),size=androidx.compose.ui.geometry.Size(size.width*progress.value,size.height))
             }
             Column(horizontalAlignment=Alignment.CenterHorizontally) {
-            if(home) {
-                val label=model.opened?.course?.title.orEmpty()
-                Row(Modifier.fillMaxWidth().heightIn(min=48.dp).then(if(interactive)Modifier.clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={model.opened?.course?.let(model::open)}) else Modifier).testTag("home-player-course").padding(horizontal=22.dp),verticalAlignment=Alignment.CenterVertically){
-                    Text(label,fontSize=13.sp,fontWeight=FontWeight.Medium,maxLines=1,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis,modifier=Modifier.weight(1f))
-                    Text("›",color=Muted,modifier=Modifier.padding(start=12.dp))
+                TransportHeader(model,interactive,home,loopExpanded){loopExpanded=!loopExpanded}
+                Row(Modifier.padding(6.dp,4.dp),verticalAlignment=Alignment.CenterVertically) {
+                    GlyphButton("上一句","previous",model::previous,enabled=p.selected>0,longClick=if(previousCourse)({model.changeCourse(-1)}) else null,longLabel="上一课",interactive=interactive)
+                    GlyphButton(if(p.running&&!p.paused)"暂停" else "播放",if(p.running&&!p.paused)"pause" else "play",model::toggle,interactive=interactive)
+                    GlyphButton("下一句","next",model::next,enabled=p.selected<(model.opened?.lesson?.groups?.lastIndex?:0),longClick=if(nextCourse)({model.changeCourse(1)}) else null,longLabel="下一课",interactive=interactive)
+                    ModeRoller(model.drill,model::updateDrill,interactive)
+                    GlyphButton("练习设置","more",{loopExpanded=false;settings()},interactive=interactive)
                 }
             }
-            Row(Modifier.padding(6.dp,4.dp),verticalAlignment=Alignment.CenterVertically) {
-                GlyphButton("上一句","previous",model::previous,enabled=p.selected>0,longClick=if(previousCourse)({model.changeCourse(-1)}) else null,longLabel="上一课",interactive=interactive)
-                GlyphButton(if(p.running&&!p.paused)"暂停" else "播放",if(p.running&&!p.paused)"pause" else "play",model::toggle,interactive=interactive)
-                GlyphButton("下一句","next",model::next,enabled=p.selected<(model.opened?.lesson?.groups?.lastIndex?:0),longClick=if(nextCourse)({model.changeCourse(1)}) else null,longLabel="下一课",interactive=interactive)
-                ModeRoller(model.drill,model::updateDrill,interactive)
-                GlyphButton("练习设置","more",settings,interactive=interactive)
-            }
+        }
+        // Reserve the caption slot so each Drill gap cannot lift/drop the dock.
+        val waiting=p.running&&p.waiting&&model.shadow
+        Box(Modifier.height(20.dp),contentAlignment=Alignment.BottomCenter) {
+            AnimatedVisibility(waiting,enter=if(reduced)EnterTransition.None else fadeIn(tween(160)),exit=if(reduced)ExitTransition.None else fadeOut(tween(120))) {
+                Text("跟读 · %.1f 秒".format(p.waitSeconds),fontSize=11.sp,color=Muted)
             }
         }
-        if(p.running&&p.waiting&&model.shadow)Text("跟读 · %.1f 秒".format(p.waitSeconds),fontSize=11.sp,color=Muted,modifier=Modifier.padding(top=5.dp))
     }
 }
 @Composable private fun SettingsSheet(model: PracticeModel,systemContrast: Boolean,sheet: SheetState,measure: (Float)->Unit,dismiss: ()->Unit,generalOnly: Boolean=false) {
@@ -694,26 +703,50 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
     }
 }
 
-@Composable private fun TransportQuickControls(model: PracticeModel,interactive: Boolean) {
-    var expanded by remember {mutableStateOf(false)}
-    LaunchedEffect(interactive){if(!interactive)expanded=false}
-    Row(Modifier.widthIn(max=360.dp).fillMaxWidth(),horizontalArrangement=Arrangement.End,verticalAlignment=Alignment.CenterVertically) {
-        Box(Modifier.heightIn(min=48.dp).padding(horizontal=4.dp).testTag("translation-quick")
-            .then(if(interactive)Modifier.toggleable(model.translation,role=Role.Switch,interactionSource=remember {MutableInteractionSource()},indication=null,onValueChange=model::updateTranslation) else Modifier)
-            .semantics {contentDescription="中文翻译";stateDescription=if(model.translation)"开启" else "关闭"}.padding(horizontal=12.dp),contentAlignment=Alignment.Center) {
-            Text(if(model.translation)"中文 开" else "中文 关",fontSize=12.sp,color=if(model.translation)Accent else Muted)
-        }
-        Box {
-            Box(Modifier.heightIn(min=48.dp).testTag("loop-setting")
-                .then(if(interactive)Modifier.clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={expanded=!expanded}) else Modifier)
-                .semantics {contentDescription="循环范围";stateDescription=model.loopMode.label}.padding(horizontal=12.dp),contentAlignment=Alignment.Center) {
-                Text("循环 ${model.loopMode.label}",fontSize=12.sp,color=if(model.loopMode!=PracticeLoop.OFF)Accent else Muted)
+@Composable private fun TransportHeader(model: PracticeModel,interactive: Boolean,home: Boolean,expanded: Boolean,toggleLoop: ()->Unit) {
+    val reduced=LocalReduced.current
+    val chevron=animateFloatAsState(if(expanded)180f else 0f,if(reduced)snap() else spring(1f,520f),label="loop-chevron")
+    Row(Modifier.fillMaxWidth().heightIn(min=48.dp).padding(start=18.dp,end=8.dp),verticalAlignment=Alignment.CenterVertically) {
+        val openCourse=if(home&&interactive)Modifier.clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick={model.opened?.course?.let(model::open)}) else Modifier
+        Row(Modifier.weight(1f).heightIn(min=48.dp).then(openCourse).then(if(home)Modifier.testTag("home-player-course") else Modifier),verticalAlignment=Alignment.CenterVertically) {
+            Crossfade(model.opened?.course?.title.orEmpty(),modifier=Modifier.weight(1f),animationSpec=if(reduced)snap() else tween(180,easing=FastOutSlowInEasing),label="dock-course-title") {title->
+                Text(title,fontSize=12.sp,color=Muted,maxLines=1,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
-            DropdownMenu(expanded=expanded&&interactive,onDismissRequest={expanded=false},shape=RoundedCornerShape(20.dp),containerColor=Surface) {
-                PracticeLoop.entries.forEach {mode->
-                    DropdownMenuItem(text={Text(mode.label,fontSize=14.sp,color=if(model.loopMode==mode)Accent else Ink)},
-                        modifier=Modifier.testTag("loop-${mode.name}").semantics {selected=model.loopMode==mode},
-                        onClick={model.updateLoopMode(mode);expanded=false})
+            if(home)Text("›",fontSize=16.sp,color=Muted,modifier=Modifier.padding(horizontal=6.dp))
+        }
+        Box(Modifier.width(48.dp).heightIn(min=48.dp).testTag("translation-quick")
+            .then(if(interactive)Modifier.toggleable(model.translation,role=Role.Switch,interactionSource=remember {MutableInteractionSource()},indication=null,onValueChange=model::updateTranslation) else Modifier)
+            .semantics {contentDescription="中文翻译";stateDescription=if(model.translation)"开启" else "关闭"},contentAlignment=Alignment.Center) {
+            // An underline conveys enabled state without an extra 开/关 label.
+            Column(horizontalAlignment=Alignment.CenterHorizontally) {
+                Text("中文",fontSize=11.sp,color=if(model.translation)Accent else Muted)
+                Box(Modifier.padding(top=3.dp).size(12.dp,1.dp).background(if(model.translation)Accent else Color.Transparent))
+            }
+        }
+        Row(Modifier.width(76.dp).heightIn(min=48.dp).testTag("loop-setting")
+            .then(if(interactive)Modifier.clickable(interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.Button,onClick=toggleLoop) else Modifier)
+            .semantics {contentDescription="循环范围";stateDescription=model.loopMode.label+(if(expanded)"，已展开" else "，已收起")},
+            horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically) {
+            val label=when(model.loopMode){PracticeLoop.OFF->"不循环";PracticeLoop.ALL_COURSES->"全部";else->model.loopMode.label}
+            Text(label,fontSize=11.sp,color=Muted)
+            val color=Muted
+            Canvas(Modifier.padding(start=5.dp).size(8.dp).graphicsLayer {rotationZ=chevron.value}) {
+                val path=Path().apply {moveTo(0f,size.height*.35f);lineTo(size.width*.5f,size.height*.75f);lineTo(size.width,size.height*.35f)}
+                drawPath(path,color,style=Stroke(1.2.dp.toPx(),cap=StrokeCap.Round,join=StrokeJoin.Round))
+            }
+        }
+    }
+}
+
+@Composable private fun LoopChoices(model: PracticeModel,enabled: Boolean,onChoose: ()->Unit) {
+    Column(Modifier.fillMaxWidth().padding(bottom=8.dp).clip(RoundedCornerShape(20.dp)).background(Surface).testTag("loop-choices")) {
+        Row(Modifier.fillMaxWidth().selectableGroup().padding(4.dp),verticalAlignment=Alignment.CenterVertically) {
+            PracticeLoop.entries.forEach {mode->
+                val chosen=model.loopMode==mode
+                Box(Modifier.weight(1f).heightIn(min=48.dp).clip(RoundedCornerShape(16.dp)).background(if(chosen)Tint else Color.Transparent)
+                    .selectable(chosen,enabled=enabled,interactionSource=remember {MutableInteractionSource()},indication=null,role=Role.RadioButton,onClick={model.updateLoopMode(mode);onChoose()})
+                    .testTag("loop-${mode.name}"),contentAlignment=Alignment.Center) {
+                    Text(mode.label,fontSize=12.sp,fontWeight=if(chosen)FontWeight.Medium else FontWeight.Normal,color=if(chosen)Accent else Muted)
                 }
             }
         }
