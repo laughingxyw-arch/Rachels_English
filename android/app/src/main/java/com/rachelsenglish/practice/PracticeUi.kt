@@ -547,7 +547,7 @@ val ReadingSceneActiveKey=SemanticsPropertyKey<Boolean>("ReadingSceneActive")
         // Reserve the caption slot so each Drill gap cannot lift/drop the dock.
         val waiting=p.running&&p.waiting&&model.shadow
         Box(Modifier.height(20.dp),contentAlignment=Alignment.BottomCenter) {
-            AnimatedVisibility(waiting,enter=if(reduced)EnterTransition.None else fadeIn(tween(160)),exit=if(reduced)ExitTransition.None else fadeOut(tween(120))) {
+            androidx.compose.animation.AnimatedVisibility(waiting,enter=if(reduced)EnterTransition.None else fadeIn(tween(160)),exit=if(reduced)ExitTransition.None else fadeOut(tween(120))) {
                 Text("跟读 · %.1f 秒".format(p.waitSeconds),fontSize=11.sp,color=Muted)
             }
         }
