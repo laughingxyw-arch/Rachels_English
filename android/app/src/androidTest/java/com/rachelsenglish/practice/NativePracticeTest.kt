@@ -171,7 +171,7 @@ class NativePracticeTest {
    rule.runOnUiThread {rule.activity.onBackPressedDispatcher.onBackPressed()};rule.waitForIdle()
    rule.onNodeWithTag("loop-choices").assertDoesNotExist()
    rule.runOnIdle {assertNotNull(model.readingLesson)}
-   rule.runOnUiThread {model.back()};rule.waitForIdle()
+   rule.runOnUiThread {model.leaveReading()};rule.waitForIdle()
    val home=player()
    assertEquals(initial.top,home.top,.5f);assertEquals(initial.height,home.height,.5f)
    rule.onNodeWithTag("home-player-course").assertIsDisplayed()
