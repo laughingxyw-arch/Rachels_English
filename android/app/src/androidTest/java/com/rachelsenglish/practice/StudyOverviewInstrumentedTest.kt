@@ -41,7 +41,7 @@ class StudyOverviewInstrumentedTest {
   rule.onNodeWithTag("study-day-summary").performScrollTo().performClick()
   rule.onNodeWithTag("study-breakdown").performScrollTo().assertIsDisplayed()
   rule.onNodeWithText("听音 12 分钟 · 跟读 6 分钟").assertIsDisplayed()
-  rule.onNodeWithTag("study-course-duration-sample").performScrollTo().assertTextEquals("18 分钟")
+  rule.onNodeWithTag("study-course-duration-sample",useUnmergedTree=true).performScrollTo().assertTextEquals("18 分钟")
   screenshot("study-overview-details")
   rule.runOnIdle {dark.value=true};rule.waitForIdle()
   rule.onNodeWithText("听音 12 分钟 · 跟读 6 分钟").assertExists()
@@ -55,7 +55,7 @@ class StudyOverviewInstrumentedTest {
   rule.onNodeWithTag("study-window").performTouchInput {swipeLeft()};rule.waitForIdle()
   // Returning to the current three-month window selects today again.
   rule.onNodeWithTag("study-days").performScrollTo()
-  rule.onNodeWithTag("study-course-duration-sample").assertExists()
+  rule.onNodeWithTag("study-course-duration-sample",useUnmergedTree=true).assertExists()
   rule.onNodeWithText("示例课程").performScrollTo().performClick()
   rule.runOnIdle {assertEquals(course,opened)}
  }
